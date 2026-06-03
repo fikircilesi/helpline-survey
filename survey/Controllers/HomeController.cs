@@ -565,12 +565,12 @@ namespace survey.Controllers
                 using var msg = new MailMessage();
                 msg.To.Add(email);
                 msg.From = new MailAddress(smtpAyar.Gonderen);
-                msg.Subject = "Evalio by Aslana e-posta doğrulama kodu";
+                msg.Subject = "Aslana Survey Studio e-posta doğrulama kodu";
                 msg.IsBodyHtml = true;
                 msg.BodyEncoding = Encoding.UTF8;
                 msg.Body =
                     $"<h2>Merhaba {WebUtility.HtmlEncode(adSoyad)},</h2>" +
-                    "<p>Evalio by Aslana hesabınızı aktifleştirmek için doğrulama kodunuz:</p>" +
+                    "<p>Aslana Survey Studio hesabınızı aktifleştirmek için doğrulama kodunuz:</p>" +
                     $"<h1 style=\"letter-spacing:6px\">{kod}</h1>" +
                     $"<p>Bu kod {MailOnayKoduGecerlilikDakika} dakika geçerlidir.</p>";
 

@@ -630,7 +630,7 @@
         <div>
             <div class="workspace-kicker">
                 <i class="ti-dashboard"></i>
-                Evalio by Aslana çalışma alanı
+                Aslana Survey Studio çalışma alanı
             </div>
             <h1 class="workspace-title">Merhaba @kullaniciAdi, bugün neyi yayına alıyoruz?</h1>
             <p class="workspace-subtitle">
@@ -990,8 +990,8 @@
 
         function platformShareUrl(platform, shareUrl, shareTitle) {
             const encodedUrl = encodeURIComponent(shareUrl);
-            const encodedTitle = encodeURIComponent(shareTitle || "Evalio Studio");
-            const encodedText = encodeURIComponent((shareTitle || "Evalio Studio") + " " + shareUrl);
+            const encodedTitle = encodeURIComponent(shareTitle || "Aslana Survey Studio");
+            const encodedText = encodeURIComponent((shareTitle || "Aslana Survey Studio") + " " + shareUrl);
 
             switch (platform) {
                 case "whatsapp":
@@ -1016,8 +1016,8 @@
             if (navigator.share) {
                 try {
                     await navigator.share({
-                        title: currentShareTitle || "Evalio Studio",
-                        text: currentShareTitle || "Evalio Studio",
+                        title: currentShareTitle || "Aslana Survey Studio",
+                        text: currentShareTitle || "Aslana Survey Studio",
                         url: value
                     });
                     feedback.textContent = "Paylasim penceresi acildi.";
