@@ -1,4 +1,4 @@
-<svg width="258" height="54" viewBox="0 0 258 54" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evalio Studio by Aslana">
+<svg width="258" height="54" viewBox="0 0 258 54" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aslana Survey Studio">
   <defs>
     <linearGradient id="evalioLogoDarkGradient" x1="6" y1="7" x2="48" y2="49" gradientUnits="userSpaceOnUse">
       <stop stop-color="#18C7B5"/>
@@ -17,7 +17,6 @@
     <path d="M31.2 34L34.7 37.5L41 29.6" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="38.4" cy="19.4" r="3" fill="#FFF2CC"/>
   </g>
-  <text x="58" y="27" fill="#142033" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="21" font-weight="850" letter-spacing="0">Evalio</text>
-  <text x="129" y="27" fill="#4257E8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="21" font-weight="850" letter-spacing="0">Studio</text>
-  <text x="60" y="42" fill="#667085" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10" font-weight="850" letter-spacing="1.8">BY ASLANA</text>
+  <text x="58" y="26" fill="#142033" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="850" letter-spacing="0">Aslana Survey</text>
+  <text x="60" y="42" fill="#4257E8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10" font-weight="850" letter-spacing="2">STUDIO</text>
 </svg>
