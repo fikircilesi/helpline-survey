@@ -60,3 +60,4 @@ packages/
 _codex_backup_*/
 _codex_backups/
 *.c1s
+/survey/appsettings.json
