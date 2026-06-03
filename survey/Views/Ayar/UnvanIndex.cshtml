@@ -1,0 +1,43 @@
+@model IEnumerable<survey.Models.Unvan>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="panel">
+    <div>
+        <h4>ÜNVAN LİSTESİ</h4>
+    </div>
+    <div class="panel-body">
+
+        <table class="table">
+            <tr>
+                <td></td>
+                <th>
+                    Ünvan Adı
+                </th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <a class="fa fa-pencil" title="Ünvan düzenleme" href="@Url.Action("UnvanEdit", "Ayar", new { id = item.UnvanId })"></a>
+                        <a class="fa fa-trash-o" title="Ünvan sil" href="@Url.Action("UnvanDelete", "Ayar", new { id = item.UnvanId})"></a>
+                    </td>
+
+                    <td>
+                        @item.UnvanAdi
+                    </td>
+
+                </tr>
+            }
+
+        </table>
+        <div class="col-lg-9"></div>
+        <div class="col-lg-3">
+                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
+                <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("UnvanCreate", "Ayar")">Yeni</a>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,227 @@
+@model survey.Models.AiAyarForm
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .ai-settings-wrap {
+        max-width: 980px;
+        margin: 28px auto;
+        padding: 0 18px;
+    }
+
+    .ai-settings-card {
+        border: 1px solid #dbe4f2;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 18px 44px rgba(31, 41, 55, .08);
+        overflow: hidden;
+    }
+
+    .ai-settings-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #eef7ff, #f5f0ff);
+        border-bottom: 1px solid #dbe4f2;
+    }
+
+    .ai-settings-head h3 {
+        margin: 0 0 6px;
+        color: #172033;
+        font-size: 24px;
+        font-weight: 800;
+    }
+
+    .ai-settings-head p {
+        margin: 0;
+        color: #5b667a;
+    }
+
+    .ai-settings-body {
+        display: grid;
+        gap: 16px;
+        padding: 24px;
+    }
+
+    .ai-settings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .ai-field label {
+        display: block;
+        margin-bottom: 6px;
+        color: #46536a;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .ai-field input {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #cfd8e8;
+        border-radius: 7px;
+        padding: 9px 11px;
+        color: #172033;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .ai-field input:focus {
+        border-color: #1d67e8;
+        box-shadow: 0 0 0 3px rgba(29, 103, 232, .12);
+    }
+
+    .ai-help {
+        display: block;
+        margin-top: 6px;
+        color: #697386;
+        font-size: 12px;
+    }
+
+    .ai-alert {
+        border: 1px solid #ffd6a4;
+        border-radius: 7px;
+        padding: 12px 14px;
+        background: #fff8ec;
+        color: #7a4a00;
+        font-weight: 600;
+    }
+
+    .ai-success {
+        border-color: #bfe8d8;
+        background: #effbf6;
+        color: #146c43;
+    }
+
+    .ai-checkline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #172033;
+        font-weight: 700;
+    }
+
+    .ai-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        padding-top: 8px;
+    }
+
+    .ai-btn {
+        border: 1px solid #cfd8e8;
+        border-radius: 7px;
+        padding: 10px 15px;
+        background: #fff;
+        color: #172033;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .ai-btn.primary {
+        background: #1d67e8;
+        border-color: #1d67e8;
+        color: #fff;
+    }
+
+    .field-validation-error,
+    .validation-summary-errors {
+        color: #c62828;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 760px) {
+        .ai-settings-head,
+        .ai-settings-grid {
+            grid-template-columns: 1fr;
+            display: grid;
+        }
+
+        .ai-actions {
+            justify-content: stretch;
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="ai-settings-wrap">
+    <div class="ai-settings-card">
+        <div class="ai-settings-head">
+            <div>
+                <h3>Yapay Zeka Ayarlari</h3>
+                <p>Soru uretimi ve ileride embedding tabanli arama icin OpenAI baglantisini buradan yonet.</p>
+            </div>
+            <a class="ai-btn" href="@Url.Action("index", "Ayar")">Geri</a>
+        </div>
+
+        <div class="ai-settings-body">
+            @if (TempData["AiAyarMesaj"] != null)
+            {
+                <div class="ai-alert ai-success">@TempData["AiAyarMesaj"]</div>
+            }
+
+            @if (!Model.TableReady)
+            {
+                <div class="ai-alert">
+                    AI ayar tablosu henuz yok. Once
+                    <strong>DatabaseScripts/20260602_AiAyar.sql</strong>
+                    scriptini SQL Server uzerinde calistirin.
+                </div>
+            }
+
+            @using (Html.BeginForm("AiAyar", "Ayar", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                @Html.HiddenFor(model => model.AiAyarId)
+
+                <div class="ai-settings-grid">
+                    <div class="ai-field">
+                        @Html.LabelFor(model => model.Endpoint, "Endpoint")
+                        @Html.TextBoxFor(model => model.Endpoint, new { placeholder = "https://api.openai.com/v1" })
+                        @Html.ValidationMessageFor(model => model.Endpoint)
+                    </div>
+
+                    <div class="ai-field">
+                        @Html.LabelFor(model => model.ChatModel, "Soru Uretim Modeli")
+                        @Html.TextBoxFor(model => model.ChatModel, new { placeholder = "gpt-4o-mini" })
+                        @Html.ValidationMessageFor(model => model.ChatModel)
+                    </div>
+
+                    <div class="ai-field">
+                        @Html.LabelFor(model => model.EmbeddingModel, "Embedding Modeli")
+                        @Html.TextBoxFor(model => model.EmbeddingModel, new { placeholder = "text-embedding-3-small" })
+                        @Html.ValidationMessageFor(model => model.EmbeddingModel)
+                    </div>
+
+                    <div class="ai-field">
+                        @Html.LabelFor(model => model.ApiKey, "API Anahtari")
+                        @Html.PasswordFor(model => model.ApiKey, new { autocomplete = "new-password", placeholder = string.IsNullOrWhiteSpace(Model.ApiKeyMasked) ? "OpenAI API anahtarini girin" : "Bos birakirsaniz mevcut anahtar korunur" })
+                        @Html.ValidationMessageFor(model => model.ApiKey)
+                        @if (!string.IsNullOrWhiteSpace(Model.ApiKeyMasked))
+                        {
+                            <span class="ai-help">Kayitli anahtar: @Model.ApiKeyMasked</span>
+                        }
+                    </div>
+                </div>
+
+                <label class="ai-checkline">
+                    @Html.CheckBoxFor(model => model.Aktif)
+                    <span>AI uretimi aktif</span>
+                </label>
+
+                <div class="ai-actions">
+                    <a class="ai-btn" href="@Url.Action("index", "Ayar")">Vazgec</a>
+                    <button type="submit" class="ai-btn primary">Kaydet</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,307 @@
+@model survey.Controllers.HomeController.DogruCevapEditorModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .answer-editor-shell {
+        max-width: 1180px;
+        margin: 24px auto;
+        padding: 0 18px 32px;
+        color: #102033;
+    }
+
+    .answer-editor-hero {
+        border: 1px solid #d7e3f5;
+        border-radius: 14px;
+        padding: 26px 28px;
+        background: linear-gradient(135deg, #eefcf8 0%, #ffffff 50%, #eef1ff 100%);
+        box-shadow: 0 18px 48px rgba(30, 52, 85, .08);
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+    }
+
+    .answer-editor-kicker {
+        font-size: 12px;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: #265dff;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .answer-editor-title {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: 0;
+    }
+
+    .answer-editor-copy {
+        margin: 10px 0 0;
+        color: #526179;
+        max-width: 760px;
+        line-height: 1.6;
+    }
+
+    .answer-editor-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .answer-editor-btn {
+        border: 1px solid #cbd8ee;
+        background: #ffffff;
+        color: #102033;
+        border-radius: 8px;
+        min-height: 42px;
+        padding: 0 16px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .answer-editor-btn.primary {
+        background: #265dff;
+        color: #ffffff;
+        border-color: #265dff;
+    }
+
+    .answer-editor-alert {
+        margin-top: 16px;
+        border: 1px solid #b9eadc;
+        background: #ecfff8;
+        color: #0c6b4e;
+        border-radius: 10px;
+        padding: 13px 16px;
+        font-weight: 700;
+    }
+
+    .answer-editor-validation {
+        margin-top: 16px;
+        border: 1px solid #ffc4c4;
+        background: #fff0f0;
+        color: #9b1c1c;
+        border-radius: 10px;
+        padding: 13px 16px;
+    }
+
+    .answer-question-list {
+        display: grid;
+        gap: 14px;
+        margin-top: 18px;
+    }
+
+    .answer-question-card {
+        background: #ffffff;
+        border: 1px solid #d7e3f5;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 12px 30px rgba(30, 52, 85, .06);
+    }
+
+    .answer-question-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+        background: #f7fbff;
+        border-bottom: 1px solid #e3ebf7;
+    }
+
+    .answer-question-number {
+        font-size: 13px;
+        font-weight: 800;
+        color: #265dff;
+        margin-bottom: 6px;
+    }
+
+    .answer-question-text {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.45;
+    }
+
+    .answer-point {
+        min-width: 82px;
+        height: 38px;
+        border-radius: 8px;
+        background: #edf3ff;
+        color: #183064;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+    }
+
+    .answer-option-list {
+        padding: 14px 18px 18px;
+        display: grid;
+        gap: 9px;
+    }
+
+    .answer-option {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 10px;
+        align-items: center;
+        min-height: 46px;
+        border: 1px solid #dce6f4;
+        background: #f8fbff;
+        border-radius: 8px;
+        padding: 10px 12px;
+        cursor: pointer;
+    }
+
+    .answer-option:has(input:checked) {
+        border-color: #35bfa4;
+        background: #ecfff9;
+        box-shadow: inset 4px 0 0 #35bfa4;
+    }
+
+    .answer-option input {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+    }
+
+    .answer-option span {
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .answer-empty {
+        padding: 28px;
+        text-align: center;
+        border: 1px dashed #b8c9e6;
+        background: #f8fbff;
+        border-radius: 12px;
+        margin-top: 18px;
+        color: #526179;
+        font-weight: 700;
+    }
+
+    .answer-savebar {
+        position: sticky;
+        bottom: 0;
+        margin-top: 18px;
+        padding: 14px;
+        border: 1px solid #d7e3f5;
+        background: rgba(255,255,255,.96);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        box-shadow: 0 -8px 30px rgba(30, 52, 85, .08);
+    }
+
+    @@media (max-width: 760px) {
+        .answer-editor-hero {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .answer-editor-actions {
+            justify-content: flex-start;
+        }
+
+        .answer-question-head {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<main class="answer-editor-shell">
+    <section class="answer-editor-hero">
+        <div>
+            <div class="answer-editor-kicker">Evalio Studio</div>
+            <h1 class="answer-editor-title">Doğru Cevapları Düzenle</h1>
+            <p class="answer-editor-copy">
+                @Model.AnketAdi için sınavda doğru kabul edilecek şıkları buradan seçin. Kaydettiğinizde mevcut katılımcı puanları aynı kurala göre yeniden hesaplanır.
+            </p>
+        </div>
+        <div class="answer-editor-actions">
+            <a class="answer-editor-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi })">
+                <i class="fa fa-arrow-left"></i> Soru Grupları
+            </a>
+            <a class="answer-editor-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = Model.AnketId })">
+                <i class="fa fa-cog"></i> Ayarlar
+            </a>
+        </div>
+    </section>
+
+    @if (TempData["DogruCevapMesaj"] != null)
+    {
+        <div class="answer-editor-alert">@TempData["DogruCevapMesaj"]</div>
+    }
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="answer-editor-validation">
+            @Html.ValidationSummary(false)
+        </div>
+    }
+
+    @if (!Model.Sorular.Any())
+    {
+        <div class="answer-empty">Bu çalışmaya bağlı soru bulunamadı.</div>
+    }
+    else
+    {
+        using (Html.BeginForm("DogruCevapEditor", "Home", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="AnketId" value="@Model.AnketId" />
+
+            <section class="answer-question-list">
+                @foreach (var soru in Model.Sorular)
+                {
+                    var soruNo = soru.SoruSira?.ToString() ?? soru.SoruId.ToString();
+                    <article class="answer-question-card">
+                        <div class="answer-question-head">
+                            <div>
+                                <div class="answer-question-number">Soru @soruNo</div>
+                                <h2 class="answer-question-text">@soru.SoruAdi</h2>
+                            </div>
+                            <div class="answer-point">@String.Format("{0:n2}", soru.SoruPuan)</div>
+                        </div>
+
+                        <div class="answer-option-list">
+                            @foreach (var cevap in soru.Cevaplar)
+                            {
+                                var inputId = $"dogru_{soru.SoruId}_{cevap.CevapId}";
+                                <label class="answer-option" for="@inputId">
+                                    <input id="@inputId"
+                                           type="radio"
+                                           name="DogruCevaplar[@soru.SoruId]"
+                                           value="@cevap.CevapId"
+                                           @(cevap.CevapId == soru.DogruCevapId ? "checked" : "")
+                                           required />
+                                    <span>@cevap.CevapAdi</span>
+                                </label>
+                            }
+                        </div>
+                    </article>
+                }
+            </section>
+
+            <div class="answer-savebar">
+                <a class="answer-editor-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi })">Vazgeç</a>
+                <button type="submit" class="answer-editor-btn primary">
+                    <i class="fa fa-check"></i> Doğru Cevapları Kaydet
+                </button>
+            </div>
+        }
+    }
+</main>

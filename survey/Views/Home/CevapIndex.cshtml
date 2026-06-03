@@ -1,0 +1,182 @@
+@model IEnumerable<survey.Models.Cevap>
+@using System
+@using System.Globalization
+@using System.Linq
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var cevaplar = (Model ?? Enumerable.Empty<survey.Models.Cevap>()).ToList();
+    var grupSayisi = cevaplar.Select(x => x.CevapGrupId).Where(x => x.HasValue).Distinct().Count();
+    var dogruSayisi = cevaplar.Count(x => x.Dogru == true);
+    var ortalamaPuan = cevaplar.Any() ? cevaplar.Average(x => x.CevapPuan ?? 0) : 0;
+    Func<string, string> safe = value => string.IsNullOrWhiteSpace(value) ? "Tanımsız" : value.Trim();
+    Func<double?, string> number = value => value.HasValue ? value.Value.ToString("0.##", new CultureInfo("tr-TR")) : "0";
+}
+
+<div class="bank-page">
+    <section class="bank-hero">
+        <div>
+            <span class="bank-eyebrow">Cevap ölçeği</span>
+            <h1>Seçenek Bankası</h1>
+            <p>Anketlerde seçenek puanı, sınavlarda doğru cevap bilgisi bu kayıtlar üzerinden çalışır. Aynı seçenek grubu birden fazla soruda tekrar kullanılabilir.</p>
+            <div class="bank-chip-row">
+                <span><i class="fa fa-check-square-o"></i> @cevaplar.Count seçenek</span>
+                <span><i class="fa fa-layer-group"></i> @grupSayisi seçenek grubu</span>
+                <span><i class="fa fa-check-circle"></i> @dogruSayisi doğru cevap</span>
+                <span><i class="fa fa-bar-chart"></i> @number(ortalamaPuan) ortalama puan</span>
+            </div>
+        </div>
+        <div class="bank-actions">
+            <a class="bank-btn" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                <i class="fa fa-th-large"></i> Panele dön
+            </a>
+            <a class="bank-btn primary" href="@Url.Action("CevapCreate", "Home")">
+                <i class="fa fa-plus"></i> Yeni seçenek
+            </a>
+        </div>
+    </section>
+
+    <section class="bank-toolbar">
+        <div class="bank-search">
+            <i class="fa fa-search"></i>
+            <input id="bankSearch" type="search" placeholder="Seçenek veya seçenek grubu ara" autocomplete="off" />
+        </div>
+        <div class="bank-filter">
+            <button type="button" class="active" data-filter="all">Tümü</button>
+            <button type="button" data-filter="correct">Doğru cevaplar</button>
+            <button type="button" data-filter="option">Seçenekler</button>
+        </div>
+    </section>
+
+    <section class="bank-table-card">
+        <div class="bank-table-scroll">
+            <table class="bank-table">
+                <thead>
+                    <tr>
+                        <th style="width:96px;">İşlem</th>
+                        <th>Seçenek</th>
+                        <th>Seçenek grubu</th>
+                        <th style="width:130px;">Anket puanı</th>
+                        <th style="width:170px;">Sınav mantığı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in cevaplar)
+                    {
+                        var grup = safe(item.CevapGrup?.CevapGrupAdi);
+                        var isCorrect = item.Dogru == true;
+                        var search = (safe(item.CevapAdi) + " " + grup).ToLower(new CultureInfo("tr-TR"));
+                        <tr data-bank-row data-type="@(isCorrect ? "correct" : "option")" data-search="@search">
+                            <td>
+                                <div class="bank-row-actions">
+                                    <a class="bank-icon-btn" title="Düzenle" href="@Url.Action("CevapEdit", "Home", new { id = item.CevapId })">
+                                        <i class="fa fa-pencil"></i>
+                                    </a>
+                                    <a class="bank-icon-btn danger" title="Sil" href="@Url.Action("CevapDelete", "Home", new { id = item.CevapId })">
+                                        <i class="fa fa-trash-o"></i>
+                                    </a>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="bank-primary-text">@safe(item.CevapAdi)</div>
+                                <span class="bank-muted">#@item.CevapId</span>
+                            </td>
+                            <td><span class="bank-pill soft">@grup</span></td>
+                            <td><strong>@number(item.CevapPuan)</strong></td>
+                            <td>
+                                @if (isCorrect)
+                                {
+                                    <span class="bank-status success"><i class="fa fa-check"></i> Doğru cevap</span>
+                                }
+                                else
+                                {
+                                    <span class="bank-status neutral">Seçenek</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bank-empty" id="bankEmpty" hidden>
+            <i class="fa fa-search"></i>
+            <strong>Sonuç bulunamadı</strong>
+            <span>Arama veya filtreyi değiştirerek tekrar deneyin.</span>
+        </div>
+    </section>
+</div>
+
+<style>
+    .bank-page { width: min(1580px, calc(100% - 48px)); margin: 34px auto 60px; color: #061a35; }
+    .bank-page * { box-sizing: border-box; }
+    .bank-hero, .bank-toolbar, .bank-table-card { border: 1px solid #d6e2f3; border-radius: 12px; background: rgba(255,255,255,.96); box-shadow: 0 20px 48px rgba(24,45,83,.08); }
+    .bank-hero { display: flex; justify-content: space-between; gap: 28px; padding: 34px; background: linear-gradient(130deg, rgba(225,253,246,.96), rgba(244,247,255,.9) 58%, rgba(255,248,229,.72)), #fff; }
+    .bank-eyebrow { color: #255ef5; font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .bank-hero h1 { margin: 10px 0 8px; font-size: 40px; line-height: 1.12; font-weight: 950; letter-spacing: 0; }
+    .bank-hero p { max-width: 780px; margin: 0; color: #53627a; font-size: 15px; line-height: 1.7; font-weight: 650; }
+    .bank-chip-row, .bank-actions, .bank-row-actions, .bank-filter { display: flex; flex-wrap: wrap; gap: 10px; }
+    .bank-chip-row { margin-top: 20px; }
+    .bank-chip-row span, .bank-pill, .bank-muted, .bank-status { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; background: #eef5ff; color: #24436d; font-size: 12px; font-weight: 850; padding: 8px 11px; }
+    .bank-chip-row i { color: #11a99b; }
+    .bank-actions { justify-content: flex-end; align-content: flex-start; min-width: 310px; }
+    .bank-btn, .bank-icon-btn, .bank-filter button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cfe0f6; border-radius: 10px; background: #fff; color: #071832; font-weight: 900; text-decoration: none; padding: 0 16px; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
+    .bank-btn.primary { border-color: #22b8a6; background: linear-gradient(135deg, #16bca9, #3562f4); color: #fff; box-shadow: 0 16px 32px rgba(34,105,244,.18); }
+    .bank-btn:hover, .bank-icon-btn:hover, .bank-filter button:hover { transform: translateY(-2px); box-shadow: 0 18px 38px rgba(19,42,80,.12); text-decoration: none; }
+    .bank-toolbar { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 18px; padding: 16px; }
+    .bank-search { position: relative; flex: 1 1 360px; max-width: 620px; }
+    .bank-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #7890b0; }
+    .bank-search input { width: 100%; min-height: 44px; border: 1px solid #d3dfef; border-radius: 10px; padding: 0 14px 0 40px; color: #071832; font-weight: 750; outline: none; }
+    .bank-search input:focus { border-color: #3562f4; box-shadow: 0 0 0 3px rgba(53,98,244,.12); }
+    .bank-filter { justify-content: flex-end; }
+    .bank-filter button { min-height: 38px; padding: 0 13px; font-size: 12px; }
+    .bank-filter button.active { border-color: #255ef5; background: #eef3ff; color: #1e4fe0; }
+    .bank-table-card { margin-top: 18px; overflow: hidden; }
+    .bank-table-scroll { overflow-x: auto; }
+    .bank-table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    .bank-table th { background: #f7fbff; color: #20314d; font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .03em; padding: 15px 14px; border-bottom: 1px solid #d6e2f3; }
+    .bank-table td { padding: 14px; border-bottom: 1px solid #e6edf7; vertical-align: middle; font-weight: 700; }
+    .bank-table tbody tr:hover { background: #fbfdff; }
+    .bank-primary-text { max-width: 640px; color: #071832; font-size: 15px; font-weight: 850; line-height: 1.45; }
+    .bank-muted { margin-top: 7px; padding: 5px 9px; color: #687892; background: #f2f6fb; }
+    .bank-pill.soft, .bank-status.neutral { color: #3b4a67; background: #f5f7fb; }
+    .bank-status.success { color: #047864; background: #e6fff7; }
+    .bank-icon-btn { width: 38px; min-height: 38px; padding: 0; color: #1763df; }
+    .bank-icon-btn.danger { color: #d9364f; border-color: #ffd1d8; background: #fff7f8; }
+    .bank-empty { display: grid; place-items: center; gap: 6px; padding: 42px; color: #64748b; text-align: center; }
+    .bank-empty i { color: #255ef5; font-size: 28px; }
+    @@media (max-width: 900px) { .bank-hero, .bank-toolbar { display: grid; } .bank-actions { min-width: 0; justify-content: flex-start; } .bank-page { width: min(100% - 22px, 1580px); } }
+</style>
+
+<script>
+    (function () {
+        const input = document.getElementById('bankSearch');
+        const rows = document.querySelectorAll('[data-bank-row]');
+        const empty = document.getElementById('bankEmpty');
+        const buttons = document.querySelectorAll('[data-filter]');
+        let filter = 'all';
+        function normalize(value) { return (value || '').toLocaleLowerCase('tr-TR').trim(); }
+        function applySearch() {
+            const term = normalize(input ? input.value : '');
+            let visible = 0;
+            rows.forEach(function (row) {
+                const matchesFilter = filter === 'all' || row.dataset.type === filter;
+                const matchesText = !term || normalize(row.dataset.search).indexOf(term) > -1;
+                const show = matchesFilter && matchesText;
+                row.hidden = !show;
+                if (show) visible += 1;
+            });
+            if (empty) empty.hidden = visible !== 0;
+        }
+        buttons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                buttons.forEach(function (item) { item.classList.remove('active'); });
+                button.classList.add('active');
+                filter = button.dataset.filter || 'all';
+                applySearch();
+            });
+        });
+        if (input) input.addEventListener('input', applySearch);
+        applySearch();
+    })();
+</script>

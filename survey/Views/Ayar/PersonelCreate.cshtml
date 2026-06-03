@@ -1,0 +1,80 @@
+@model survey.Models.Personel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Yeni Kayıt</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <div class="form-group">
+        <div hidden class="col-md-10">
+            <b>Kayıt Tarihi</b>
+            @Html.TextBoxFor(model => model.KayitTarihi, new { @Value = ViewBag.KayitTar })
+            @Html.ValidationMessageFor(model => model.KayitTarihi, "", new { @class = "text-danger" })
+        </div>
+        <div class="checkbox-color checkbox-primary">
+            <input name="Admin" value="True" id="checkbox1" type="checkbox" unchecked="">
+            <label class="form-label" for="checkbox1"> Admin</label>
+        </div>
+        <div class="checkbox-color checkbox-primary">
+            <input name="Pasif" value="True" id="checkbox2" type="checkbox" unchecked="">
+            <label class="form-label" for="checkbox2"> Pasif</label>
+        </div>
+        <div class="col-md-10">
+            <h5>Kullanıcı Adı</h5>
+            @Html.EditorFor(model => model.KullaniciAdi, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.KullaniciAdi, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <h5>Tc</h5>
+            @Html.EditorFor(model => model.Tc, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.Tc, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <h5>Mail</h5>
+            @Html.EditorFor(model => model.Mail, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.Mail, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <h5>Resim</h5>
+            @Html.EditorFor(model => model.Resim, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.Resim, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <h5>Telefon</h5>
+            @Html.EditorFor(model => model.Telefon, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.Telefon, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <h5>Adres</h5>
+            @Html.EditorFor(model => model.Adres, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.Adres, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <h5>Kullanıcı Adı</h5>
+            @Html.EditorFor(model => model.KullaniciAdi, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.KullaniciAdi, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <h5>Şifre</h5>
+            @Html.EditorFor(model => model.Sifre, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.Sifre, "", new { @class = "text-danger" })
+        </div>
+        <div>
+            <h5>Unvan</h5>
+            @Html.DropDownListFor(m => m.Unvani, (List<SelectListItem>)ViewBag.Unv, "Seçim", new { @class = "form-control", @Required = "" })
+            @Html.ValidationMessageFor(model => model.Unvani, "", new { @class = "text-danger" })
+        </div>
+
+    </div>
+        <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("PersonelIndex", "Ayar")">Geri</a>
+        <input type="submit" style="background-color:blue; color:white" class="btn btn-default" value="Kayıt" />
+    </div>
+}

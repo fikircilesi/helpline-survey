@@ -1,0 +1,176 @@
+@model IEnumerable<survey.Models.User>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<head>
+    <script src="~/Scripts/jquery-3.7.1.js"></script>
+    <link href="~/files/assets/css/jquery.dataTables.min.css" rel="stylesheet" />
+    <script src="~/files/assets/js/jquery.dataTables.min.js"></script>
+</head>
+
+<div class="panel">
+    <div class="col-lg-9"></div>
+    <div class="col-lg-3">
+        <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
+        <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("UserCreate", "Ayar")">Yeni</a>
+        <h4>KULLANICI LİSTESİ</h4>
+
+    </div>
+
+    <div class="col-lg-12" style="overflow: auto">
+        <table class="table hover" id="Grid">
+            <thead>
+                <tr class="tab-content-wrapper" style="color:chocolate">
+                    <td hidden>Id</td>
+                    <td></td>
+                    <th>
+                        Kullanıcı Adı
+                    </th>
+                    <th>
+                        Tc
+                    </th>
+                    <th>
+                        Pasif
+                    </th>
+                    <th>
+                        Ünvanı
+                    </th>
+                    <th>
+                        Bölüm
+                    </th>
+                    <th>
+                        Cinsiyet
+                    </th>
+                    <th>
+                        Eğitim
+                    </th>
+                    <th>
+                        DoğumTar
+                    </th>
+                    <th>
+                        Şubesi
+                    </th>
+                    <th>
+                        Bölgesi
+                    </th>
+                    <th>
+                        Departman
+                    </th>
+                    <th>
+                        Yöneticisi
+                    </th>
+                    <th>
+                        Yaka
+                    </th>
+                    <th>
+                        Şehir
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td hidden>
+                            @item.UserId
+                        </td>
+                        <td>
+                            <a class="fa fa-pencil" title="Ünvan düzenleme" href="@Url.Action("UserEdit", "Ayar", new { id = item.UserId })"></a>
+                            <a class="fa fa-trash-o" title="Ünvan sil" href="@Url.Action("UserDelete", "Ayar", new { id = item.UserId})"></a>
+                        </td>
+
+                        <td>
+                            @item.UserAdi
+                        </td>
+                        <td>
+                            @item.UserTc
+                        </td>
+                        <td>
+                            @if (item.Pasif != true)
+                            {
+                                <b style="color:darkgreen">Aktif</b>
+                            }
+                            else
+                            {
+                                <b style="color:darkgrey">Pasif</b>
+
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserUnvan != null)
+                            {
+                                @item.Unvan.UnvanAdi
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserBolumu != null)
+                            {
+                                @item.Bolum.BolumAdi
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserCinsiyet != null)
+                            {
+                                @item.Cinsiyet.CinsiyetAdi
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserEgitim != null)
+                            {
+                                @item.Egitim.EgitimAdi
+                            }
+                        </td>
+                        <td>
+                            @item.UserDogumTar
+                        </td>
+
+                        <td>
+                            @if (item.UserSube != null)
+                            {
+                                @item.Sube.SubeAdi
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserBolge != null)
+                            {
+                                @item.Bolge.BolgeAdi
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserDepartman != null)
+                            {
+                                @item.Departman.DepartmanAdi
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserYoneticisi != null)
+                            {
+                                @item.Yonetici.YoneticiAdi
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserYaka != null)
+                            {
+                                @item.Yaka.YakaAdi
+                            }
+                        </td>
+                        <td>
+                            @if (item.UserSehir != null)
+                            {
+                                @item.Sehir.SehiarAdi
+                            }
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+        
+    </div>
+</div>
+
+<script>
+    $('#Grid').dataTable({
+    });
+</script>

@@ -1,0 +1,145 @@
+@model survey.Models.Tumcontroller
+
+@{
+    if (Session["tc"] != null || ViewBag.kod != null)
+    {
+        Layout = "~/Views/Shared/_AnketLayout.cshtml";
+    }
+    else
+    {
+        Layout = "~/Views/Shared/_Layout.cshtml";
+    }
+
+    int a = 0;
+}
+
+<head>
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />  <!-- mobil için şart -->
+
+    <script src="~/Scripts/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 CSS (gerekliyse kendi yolunu kullan) -->
+    <link href="~/files/bower_components/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- DataTables CSS -->
+    <link href="~/files/assets/css/jquery.dataTables.min.css" rel="stylesheet" />
+
+    <!-- Senin mobil uyumlu CSS dosyan -->
+    <link href="~/Content/sinav.css" rel="stylesheet" />
+
+    <!-- DataTables JS -->
+    <script src="~/files/assets/js/jquery.dataTables.min.js"></script>
+
+    <!-- Slimscroll (kullanıyorsan) -->
+    <script src="~/files/bower_components/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+
+    <!-- Bootstrap 5 JS (bundle = Popper dahildir) EN SONDA olsun -->
+    <script src="~/files/bower_components/bootstrap/js/bootstrap.bundle.min.js"></script>
+</head>
+
+@if (ViewBag.kod != null)
+{
+    <h4 class="text-uppercase">Hoş Geldiniz</h4>
+}
+else
+{
+    <h4 class="text-uppercase">Sayın: @Session["adi"] Hoş Geldiniz</h4>
+}
+
+<div class="form-horizontal">
+    <hr />
+    <div class="col-lg-12" style="overflow: auto">
+        <table class="table col-lg-12" id="Grid">
+            <thead>
+                <tr class="tab-content-wrapper" style="color:chocolate">
+                    <td hidden>Id</td>
+                    <td>#</td>
+                    <td>SORULAR</td>
+                    <td>CEVAPLAR</td>
+                    <td>SEÇİM</td>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Sor.OrderBy(x => x.SoruSira))
+                {
+                    <tr>
+                        <td hidden></td>
+                        <td>@(a += 1)</td>
+                        <td>@item.SoruAdi</td>
+                        <td>
+                            @foreach (var item3 in Model.Hav)
+                            {
+                                if ((Session["id"] != null && item3.SoruID == item.SoruId && item3.UserId.ToString() == Session["id"].ToString()) ||
+                                    (Session["id"] == null && item3.SoruID == item.SoruId && item3.Isimsiz == ViewBag.kod))
+                                {
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a class="btn btn-sm btn-outline-danger"
+                                           href="@Url.Action("AnketGirisDelete", "Home", new { id = item3.HavuzId, ank = ViewBag.id, kod = ViewBag.kod })"
+                                           title="Seçimi Kaldır">
+                                            <i class="fa fa-times"></i>
+                                        </a>
+                                        <span class="badge bg-success">@item3.Cevap.CevapAdi</span>
+                                    </div>
+                                }
+                            }
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-primary btn-outline-primary dropdown-toggle"
+                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Cevap
+                                </button>
+                                <div class="dropdown-menu">
+                                    @foreach (var item1 in Model.Cev)
+                                    {
+                                        if (item.CevapGrupId == item1.CevapGrupId)
+                                        {
+                                            <form method="post" action="@Url.Action("AnketGirisCreate", "Home")" class="dropdown-item p-0">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="AnketId" value="@ViewBag.id" />
+                                                <input type="hidden" name="SoruID" value="@item.SoruId" />
+                                                <input type="hidden" name="SoruGrupId" value="@item.SoruGrupId" />
+                                                <input type="hidden" name="CevapId" value="@item1.CevapId" />
+                                                <input type="hidden" name="CevapGrupId" value="@item1.CevapGrupId" />
+                                                <input type="hidden" name="UserId" value="@Session["id"]" />
+                                                <input type="hidden" name="CevapPuan" value="@item1.CevapPuan" />
+                                                <input type="hidden" name="SoruPuan" value="@item.SoruPuan" />
+                                                <input type="hidden" name="SoruGrupPuan" value="@item.SoruGrup.SoruGrupPuan" />
+                                                <input type="hidden" name="Isimsiz" value="@ViewBag.kod" />
+                                                <input type="submit" class="btn btn-primary btn-outline-primary w-100 text-start" value="@item1.CevapAdi" />
+                                            </form>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Session["tc"] != null || ViewBag.kod != null)
+    {
+        <a class="btn btn-success" href="@Url.Action("AnketGirisIndex", "Home", new { kod = ViewBag.kod })">Geri</a>
+        <a class="btn btn-danger" href="@Url.Action("AnketGiris", "Home")">Çıkış</a>
+    }
+    else
+    {
+        <a class="btn btn-success" href="@Url.Action("SoruIndex", "Home")">Geri</a>
+    }
+</div>
+
+<script>
+    $('#Grid').dataTable({
+        responsive: true,
+        paging: false,
+        searching: false,
+        info: false
+    });
+</script>

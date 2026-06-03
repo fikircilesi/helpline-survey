@@ -1,0 +1,117 @@
+@model survey.Models.Izledim
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var anketAdi = (ViewBag.ank as string) ?? Model?.Anket?.AnketAdi ?? "Calisma";
+    var fallbackId = Model == null ? "-" : (Model.UseId?.ToString() ?? Model.IzleId.ToString());
+    var kullaniciAdi = (ViewBag.adi as string) ?? Model?.User?.UserAdi ?? ("Katilimci #" + fallbackId);
+}
+
+<style>
+    .reset-confirm {
+        width: min(760px, 100%);
+        margin: 0 auto;
+        padding: 26px;
+        border: 1px solid #e3eaf4;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 18px 44px rgba(15, 23, 42, .07);
+    }
+
+    .reset-confirm h2 {
+        margin: 0 0 10px;
+        color: #111827;
+        font-size: 24px;
+        font-weight: 900;
+    }
+
+    .reset-confirm p {
+        margin: 0 0 18px;
+        color: #64748b;
+        line-height: 1.6;
+        font-weight: 750;
+    }
+
+    .reset-summary {
+        display: grid;
+        gap: 10px;
+        margin: 18px 0 22px;
+        padding: 16px;
+        border: 1px solid #edf2f7;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+
+    .reset-summary span {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .reset-summary strong {
+        color: #111827;
+        font-size: 16px;
+        font-weight: 900;
+    }
+
+    .reset-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .reset-btn {
+        min-height: 40px;
+        padding: 0 16px;
+        border: 1px solid #c7d7ea;
+        border-radius: 8px;
+        color: #163b64;
+        background: #fff;
+        font-weight: 900;
+    }
+
+    .reset-btn.danger {
+        border-color: #d23f4d;
+        color: #fff;
+        background: #d23f4d;
+    }
+</style>
+
+<div class="reset-confirm">
+    <h2>Sure kaydi sifirlansin mi?</h2>
+    <p>
+        Bu islem katilimcinin mevcut zaman kaydini siler. Kisi calismaya tekrar girdiginde sure yeniden baslatilir.
+    </p>
+
+    <div class="reset-summary">
+        <div>
+            <span>Calisma</span>
+            <strong>@anketAdi</strong>
+        </div>
+        <div>
+            <span>Katilimci</span>
+            <strong>@kullaniciAdi</strong>
+        </div>
+        <div>
+            <span>Mevcut aralik</span>
+            <strong>
+                @(Model?.IzTarih?.ToString("dd.MM.yyyy HH:mm") ?? "-")
+                -
+                @(Model?.BitisZaman?.ToString("dd.MM.yyyy HH:mm") ?? "sinirsiz")
+            </strong>
+        </div>
+    </div>
+
+    @using (Html.BeginForm())
+    {
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@ViewBag.id" />
+        <input type="hidden" name="ank" value="@ViewBag.ankid" />
+        <div class="reset-actions">
+            <a class="reset-btn" href="@Url.Action("AnketZamanIndex1", "Home", new { id = ViewBag.ankid })">Vazgec</a>
+            <input type="submit" class="reset-btn danger" value="Sureyi sifirla" />
+        </div>
+    }
+</div>

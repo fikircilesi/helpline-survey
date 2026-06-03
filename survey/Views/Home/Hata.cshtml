@@ -1,0 +1,25 @@
+@{
+    ViewBag.Title = "Hata";
+    Layout = "~/Views/Shared/_AnketLayout.cshtml";
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title></title>
+</head>
+<body>
+    <hgroup>
+        <h1 style="color:red">Hata.</h1>
+        <h2 style="color:blue">Cevap vermiştiniz.</h2>
+        <h2 style="color:blue">Cevabı değiştimek için verdiğiniz cevabı silebilirsiniz.</h2>
+    </hgroup>
+
+
+    <div class="btn-group">
+        <a class="btn btn-primary btn-outline-primary icofont icofont-check-circled" href="previous.html" onClick="history.back();return false;">Tamam</a>
+    </div>
+</body>
+</html>

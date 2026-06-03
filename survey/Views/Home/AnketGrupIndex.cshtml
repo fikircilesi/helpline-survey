@@ -1,0 +1,414 @@
+@model IEnumerable<survey.Models.AnketGrup>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var gruplar = Model == null
+        ? Enumerable.Empty<survey.Models.AnketGrup>().ToList()
+        : Model.ToList();
+
+    var soruSayilari = ViewBag.SoruSayilari as System.Collections.Generic.Dictionary<int, int>
+        ?? new System.Collections.Generic.Dictionary<int, int>();
+    var grupPuanlari = ViewBag.GrupPuanlari as System.Collections.Generic.Dictionary<int, double>
+        ?? new System.Collections.Generic.Dictionary<int, double>();
+
+    var toplamSoru = ViewBag.ToplamSoru ?? 0;
+    var toplamPuan = ViewBag.ToplamPuan ?? 0d;
+    var anketAdi = Convert.ToString(ViewBag.adi);
+
+    Func<int?, int> soruSayisiBul = soruGrupId =>
+        soruGrupId.HasValue && soruSayilari.ContainsKey(soruGrupId.Value)
+            ? soruSayilari[soruGrupId.Value]
+            : 0;
+
+    Func<int?, double> puanBul = soruGrupId =>
+        soruGrupId.HasValue && grupPuanlari.ContainsKey(soruGrupId.Value)
+            ? grupPuanlari[soruGrupId.Value]
+            : 0;
+}
+
+<style>
+    .group-map {
+        max-width: 1220px;
+        margin: 22px auto 36px;
+        padding: 0 18px;
+        color: #102033;
+    }
+
+    .group-map * {
+        box-sizing: border-box;
+    }
+
+    .group-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        padding: 26px 30px;
+        background: linear-gradient(135deg, rgba(24, 183, 164, .12), rgba(67, 97, 238, .10));
+        box-shadow: 0 18px 48px rgba(26, 43, 74, .08);
+    }
+
+    .group-kicker {
+        margin: 0 0 8px;
+        color: #3157ff;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+    }
+
+    .group-title {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.15;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .group-copy {
+        max-width: 760px;
+        margin: 10px 0 0;
+        color: #526179;
+        font-size: 15px;
+        line-height: 1.6;
+        font-weight: 650;
+    }
+
+    .group-actions,
+    .group-toolbar,
+    .group-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .group-actions {
+        justify-content: flex-end;
+        min-width: 310px;
+    }
+
+    .group-btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 15px;
+        border: 1px solid #cddbf0;
+        border-radius: 8px;
+        background: #fff;
+        color: #102238;
+        font-weight: 850;
+        text-decoration: none;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .group-btn:hover,
+    .group-btn:focus {
+        color: #102238;
+        text-decoration: none;
+        border-color: #8fb0e8;
+        background: #f7fbff;
+    }
+
+    .group-btn.primary {
+        color: #fff;
+        background: #2563eb;
+        border-color: #2563eb;
+    }
+
+    .group-btn.primary:hover,
+    .group-btn.primary:focus {
+        color: #fff;
+        background: #1d4ed8;
+    }
+
+    .group-btn.danger {
+        color: #b42318;
+        border-color: #ffd1cf;
+        background: #fff7f7;
+    }
+
+    .group-btn.icon {
+        width: 40px;
+        padding: 0;
+    }
+
+    .group-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .group-stat {
+        min-height: 88px;
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        background: #fff;
+        padding: 16px;
+        box-shadow: 0 12px 30px rgba(26, 43, 74, .05);
+    }
+
+    .group-stat strong {
+        display: block;
+        color: #07182f;
+        font-size: 28px;
+        line-height: 1;
+        font-weight: 950;
+    }
+
+    .group-stat span {
+        display: block;
+        margin-top: 9px;
+        color: #637087;
+        font-size: 13px;
+        font-weight: 750;
+    }
+
+    .group-panel {
+        margin-top: 16px;
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 18px 48px rgba(26, 43, 74, .07);
+    }
+
+    .group-panel-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: center;
+        padding: 16px 18px;
+        border-bottom: 1px solid #e7edf7;
+        background: #f8fbff;
+    }
+
+    .group-panel-head h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .group-search {
+        min-width: 260px;
+        min-height: 40px;
+        border: 1px solid #cfdced;
+        border-radius: 8px;
+        background: #fff;
+        color: #102033;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 650;
+        outline: none;
+    }
+
+    .group-search:focus {
+        border-color: #4361ee;
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, .14);
+    }
+
+    .group-list {
+        display: grid;
+        gap: 12px;
+        padding: 16px 18px 18px;
+    }
+
+    .group-card {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+        align-items: center;
+        min-height: 94px;
+        border: 1px solid #dbe6f5;
+        border-radius: 8px;
+        background: #fff;
+        padding: 16px;
+    }
+
+    .group-card-title {
+        margin: 0;
+        color: #11213a;
+        font-size: 17px;
+        line-height: 1.4;
+        font-weight: 950;
+    }
+
+    .group-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .group-chip {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 10px;
+        border-radius: 8px;
+        background: #edf3ff;
+        color: #183064;
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .group-chip.success {
+        background: #e9fbf6;
+        color: #08765d;
+    }
+
+    .group-empty {
+        margin: 16px 18px 18px;
+        padding: 26px;
+        border: 1px dashed #b9c9e1;
+        border-radius: 8px;
+        background: #fbfdff;
+        text-align: center;
+        color: #637087;
+        font-weight: 750;
+    }
+
+    .group-hidden {
+        display: none;
+    }
+
+    @@media (max-width: 860px) {
+        .group-hero,
+        .group-panel-head,
+        .group-card {
+            grid-template-columns: 1fr;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .group-actions {
+            justify-content: flex-start;
+            min-width: 0;
+        }
+
+        .group-search {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .group-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .group-btn {
+            flex: 1 1 150px;
+        }
+
+        .group-btn.icon {
+            flex: 0 0 42px;
+        }
+    }
+</style>
+
+<div class="group-map">
+    <section class="group-hero">
+        <div>
+            <p class="group-kicker">Rapor Kırılımı</p>
+            <h1 class="group-title">Soru Grupları</h1>
+            <p class="group-copy">
+                @anketAdi çalışmasındaki sorular bu başlıklara bağlanır. Memnuniyet anketlerinde her başlık ayrı raporlanır; sınavlarda ise soru setini düzenli tutar.
+            </p>
+        </div>
+
+        <div class="group-actions">
+            <a class="group-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = ViewBag.id })">
+                <i class="fa fa-arrow-left"></i> Ayarlara Dön
+            </a>
+            <a class="group-btn primary" href="@Url.Action("AnketGrupCreate", "Home", new { id = ViewBag.id, adi = ViewBag.adi })">
+                <i class="fa fa-plus"></i> Yeni Kırılım
+            </a>
+            <a class="group-btn" href="@Url.Action("DogruCevapEditor", "Home", new { id = ViewBag.id })">
+                <i class="fa fa-check-circle"></i> Doğru Cevaplar
+            </a>
+        </div>
+    </section>
+
+    <div class="group-stats">
+        <div class="group-stat">
+            <strong>@gruplar.Count</strong>
+            <span>Rapor kırılımı</span>
+        </div>
+        <div class="group-stat">
+            <strong>@toplamSoru</strong>
+            <span>Bağlı soru</span>
+        </div>
+        <div class="group-stat">
+            <strong>@String.Format("{0:0.##}", toplamPuan)</strong>
+            <span>Toplam soru puanı</span>
+        </div>
+    </div>
+
+    <section class="group-panel">
+        <div class="group-panel-head">
+            <h2>Tanımlı kırılımlar</h2>
+            <input class="group-search" id="groupSearch" type="search" placeholder="Kırılım ara" autocomplete="off" />
+        </div>
+
+        @if (!gruplar.Any())
+        {
+            <div class="group-empty">
+                Henüz soru grubu bağlanmamış. Rapor kırılımı oluşturmak için Yeni Kırılım butonunu kullanın.
+            </div>
+        }
+        else
+        {
+            <div class="group-list" id="groupList">
+                @foreach (var item in gruplar)
+                {
+                    var grupAdi = item.SoruGrup != null ? item.SoruGrup.SoruGrupAdi : "Tanımsız grup";
+                    var soruSayisi = soruSayisiBul(item.SoruGrupId);
+                    var puan = puanBul(item.SoruGrupId);
+
+                    <article class="group-card" data-group-card data-search="@grupAdi.ToLowerInvariant()">
+                        <div>
+                            <h3 class="group-card-title">@grupAdi</h3>
+                            <div class="group-card-meta">
+                                <span class="group-chip success"><i class="fa fa-question-circle"></i>@soruSayisi soru</span>
+                                <span class="group-chip"><i class="fa fa-star-o"></i>@String.Format("{0:0.##}", puan) puan</span>
+                                <span class="group-chip"><i class="fa fa-bar-chart"></i>Rapor sekmesi</span>
+                            </div>
+                        </div>
+
+                        <div class="group-card-actions">
+                            <a class="group-btn icon" title="Kırılımı değiştir" aria-label="Kırılımı değiştir" href="@Url.Action("AnketGrupEdit", "Home", new { id = item.AnketGupId, sr = item.SoruGrupId, ank = ViewBag.id, adi = ViewBag.adi })">
+                                <i class="fa fa-pencil"></i>
+                            </a>
+                            <a class="group-btn icon danger" title="Kırılımı çıkar" aria-label="Kırılımı çıkar" href="@Url.Action("AnketGrupDelete", "Home", new { id = item.AnketGupId, sr = item.SoruGrupId, ank = ViewBag.id, adi = ViewBag.adi })">
+                                <i class="fa fa-trash"></i>
+                            </a>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+<script>
+    (function () {
+        const search = document.getElementById('groupSearch');
+        const cards = Array.from(document.querySelectorAll('[data-group-card]'));
+        if (!search || !cards.length) return;
+
+        search.addEventListener('input', function () {
+            const term = this.value.trim().toLocaleLowerCase('tr-TR');
+            cards.forEach(function (card) {
+                const haystack = (card.getAttribute('data-search') || '').toLocaleLowerCase('tr-TR');
+                card.classList.toggle('group-hidden', term.length > 0 && !haystack.includes(term));
+            });
+        });
+    })();
+</script>

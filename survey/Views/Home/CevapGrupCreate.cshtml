@@ -1,0 +1,27 @@
+@model survey.Models.CevapGrup
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Yeni Seçenek Grubu</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+<div class="form-horizontal">
+    <hr />
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <div class="form-group">
+        <div class="col-md-10">
+            <h5>Seçenek Grubu Adı</h5>
+            @Html.TextBoxFor(model => model.CevapGrupAdi, new { @class = "form-control", @maxlength = "50", @Required = "" })
+            @Html.ValidationMessageFor(model => model.CevapGrupAdi, "", new { @class = "text-danger" })
+        </div>
+
+    </div>
+    <a class="btn btn-primary btn-outline-primary fa fa-backward" href="@Url.Action("CevapGrupIndex", "Home")"> Geri</a>
+    <input type="submit" class="btn btn-primary btn-outline-primary fa fa-check" value=" Kayıt" />
+</div>
+}

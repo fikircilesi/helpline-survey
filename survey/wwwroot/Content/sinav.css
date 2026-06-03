@@ -1,0 +1,58 @@
+﻿.soru-karti {
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    background: #fff;
+    margin-bottom: 16px;
+}
+
+.soru-karti .card-header {
+    background: #f9f9f9;
+    font-weight: 600;
+    padding: 14px 18px;
+    font-size: 1rem;
+}
+
+.secili-cevap-text {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #c8e6c9;
+    border-radius: 8px;
+    padding: 6px 12px;
+    min-width: 140px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.btn-eraser {
+    color: #dc3545;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.cevap-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+@media (min-width: 576px) {
+    .cevap-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 992px) {
+    .cevap-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+.btn-cevap {
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+}

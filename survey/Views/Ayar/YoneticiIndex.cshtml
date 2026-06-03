@@ -1,0 +1,43 @@
+@model IEnumerable<survey.Models.Yonetici>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="panel">
+    <div>
+        <h4>YÖNETİCİ LİSTESİ</h4>
+    </div>
+    <div class="panel-body">
+
+        <table class="table">
+            <tr>
+                <td></td>
+                <th>
+                    Yönetici Adı
+                </th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <a class="fa fa-pencil" title="Ünvan düzenleme" href="@Url.Action("YoneticiEdit", "Ayar", new { id = item.YoneticiId })"></a>
+                        <a class="fa fa-trash-o" title="Ünvan sil" href="@Url.Action("YoneticiDelete", "Ayar", new { id = item.YoneticiId})"></a>
+                    </td>
+
+                    <td>
+                        @item.YoneticiAdi
+                    </td>
+
+                </tr>
+            }
+
+        </table>
+        <div class="col-lg-9"></div>
+        <div class="col-lg-3">
+                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
+                <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("YoneticiCreate", "Ayar")">Yeni</a>
+        </div>
+
+    </div>
+</div>

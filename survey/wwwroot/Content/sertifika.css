@@ -1,0 +1,127 @@
+@page {
+    size: A4 landscape;
+    margin: 0;
+}
+
+.spacer {
+    margin-bottom: 100px; /* 5-6 satýr boþluk */
+}
+
+
+body {
+    width: 297mm;
+    height: 210mm;
+    margin: 0;
+    padding: 30mm;
+    font-family: 'Times New Roman', serif;
+    text-align: center;
+    border: 8px double #000;
+    box-sizing: border-box;
+    position: relative;
+    background: url('/Content/img/cerceve.png') no-repeat center;
+    background-size: cover;
+    border: 60px solid transparent;
+    border-image: url('/Content/img/desen.png') 200 round;
+}
+
+/* Ýçeriði ortalamak için özel alan */
+.content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 80%;
+}
+
+body::before {
+    content: "";
+    position: absolute;
+    top: 10mm;
+    left: 10mm;
+    right: 10mm;
+    bottom: 05mm;
+    background: url('/Content/img/ornament.svg') no-repeat center;
+    background-size: 100% 100%;
+    z-index: -1; /* arka planda dursun */
+}
+
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+    .header img {
+        position: absolute;
+        top: 20mm;
+        right: 30mm;
+        height: 70px;
+    }
+
+.title {
+    font-size: 32px;
+    font-weight: bold;
+    margin-top: 6mm; /* Önce 20mm idi, küçülttük */
+    text-transform: uppercase;
+    line-height: 1.2; /* Satýr aralýðýný sýkýlaþtýr */
+}
+
+.name {
+    font-size: 26px;
+    margin-top: 8mm; /* Önce 25mm idi, küçülttük */
+    font-style: italic;
+    text-decoration: underline;
+}
+
+.text {
+    margin-top: 5mm; /* Yazýyý aþaðý kaydýrýr */
+    margin-bottom: 80px;
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.sign {
+    position: absolute;
+    bottom: 15mm;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.signature img {
+    margin-top: 0mm; /* yazýyla imza arasýnda boþluk */
+    height: 60px; /* imza boyutu */
+}
+
+.seal {
+    position: absolute;
+    bottom: 10mm;
+    left: 30mm;
+}
+
+    .seal img {
+        width: 120px;
+    }
+
+.icon {
+    position: absolute;
+    bottom: 10mm;
+    right: 30mm;
+}
+
+    .icon img {
+        width: 40mm;
+    }
+
+.footer {
+    position: absolute;
+    bottom: 10mm;
+    left: 50%; /* sayfanýn ortasý */
+    transform: translateX(-50%); /* tam ortalamak için */
+    font-size: 14px;
+    color: #555;
+    white-space: nowrap; /* uzun yazýlarda alt satýra kaymasýn */
+}

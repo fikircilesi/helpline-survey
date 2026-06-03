@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+  <EntityContainerMapping StorageEntityContainer="SurveyModelStoreContainer" CdmEntityContainer="SurveyEntities">
+    <EntitySetMapping Name="Bolge">
+      <EntityTypeMapping TypeName="SurveyModel.Bolge">
+        <MappingFragment StoreEntitySet="Bolge">
+          <ScalarProperty Name="BolgeAdi" ColumnName="BolgeAdi" />
+          <ScalarProperty Name="BolgeId" ColumnName="BolgeId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Bolum">
+      <EntityTypeMapping TypeName="SurveyModel.Bolum">
+        <MappingFragment StoreEntitySet="Bolum">
+          <ScalarProperty Name="BolumAdi" ColumnName="BolumAdi" />
+          <ScalarProperty Name="BolumId" ColumnName="BolumId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="CevapGrup">
+      <EntityTypeMapping TypeName="SurveyModel.CevapGrup">
+        <MappingFragment StoreEntitySet="CevapGrup">
+          <ScalarProperty Name="CevapGrupAdi" ColumnName="CevapGrupAdi" />
+          <ScalarProperty Name="CevapGrupId" ColumnName="CevapGrupId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Cinsiyet">
+      <EntityTypeMapping TypeName="SurveyModel.Cinsiyet">
+        <MappingFragment StoreEntitySet="Cinsiyet">
+          <ScalarProperty Name="CinsiyetAdi" ColumnName="CinsiyetAdi" />
+          <ScalarProperty Name="CinsiyetId" ColumnName="CinsiyetId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Departman">
+      <EntityTypeMapping TypeName="SurveyModel.Departman">
+        <MappingFragment StoreEntitySet="Departman">
+          <ScalarProperty Name="DepartmanAdi" ColumnName="DepartmanAdi" />
+          <ScalarProperty Name="DepartmanId" ColumnName="DepartmanId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Egitim">
+      <EntityTypeMapping TypeName="SurveyModel.Egitim">
+        <MappingFragment StoreEntitySet="Egitim">
+          <ScalarProperty Name="EgitimAdi" ColumnName="EgitimAdi" />
+          <ScalarProperty Name="EgitimId" ColumnName="EgitimId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="LisansKyn">
+      <EntityTypeMapping TypeName="SurveyModel.LisansKyn">
+        <MappingFragment StoreEntitySet="LisansKyn">
+          <ScalarProperty Name="IpAdress" ColumnName="IpAdress" />
+          <ScalarProperty Name="ModulSayi" ColumnName="ModulSayi" />
+          <ScalarProperty Name="SirketAdi" ColumnName="SirketAdi" />
+          <ScalarProperty Name="KayitTarih" ColumnName="KayitTarih" />
+          <ScalarProperty Name="VnTc1" ColumnName="VnTc1" />
+          <ScalarProperty Name="LisansId" ColumnName="LisansId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Personel">
+      <EntityTypeMapping TypeName="SurveyModel.Personel">
+        <MappingFragment StoreEntitySet="Personel">
+          <ScalarProperty Name="Admin" ColumnName="Admin" />
+          <ScalarProperty Name="KayitTarihi" ColumnName="KayitTarihi" />
+          <ScalarProperty Name="Pasif" ColumnName="Pasif" />
+          <ScalarProperty Name="Sifre" ColumnName="Sifre" />
+          <ScalarProperty Name="KullaniciAdi" ColumnName="KullaniciAdi" />
+          <ScalarProperty Name="Adres" ColumnName="Adres" />
+          <ScalarProperty Name="Telefon" ColumnName="Telefon" />
+          <ScalarProperty Name="Resim" ColumnName="Resim" />
+          <ScalarProperty Name="Mail" ColumnName="Mail" />
+          <ScalarProperty Name="Unvani" ColumnName="Unvani" />
+          <ScalarProperty Name="Tc" ColumnName="Tc" />
+          <ScalarProperty Name="PersonelAdi" ColumnName="PersonelAdi" />
+          <ScalarProperty Name="PersonelId" ColumnName="PersonelId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Sehir">
+      <EntityTypeMapping TypeName="SurveyModel.Sehir">
+        <MappingFragment StoreEntitySet="Sehir">
+          <ScalarProperty Name="SehiarAdi" ColumnName="SehiarAdi" />
+          <ScalarProperty Name="SehirId" ColumnName="SehirId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="smtpayar">
+      <EntityTypeMapping TypeName="SurveyModel.smtpayar">
+        <MappingFragment StoreEntitySet="smtpayar">
+          <ScalarProperty Name="Ssli" ColumnName="Ssli" />
+          <ScalarProperty Name="Portu" ColumnName="Portu" />
+          <ScalarProperty Name="Gonderen" ColumnName="Gonderen" />
+          <ScalarProperty Name="Password" ColumnName="Password" />
+          <ScalarProperty Name="UserName" ColumnName="UserName" />
+          <ScalarProperty Name="Sunucu" ColumnName="Sunucu" />
+          <ScalarProperty Name="MailId" ColumnName="MailId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Sube">
+      <EntityTypeMapping TypeName="SurveyModel.Sube">
+        <MappingFragment StoreEntitySet="Sube">
+          <ScalarProperty Name="SubeAdi" ColumnName="SubeAdi" />
+          <ScalarProperty Name="SubeId" ColumnName="SubeId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="truefalse">
+      <EntityTypeMapping TypeName="SurveyModel.truefalse">
+        <MappingFragment StoreEntitySet="truefalse">
+          <ScalarProperty Name="TrueFalsemi" ColumnName="TrueFalsemi" />
+          <ScalarProperty Name="TrueFalseId" ColumnName="TrueFalseId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Unvan">
+      <EntityTypeMapping TypeName="SurveyModel.Unvan">
+        <MappingFragment StoreEntitySet="Unvan">
+          <ScalarProperty Name="UnvanAdi" ColumnName="UnvanAdi" />
+          <ScalarProperty Name="UnvanId" ColumnName="UnvanId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="User">
+      <EntityTypeMapping TypeName="SurveyModel.User">
+        <MappingFragment StoreEntitySet="User">
+          <ScalarProperty Name="KayitTarihi" ColumnName="KayitTarihi" />
+          <ScalarProperty Name="Pasif" ColumnName="Pasif" />
+          <ScalarProperty Name="UserIseGirisTarihi" ColumnName="UserIseGirisTarihi" />
+          <ScalarProperty Name="UserAdres" ColumnName="UserAdres" />
+          <ScalarProperty Name="UserTelefon" ColumnName="UserTelefon" />
+          <ScalarProperty Name="UserResim" ColumnName="UserResim" />
+          <ScalarProperty Name="UserMail" ColumnName="UserMail" />
+          <ScalarProperty Name="UserDepartman" ColumnName="UserDepartman" />
+          <ScalarProperty Name="UserSehir" ColumnName="UserSehir" />
+          <ScalarProperty Name="UserBolge" ColumnName="UserBolge" />
+          <ScalarProperty Name="UserYaka" ColumnName="UserYaka" />
+          <ScalarProperty Name="UserSube" ColumnName="UserSube" />
+          <ScalarProperty Name="UserBolumu" ColumnName="UserBolumu" />
+          <ScalarProperty Name="UserYoneticisi" ColumnName="UserYoneticisi" />
+          <ScalarProperty Name="UserEgitim" ColumnName="UserEgitim" />
+          <ScalarProperty Name="UserDogumTar" ColumnName="UserDogumTar" />
+          <ScalarProperty Name="UserCinsiyet" ColumnName="UserCinsiyet" />
+          <ScalarProperty Name="UserUnvan" ColumnName="UserUnvan" />
+          <ScalarProperty Name="UserTc" ColumnName="UserTc" />
+          <ScalarProperty Name="UserAdi" ColumnName="UserAdi" />
+          <ScalarProperty Name="UserId" ColumnName="UserId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Yaka">
+      <EntityTypeMapping TypeName="SurveyModel.Yaka">
+        <MappingFragment StoreEntitySet="Yaka">
+          <ScalarProperty Name="YakaAdi" ColumnName="YakaAdi" />
+          <ScalarProperty Name="YakaId" ColumnName="YakaId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Yonetici">
+      <EntityTypeMapping TypeName="SurveyModel.Yonetici">
+        <MappingFragment StoreEntitySet="Yonetici">
+          <ScalarProperty Name="YoneticiAdi" ColumnName="YoneticiAdi" />
+          <ScalarProperty Name="YoneticiId" ColumnName="YoneticiId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Havuz">
+      <EntityTypeMapping TypeName="SurveyModel.Havuz">
+        <MappingFragment StoreEntitySet="Havuz">
+          <ScalarProperty Name="Isimsiz" ColumnName="Isimsiz" />
+          <ScalarProperty Name="KayitTar" ColumnName="KayitTar" />
+          <ScalarProperty Name="SoruGrupPuan" ColumnName="SoruGrupPuan" />
+          <ScalarProperty Name="SoruPuan" ColumnName="SoruPuan" />
+          <ScalarProperty Name="CevapPuan" ColumnName="CevapPuan" />
+          <ScalarProperty Name="UserId" ColumnName="UserId" />
+          <ScalarProperty Name="CevapGrupId" ColumnName="CevapGrupId" />
+          <ScalarProperty Name="CevapId" ColumnName="CevapId" />
+          <ScalarProperty Name="SoruGrupId" ColumnName="SoruGrupId" />
+          <ScalarProperty Name="SoruID" ColumnName="SoruID" />
+          <ScalarProperty Name="AnketId" ColumnName="AnketId" />
+          <ScalarProperty Name="HavuzId" ColumnName="HavuzId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="AnketGrup">
+      <EntityTypeMapping TypeName="SurveyModel.AnketGrup">
+        <MappingFragment StoreEntitySet="AnketGrup">
+          <ScalarProperty Name="SoruGrupId" ColumnName="SoruGrupId" />
+          <ScalarProperty Name="AnketId" ColumnName="AnketId" />
+          <ScalarProperty Name="AnketGupId" ColumnName="AnketGupId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="SoruGrup">
+      <EntityTypeMapping TypeName="SurveyModel.SoruGrup">
+        <MappingFragment StoreEntitySet="SoruGrup">
+          <ScalarProperty Name="SoruGrupPuan" ColumnName="SoruGrupPuan" />
+          <ScalarProperty Name="SoruGrupSira" ColumnName="SoruGrupSira" />
+          <ScalarProperty Name="SoruGrupAdi" ColumnName="SoruGrupAdi" />
+          <ScalarProperty Name="SoruGrupId" ColumnName="SoruGrupId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Cevap">
+      <EntityTypeMapping TypeName="SurveyModel.Cevap">
+        <MappingFragment StoreEntitySet="Cevap">
+          <ScalarProperty Name="Dogru" ColumnName="Dogru" />
+          <ScalarProperty Name="CevapPuan" ColumnName="CevapPuan" />
+          <ScalarProperty Name="CevapGrupId" ColumnName="CevapGrupId" />
+          <ScalarProperty Name="CevapAdi" ColumnName="CevapAdi" />
+          <ScalarProperty Name="CevapId" ColumnName="CevapId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Soru">
+      <EntityTypeMapping TypeName="SurveyModel.Soru">
+        <MappingFragment StoreEntitySet="Soru">
+          <ScalarProperty Name="SoruPuan" ColumnName="SoruPuan" />
+          <ScalarProperty Name="CevapGrupId" ColumnName="CevapGrupId" />
+          <ScalarProperty Name="SoruGrupId" ColumnName="SoruGrupId" />
+          <ScalarProperty Name="SoruSira" ColumnName="SoruSira" />
+          <ScalarProperty Name="SoruAdi" ColumnName="SoruAdi" />
+          <ScalarProperty Name="SoruId" ColumnName="SoruId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Anket">
+      <EntityTypeMapping TypeName="SurveyModel.Anket">
+        <MappingFragment StoreEntitySet="Anket">
+          <ScalarProperty Name="SertifikaNotu" ColumnName="SertifikaNotu" />
+          <ScalarProperty Name="UnvanId" ColumnName="UnvanId" />
+          <ScalarProperty Name="SubeId" ColumnName="SubeId" />
+          <ScalarProperty Name="SehirId" ColumnName="SehirId" />
+          <ScalarProperty Name="DepartmanId" ColumnName="DepartmanId" />
+          <ScalarProperty Name="Imza" ColumnName="Imza" />
+          <ScalarProperty Name="EgitimVeren" ColumnName="EgitimVeren" />
+          <ScalarProperty Name="Sonuc" ColumnName="Sonuc" />
+          <ScalarProperty Name="Zaman" ColumnName="Zaman" />
+          <ScalarProperty Name="Link" ColumnName="Link" />
+          <ScalarProperty Name="Sinav" ColumnName="Sinav" />
+          <ScalarProperty Name="Tanimsiz" ColumnName="Tanimsiz" />
+          <ScalarProperty Name="Pasif" ColumnName="Pasif" />
+          <ScalarProperty Name="AnketAdi" ColumnName="AnketAdi" />
+          <ScalarProperty Name="AnketId" ColumnName="AnketId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="Izledim">
+      <EntityTypeMapping TypeName="SurveyModel.Izledim">
+        <MappingFragment StoreEntitySet="Izledim">
+          <ScalarProperty Name="BitisZaman" ColumnName="BitisZaman" />
+          <ScalarProperty Name="IzTarih" ColumnName="IzTarih" />
+          <ScalarProperty Name="Izledi" ColumnName="Izledi" />
+          <ScalarProperty Name="AnketId" ColumnName="AnketId" />
+          <ScalarProperty Name="UseId" ColumnName="UseId" />
+          <ScalarProperty Name="IzleId" ColumnName="IzleId" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+  </EntityContainerMapping>
+</Mapping>

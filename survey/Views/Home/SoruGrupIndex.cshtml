@@ -1,0 +1,134 @@
+@model IEnumerable<survey.Models.SoruGrup>
+@using System
+@using System.Globalization
+@using System.Linq
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var gruplar = (Model ?? Enumerable.Empty<survey.Models.SoruGrup>()).ToList();
+    var toplamSoru = gruplar.Sum(x => x.Soru != null ? x.Soru.Count : 0);
+    var toplamPuan = gruplar.Sum(x => x.SoruGrupPuan ?? 0);
+    Func<string, string> safe = value => string.IsNullOrWhiteSpace(value) ? "Tanımsız" : value.Trim();
+    Func<double?, string> number = value => value.HasValue ? value.Value.ToString("0.##", new CultureInfo("tr-TR")) : "0";
+}
+
+<div class="bank-page">
+    <section class="bank-hero">
+        <div>
+            <span class="bank-eyebrow">Rapor kırılımı</span>
+            <h1>Bölüm / Kategori Bankası</h1>
+            <p>Soruları raporlanabilir başlıklar altında toplayın. Memnuniyet anketlerinde bu kırılımlar doğrudan rapor bölümlerine dönüşür.</p>
+            <div class="bank-chip-row">
+                <span><i class="fa fa-list"></i> @gruplar.Count kategori</span>
+                <span><i class="fa fa-question-circle"></i> @toplamSoru bağlı soru</span>
+                <span><i class="fa fa-star"></i> @number(toplamPuan) toplam puan</span>
+            </div>
+        </div>
+        <div class="bank-actions">
+            <a class="bank-btn" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                <i class="fa fa-th-large"></i> Panele dön
+            </a>
+            <a class="bank-btn primary" href="@Url.Action("SoruGrupCreate", "Home")">
+                <i class="fa fa-plus"></i> Yeni kategori
+            </a>
+        </div>
+    </section>
+
+    <section class="bank-toolbar">
+        <div class="bank-search">
+            <i class="fa fa-search"></i>
+            <input id="bankSearch" type="search" placeholder="Kategori adı ara" autocomplete="off" />
+        </div>
+    </section>
+
+    <section class="category-grid" id="categoryGrid">
+        @foreach (var item in gruplar)
+        {
+            var ad = safe(item.SoruGrupAdi);
+            var soruSayisi = item.Soru != null ? item.Soru.Count : 0;
+            var search = ad.ToLower(new CultureInfo("tr-TR"));
+            <article class="category-card" data-bank-row data-search="@search">
+                <div class="category-main">
+                    <div class="category-icon">@((item.SoruGrupSira ?? 0).ToString())</div>
+                    <div>
+                        <h2>@ad</h2>
+                        <div class="category-meta">
+                            <span><i class="fa fa-sort-numeric-asc"></i> Sıra @(item.SoruGrupSira?.ToString() ?? "-")</span>
+                            <span><i class="fa fa-question-circle"></i> @soruSayisi soru</span>
+                            <span><i class="fa fa-star"></i> @number(item.SoruGrupPuan) puan</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="category-actions">
+                    <a class="bank-icon-btn" title="Düzenle" href="@Url.Action("SoruGrupEdit", "Home", new { id = item.SoruGrupId })">
+                        <i class="fa fa-pencil"></i>
+                    </a>
+                    <a class="bank-icon-btn danger" title="Sil" href="@Url.Action("SoruGrupDelete", "Home", new { id = item.SoruGrupId })">
+                        <i class="fa fa-trash-o"></i>
+                    </a>
+                </div>
+            </article>
+        }
+    </section>
+
+    <section class="bank-empty" id="bankEmpty" hidden>
+        <i class="fa fa-search"></i>
+        <strong>Sonuç bulunamadı</strong>
+        <span>Arama metnini değiştirerek tekrar deneyin.</span>
+    </section>
+</div>
+
+<style>
+    .bank-page { width: min(1580px, calc(100% - 48px)); margin: 34px auto 60px; color: #061a35; }
+    .bank-page * { box-sizing: border-box; }
+    .bank-hero, .bank-toolbar, .category-card, .bank-empty { border: 1px solid #d6e2f3; border-radius: 12px; background: rgba(255,255,255,.96); box-shadow: 0 20px 48px rgba(24,45,83,.08); }
+    .bank-hero { display: flex; justify-content: space-between; gap: 28px; padding: 34px; background: linear-gradient(130deg, rgba(225,253,246,.96), rgba(244,247,255,.9) 58%, rgba(255,248,229,.72)), #fff; }
+    .bank-eyebrow { color: #255ef5; font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .bank-hero h1 { margin: 10px 0 8px; font-size: 40px; line-height: 1.12; font-weight: 950; letter-spacing: 0; }
+    .bank-hero p { max-width: 780px; margin: 0; color: #53627a; font-size: 15px; line-height: 1.7; font-weight: 650; }
+    .bank-chip-row, .bank-actions, .category-meta, .category-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .bank-chip-row { margin-top: 20px; }
+    .bank-chip-row span, .category-meta span { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; background: #eef5ff; color: #24436d; font-size: 12px; font-weight: 850; padding: 8px 11px; }
+    .bank-chip-row i, .category-meta i { color: #11a99b; }
+    .bank-actions { justify-content: flex-end; align-content: flex-start; min-width: 310px; }
+    .bank-btn, .bank-icon-btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cfe0f6; border-radius: 10px; background: #fff; color: #071832; font-weight: 900; text-decoration: none; padding: 0 16px; transition: transform .16s ease, box-shadow .16s ease; }
+    .bank-btn.primary { border-color: #22b8a6; background: linear-gradient(135deg, #16bca9, #3562f4); color: #fff; box-shadow: 0 16px 32px rgba(34,105,244,.18); }
+    .bank-btn:hover, .bank-icon-btn:hover, .category-card:hover { transform: translateY(-2px); box-shadow: 0 18px 38px rgba(19,42,80,.12); text-decoration: none; }
+    .bank-toolbar { margin-top: 18px; padding: 16px; }
+    .bank-search { position: relative; max-width: 560px; }
+    .bank-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #7890b0; }
+    .bank-search input { width: 100%; min-height: 44px; border: 1px solid #d3dfef; border-radius: 10px; padding: 0 14px 0 40px; color: #071832; font-weight: 750; outline: none; }
+    .bank-search input:focus { border-color: #3562f4; box-shadow: 0 0 0 3px rgba(53,98,244,.12); }
+    .category-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+    .category-card { display: flex; justify-content: space-between; gap: 18px; padding: 18px; transition: transform .16s ease, box-shadow .16s ease; }
+    .category-main { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 16px; min-width: 0; }
+    .category-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #18b7a4, #5065f6); color: #fff; font-size: 20px; font-weight: 950; box-shadow: 0 14px 28px rgba(80,101,246,.20); }
+    .category-card h2 { margin: 2px 0 12px; font-size: 20px; line-height: 1.3; font-weight: 950; letter-spacing: 0; }
+    .category-actions { align-content: flex-start; justify-content: flex-end; min-width: 88px; }
+    .bank-icon-btn { width: 38px; min-height: 38px; padding: 0; color: #1763df; }
+    .bank-icon-btn.danger { color: #d9364f; border-color: #ffd1d8; background: #fff7f8; }
+    .bank-empty { display: grid; place-items: center; gap: 6px; margin-top: 18px; padding: 42px; color: #64748b; text-align: center; }
+    .bank-empty i { color: #255ef5; font-size: 28px; }
+    @@media (max-width: 1000px) { .bank-hero, .category-grid, .category-card { display: grid; grid-template-columns: 1fr; } .bank-actions { min-width: 0; justify-content: flex-start; } .bank-page { width: min(100% - 22px, 1580px); } }
+</style>
+
+<script>
+    (function () {
+        const input = document.getElementById('bankSearch');
+        const rows = document.querySelectorAll('[data-bank-row]');
+        const empty = document.getElementById('bankEmpty');
+        function normalize(value) { return (value || '').toLocaleLowerCase('tr-TR').trim(); }
+        function applySearch() {
+            const term = normalize(input ? input.value : '');
+            let visible = 0;
+            rows.forEach(function (row) {
+                const show = !term || normalize(row.dataset.search).indexOf(term) > -1;
+                row.hidden = !show;
+                if (show) visible += 1;
+            });
+            if (empty) empty.hidden = visible !== 0;
+        }
+        if (input) input.addEventListener('input', applySearch);
+        applySearch();
+    })();
+</script>

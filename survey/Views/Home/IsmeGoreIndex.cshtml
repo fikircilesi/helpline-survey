@@ -1,0 +1,103 @@
+@model IEnumerable<survey.Models.Havuz>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<head>
+    <title>Chart with Data Labels</title>
+    <script src="~/Scripts/jquery-3.7.1.js"></script>
+    <link href="~/files/assets/css/jquery.dataTables.min.css" rel="stylesheet" />
+    <script src="~/files/assets/js/jquery.dataTables.min.js"></script>
+</head>
+
+<div class="panel">
+    <div>
+        <h3>@ViewBag.anketadi</h3>
+    </div>
+</div>
+<br />
+<div class="col-lg-12" style="overflow: auto">
+    <table class="table hover" id="Grid">
+        <thead style="color:cadetblue">
+            <tr>
+                <td hidden>
+                    ID
+                </td>
+                <td>
+                    <b>Adı Soyadı</b>
+                </td>
+                <td>
+                    <b>Departman</b>
+                </td>
+                <td>
+                    <b>Bölge</b>
+                </td>
+                <td>
+                    <b>Cinsiyet</b>
+                </td>
+                <td>
+                    <b>Puan</b>
+                </td>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.GroupBy(x => x.User.UserAdi))
+            {
+                var soru = item.Count(); // toplam Soru
+
+                var c5 = item.Count(x => x.CevapPuan == 5);
+                var c4 = item.Count(x => x.CevapPuan == 4);
+                var c3 = item.Count(x => x.CevapPuan == 3);
+                var c2 = item.Count(x => x.CevapPuan == 2);
+                var c1 = item.Count(x => x.CevapPuan == 1);
+
+
+                var d5 = c5 * 5 / 5 * 100;
+                var d4 = c4 * 4 / 5 * 100;
+                var d3 = c3 * 3 / 5 * 100;
+                var d2 = c2 * 2 / 5 * 100;
+                var d1 = c1 * 1 / 5 * 100;
+
+
+                // Puanı hesapla
+                var p2 = d1 + d2 + d3 + d4 + d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                var p1 = p2 / soru;
+                <tr>
+                    <td hidden>@item.Key</td>
+                    <td>
+                        @foreach (var item0 in item.GroupBy(x => x.User.UserAdi))
+                        {
+                            @item0.Key
+                        }
+                    </td>
+                    <td>
+                        @foreach (var item1 in item.GroupBy(x => x.User.Departman.DepartmanAdi))
+                        {
+                            @item1.Key
+                        }
+                    </td>
+                    <td>
+                        @foreach (var item2 in item.GroupBy(x => x.User.Bolge.BolgeAdi))
+                        {
+                            @item2.Key
+                        }
+                    </td>
+                    <td>
+                        @foreach (var item3 in item.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+                        {
+                            @item3.Key
+                        }
+                    </td>
+                    <td>
+                        @p1
+                    </td>
+                </tr>
+
+            }
+        </tbody>
+    </table>
+</div>
+<script>
+    $('#Grid').dataTable({
+    });
+</script>

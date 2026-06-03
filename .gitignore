@@ -1,0 +1,62 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+publish/
+artifacts/
+
+# Visual Studio / IDE state
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Runtime logs and temporary files
+*.log
+*.err
+run-*.log
+run-*.err
+[Ll]ogs/
+*.tmp
+*.bak
+*.cache
+
+# Local/private configuration
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+Web.config
+Web.*.config
+.env
+.env.*
+
+# Publish profiles can contain server names or credentials
+[Pp]roperties/[Pp]ublish[Pp]rofiles/
+*.pubxml
+*.pubxml.user
+*.PublishSettings
+
+# Local databases and backups
+*.db
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+*.bak
+*.bacpac
+
+# User-generated uploads
+uploads/
+Uploads/
+wwwroot/uploads/
+wwwroot/Uploads/
+
+# Restored or generated package folders
+node_modules/
+packages/
+
+# Codex/manual backup folders
+_codex_backup_*/
+_codex_backups/
+*.c1s

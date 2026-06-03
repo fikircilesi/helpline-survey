@@ -1,0 +1,222 @@
+@model survey.Models.Tumcontroller
+@{
+    Layout = "~/Views/Shared/_AnketLayout.cshtml";
+    int a = 0;
+}
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="~/Scripts/jquery-3.7.1.js"></script>
+    <link href="~/files/bower_components/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="~/files/bower_components/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <link href="~/Content/sinav.css" rel="stylesheet" />
+</head>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body text-center">
+        <h5 class="card-title text-uppercase mb-2">
+            SAYIN: @(ViewBag.kod != null ? "Tanımsız Kullanıcı" : Session["adi"]) HOŞ GELDİNİZ
+        </h5>
+        <h6 class="card-subtitle mb-3 text-primary fw-bold">
+            @ViewBag.ankadi
+        </h6>
+        <h6 class="card-subtitle mb-2 text-muted">
+            SÜRENİZ @ViewBag.zaman DAKİKA
+        </h6>
+        <p id="kalanSure" class="fw-bold text-danger mb-0"></p>
+    </div>
+</div>
+
+@if (TempData["Mesaj"] != null)
+{
+    <div class="alert alert-danger text-center">
+        @TempData["Mesaj"]
+    </div>
+}
+
+<div id="soruContainer" class="container-fluid">
+    @foreach (var item in Model.Sor.OrderBy(x => x.SoruSira))
+    {
+        <div class="soru-karti mb-3 p-3" id="soru-@item.SoruId">
+            <div class="card-header">@(++a). @item.SoruAdi</div>
+
+            <div class="mt-2 secili-cevap" data-soru="@item.SoruId">
+                @{
+                    var secili = Model.Hav.FirstOrDefault(h =>
+                        h.SoruID == item.SoruId &&
+                        ((Session["id"] != null && h.UserId.ToString() == Session["id"].ToString()) ||
+                         (Session["id"] == null && h.Isimsiz == ViewBag.kod)));
+                }
+                <!-- Seçili cevap -->
+                <div class="mt-2 secili-cevap" data-soru="@item.SoruId">
+                    @if (secili != null)
+                    {
+                        <span class="secili-cevap-text d-inline-flex align-items-center justify-content-between">
+                            @(secili.Cevap != null ? secili.Cevap.CevapAdi : "[Cevap Yok]")
+                            <button type="button" class="btn-eraser ms-2 btn-delete" data-id="@secili.HavuzId">✕</button>
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Cevaplar
+                    </button>
+                    <div class="dropdown-menu p-2">
+                        @foreach (var item1 in Model.Cev.Where(c => c.CevapGrupId == item.CevapGrupId))
+                        {
+                            <form method="post"
+                                  action="@Url.Action("AnketGirisCreate2", "Home")"
+                                  class="ajax-form"
+                                  data-soru="@item.SoruId">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden" name="AnketId" value="@ViewBag.id" />
+                                <input type="hidden" name="SoruID" value="@item.SoruId" />
+                                <input type="hidden" name="SoruGrupId" value="@item.SoruGrupId" />
+
+                                <input type="hidden" name="CevapId" value="@item1.CevapId" />
+                                <input type="hidden" name="CevapGrupId" value="@item1.CevapGrupId" />
+
+                                <input type="hidden" name="CevapPuan" value="@item1.CevapPuan" />
+                                <input type="hidden" name="SoruPuan" value="@item.SoruPuan" />
+                                <input type="hidden" name="SoruGrupPuan" value="@item.SoruGrup.SoruGrupPuan" />
+
+                                <input type="hidden" name="UserId" value="@(Session["id"] ?? 0)" />
+                                <input type="hidden" name="Isimsiz" value="@(ViewBag.kod ?? 1)" />
+                                <input type="hidden" name="user" value="@(Session["id"] ?? 0)" />
+
+                                <button type="submit" class="btn btn-cevap btn-outline-primary w-100">
+                                    @item1.CevapAdi
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="mt-4 d-flex justify-content-center gap-3">
+    @if (Session["tc"] != null || ViewBag.kod != null)
+    {
+        <a class="btn btn-outline-success px-4"
+           href="@Url.Action("AnketGirisIndex", "Home", new { id = Session["id"] })">
+            <i class="fa fa-arrow-left me-2"></i> Geri
+        </a>
+
+        <a id="btnKaydet" class="btn btn-danger px-4">
+            <i class="fa fa-save me-2"></i> Kaydet / Bitir
+        </a>
+    }
+</div>
+
+<script>
+    // === AJAX Cevap Kaydetme ===
+    document.addEventListener("submit", function (e) {
+        if (e.target.matches(".ajax-form")) {
+            e.preventDefault();
+            const form = e.target;
+            const soruId = form.dataset.soru;
+
+            fetch(form.action, { method: "POST", body: new FormData(form) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.querySelector(`.secili-cevap[data-soru="${soruId}"]`);
+                        container.innerHTML = `
+                            <span class="secili-cevap-text d-inline-flex align-items-center justify-content-between">
+                                ${form.querySelector("button").innerText}
+                                <button type="button" class="btn-eraser ms-2 btn-delete" data-id="${data.havuzId}">✕</button>
+                            </span>`;
+                    } else {
+                        alert("Cevap kaydedilemedi!");
+                    }
+                })
+                .catch(err => console.error("Hata:", err));
+        }
+    });
+
+    // === AJAX Silme ===
+    document.addEventListener("click", function (e) {
+        if (e.target.matches(".btn-delete")) {
+            const id = e.target.dataset.id;
+            fetch("@Url.Action("AnketGirisDelete", "Home")", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "id=" + id
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    e.target.closest(".secili-cevap-text").remove();
+                } else {
+                    alert(data.message || "Silme başarısız!");
+                }
+            });
+        }
+    });
+
+    // === Kaydet/Bitir ===
+    document.getElementById("btnKaydet")?.addEventListener("click", function (e) {
+        e.preventDefault();
+
+        const toplamSoru = document.querySelectorAll(".soru-karti").length;
+        const cevaplanan = document.querySelectorAll(".secili-cevap-text").length;
+
+        if (cevaplanan < toplamSoru) {
+            const onay = confirm("Bazı sorular boş bırakılmış. Yine de bitirmek istiyor musunuz?");
+            if (!onay) return;
+        }
+
+        gosterTesekkurMesaji("Katıldığınız için teşekkür ederiz.<br/>10 saniye içinde çıkış yapılacak...");
+    });
+
+    // === Sayaç ===
+    window.onload = function () {
+        var kalanSureSaniye = parseInt("@(ViewBag.KalanSure != null ? ViewBag.KalanSure.TotalSeconds : 0)") || 0;
+
+        function guncelleKalanSure() {
+            if (kalanSureSaniye >= 0) {
+                var saat = Math.floor(kalanSureSaniye / 3600);
+                var dakika = Math.floor((kalanSureSaniye % 3600) / 60);
+                var saniye = kalanSureSaniye % 60;
+
+                document.getElementById("kalanSure").innerHTML =
+                    saat + " saat " + dakika + " dakika " + saniye + " saniye";
+                kalanSureSaniye--;
+            } else {
+                clearInterval(sayacInterval);
+                gosterTesekkurMesaji("Süreniz doldu.<br/>Katıldığınız için teşekkür ederiz.<br/>10 saniye içinde çıkış yapılacak...");
+            }
+        }
+
+        var sayacInterval = setInterval(guncelleKalanSure, 1000);
+    };
+
+    // === Teşekkür Mesajı ===
+    function gosterTesekkurMesaji(metin) {
+        var mesajDiv = document.createElement("div");
+        mesajDiv.style.position = "fixed";
+        mesajDiv.style.top = "0";
+        mesajDiv.style.left = "0";
+        mesajDiv.style.width = "100%";
+        mesajDiv.style.height = "100%";
+        mesajDiv.style.background = "rgba(0,0,0,0.8)";
+        mesajDiv.style.color = "white";
+        mesajDiv.style.display = "flex";
+        mesajDiv.style.alignItems = "center";
+        mesajDiv.style.justifyContent = "center";
+        mesajDiv.style.fontSize = "2rem";
+        mesajDiv.style.textAlign = "center";
+        mesajDiv.innerHTML = metin;
+        document.body.appendChild(mesajDiv);
+
+        setTimeout(function () {
+            window.location.href = "@Url.Action("AnketGiris", "Home")";
+        }, 10000);
+    }
+</script>

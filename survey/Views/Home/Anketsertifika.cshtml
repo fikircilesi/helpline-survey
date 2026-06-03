@@ -1,0 +1,662 @@
+@{
+    Layout = null;
+
+    var adSoyad = ViewBag.adSoyad as string ?? Session["adi"]?.ToString() ?? "Katılımcı";
+    var sertifikaTarihi = DateTime.Now;
+    if (ViewBag.tarih != null)
+    {
+        DateTime parsedTarih;
+        if (DateTime.TryParse(ViewBag.tarih.ToString(), out parsedTarih))
+        {
+            sertifikaTarihi = parsedTarih;
+        }
+    }
+
+    var tarih = sertifikaTarihi.ToString("dd.MM.yyyy");
+    var anketAdi = ViewBag.anket as string ?? "Eğitim";
+    var egitimVeren = ViewBag.egitimveren as string ?? "";
+    var imza = ViewBag.imza as string;
+    var sertifikaBaslik = ViewBag.sertifikaBaslik as string ?? "Katılım Sertifikası";
+    var sertifikaMetni = ViewBag.sertifikaMetni as string;
+    var sertifikaTema = ViewBag.sertifikaTema as string ?? "Modern";
+    var sertifikaLogo = ViewBag.sertifikaLogo as string;
+    var sertifikaVurguRengi = ViewBag.sertifikaVurguRengi as string ?? "#2563eb";
+    var sertifikaCerceve = ViewBag.sertifikaCerceve as string ?? "Classic";
+    var sertifikaFont = ViewBag.sertifikaFont as string ?? "Georgia";
+    var sertifikaYaziPunto = 17;
+    var sertifikaBaslikPunto = 44;
+    if (ViewBag.sertifikaYaziPunto != null)
+    {
+        int.TryParse(ViewBag.sertifikaYaziPunto.ToString(), out sertifikaYaziPunto);
+        sertifikaYaziPunto = sertifikaYaziPunto < 11 || sertifikaYaziPunto > 28 ? 17 : sertifikaYaziPunto;
+    }
+    if (ViewBag.sertifikaBaslikPunto != null)
+    {
+        int.TryParse(ViewBag.sertifikaBaslikPunto.ToString(), out sertifikaBaslikPunto);
+        sertifikaBaslikPunto = sertifikaBaslikPunto < 24 || sertifikaBaslikPunto > 72 ? 44 : sertifikaBaslikPunto;
+    }
+    if (!string.IsNullOrWhiteSpace(sertifikaMetni))
+    {
+        sertifikaMetni = sertifikaMetni
+            .Replace("{adSoyad}", adSoyad)
+            .Replace("{egitim}", anketAdi)
+            .Replace("{tarih}", tarih)
+            .Replace("{egitimVeren}", egitimVeren);
+    }
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sertifika</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <style>
+        :root {
+            --ink: #162033;
+            --muted: #667085;
+            --brand: #18b7a4;
+            --accent: @sertifikaVurguRengi;
+            --paper: #fffdf8;
+            --cert-font: Georgia, "Times New Roman", serif;
+            --cert-title-size: @sertifikaBaslikPunto;
+            --cert-text-size: @sertifikaYaziPunto;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            background: #eef3f8;
+            font-family: "Open Sans", Arial, sans-serif;
+        }
+
+        .certificate-actions {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 20;
+            display: flex;
+            gap: 8px;
+        }
+
+        .certificate-print-btn {
+            min-height: 42px;
+            padding: 0 16px;
+            border: 0;
+            border-radius: 8px;
+            color: #fff;
+            background: var(--ink);
+            font-weight: 800;
+            box-shadow: 0 14px 30px rgba(24, 36, 58, .18);
+            cursor: pointer;
+        }
+
+        .certificate-page {
+            width: min(980px, calc(100% - 28px));
+            min-height: 680px;
+            margin: 42px auto;
+            padding: 24px;
+            border-radius: 8px;
+            background: var(--paper);
+            box-shadow: 0 24px 70px rgba(22, 32, 51, .14);
+            box-sizing: border-box;
+        }
+
+        .certificate-frame {
+            min-height: 632px;
+            padding: 46px;
+            border: 2px solid #d9cda8;
+            border-radius: 8px;
+            box-sizing: border-box;
+            background:
+                linear-gradient(135deg, rgba(24, 183, 164, .12), transparent 28%),
+                linear-gradient(315deg, rgba(67, 97, 238, .10), transparent 30%),
+                #fffdf8;
+            text-align: center;
+        }
+
+        .certificate-theme-prestij .certificate-frame {
+            border: 8px double #d6b25e;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(214, 178, 94, .18), transparent 34%),
+                linear-gradient(180deg, #fffdf8, #fffaf0);
+        }
+
+        .certificate-theme-minimal .certificate-frame {
+            border: 1px solid #d9e3f2;
+            border-top: 12px solid var(--accent);
+            background: #fff;
+        }
+
+        .certificate-theme-kurumsal .certificate-frame {
+            border: 1px solid #d9e3f2;
+            border-left: 16px solid var(--accent);
+            background:
+                linear-gradient(90deg, rgba(67, 97, 238, .09), transparent 42%),
+                #fff;
+        }
+
+        .certificate-frame-doublegold .certificate-frame {
+            border: 10px double #d6b25e;
+        }
+
+        .certificate-frame-ribbon .certificate-frame {
+            border-top: 22px solid var(--accent);
+        }
+
+        .certificate-frame-cornerseal .certificate-frame {
+            box-shadow:
+                inset 0 0 0 2px #d9e3f2,
+                inset 30px 30px 0 -22px var(--accent),
+                inset -30px -30px 0 -22px var(--accent);
+        }
+
+        .certificate-frame-gradientwash .certificate-frame {
+            background:
+                linear-gradient(135deg, rgba(24, 183, 164, .18), rgba(67, 97, 238, .14), transparent 66%),
+                #fffdf8;
+        }
+
+        .certificate-frame-royal .certificate-frame {
+            border: 6px solid #172554;
+            box-shadow: inset 0 0 0 10px rgba(214, 178, 94, .44);
+        }
+
+        .certificate-frame-sidestripe .certificate-frame {
+            border-left: 24px solid var(--accent);
+        }
+
+        .certificate-frame-topband .certificate-frame {
+            background:
+                linear-gradient(180deg, var(--accent) 0 18px, transparent 18px),
+                linear-gradient(135deg, rgba(24, 183, 164, .12), transparent 28%),
+                #fffdf8;
+        }
+
+        .certificate-frame-minimalline .certificate-frame {
+            border: 1px solid #d9e3f2;
+            border-bottom: 14px solid var(--accent);
+            background: #fff;
+        }
+
+        .certificate-frame-artdeco .certificate-frame {
+            border: 5px solid #111827;
+            background:
+                linear-gradient(135deg, transparent 0 38%, rgba(214, 178, 94, .20) 38% 42%, transparent 42%),
+                linear-gradient(315deg, transparent 0 38%, rgba(214, 178, 94, .20) 38% 42%, transparent 42%),
+                #fffdf8;
+        }
+
+        .certificate-frame-blueclassic .certificate-frame {
+            border: 14px double #163a75;
+            background:
+                linear-gradient(#fffdf8, #fffdf8) padding-box,
+                repeating-linear-gradient(90deg, #163a75 0 14px, #f7f4e6 14px 21px) border-box;
+            box-shadow: inset 0 0 0 6px #163a75, inset 0 0 0 14px #f7f4e6;
+        }
+
+        .certificate-frame-lacecolor .certificate-frame {
+            border: 18px solid transparent;
+            background:
+                linear-gradient(#fffdf8, #fffdf8) padding-box,
+                repeating-linear-gradient(90deg, #18b7a4 0 20px, #e879f9 20px 40px, #f4c430 40px 60px, #111827 60px 80px) border-box;
+            box-shadow: inset 0 0 0 4px #fff, inset 0 0 0 8px rgba(17, 24, 39, .10);
+        }
+
+        .certificate-frame-goldornate .certificate-frame {
+            border: 18px solid #c4972f;
+            background:
+                linear-gradient(#fffdf8, #fffdf8) padding-box,
+                repeating-linear-gradient(45deg, #c4972f 0 6px, #fff7dd 6px 12px, #c4972f 12px 14px) border-box;
+            box-shadow: inset 0 0 0 6px #fff7dd, inset 0 0 0 12px #c4972f;
+        }
+
+        .certificate-frame-sealribbon .certificate-frame {
+            border: 8px double #d6b25e;
+            background:
+                radial-gradient(circle at 16% 78%, rgba(185, 28, 28, .94) 0 42px, transparent 43px),
+                linear-gradient(135deg, rgba(214, 178, 94, .22), transparent 46%),
+                #fffdf8;
+        }
+
+        .certificate-frame-formalaward .certificate-frame {
+            border: 10px double #1f2937;
+            background:
+                linear-gradient(90deg, #1f2937 0 22px, transparent 22px calc(100% - 22px), #1f2937 calc(100% - 22px)),
+                linear-gradient(180deg, #d6b25e 0 14px, transparent 14px calc(100% - 14px), #d6b25e calc(100% - 14px)),
+                #fffdf8;
+        }
+
+        .certificate-frame-floralgold .certificate-frame {
+            border: 18px solid transparent;
+            background:
+                linear-gradient(#fffdf8, #fffdf8) padding-box,
+                repeating-linear-gradient(90deg, #c4972f 0 18px, #fff7dd 18px 27px, rgba(196, 151, 47, .55) 27px 45px, #fff7dd 45px 54px) border-box;
+            box-shadow: inset 0 0 0 4px #d6b25e;
+        }
+
+        .certificate-frame-ottoman .certificate-frame {
+            border: 20px solid transparent;
+            background:
+                linear-gradient(#fffdf8, #fffdf8) padding-box,
+                repeating-linear-gradient(90deg, #0f3f5f 0 26px, #f7f4e6 26px 39px, #d6b25e 39px 52px, #f7f4e6 52px 65px) border-box;
+            box-shadow: inset 0 0 0 5px #0f3f5f, inset 0 0 0 10px #fff;
+        }
+
+        .certificate-frame-guilloche .certificate-frame {
+            border: 14px double #163a75;
+            background:
+                repeating-radial-gradient(ellipse at center, rgba(22, 58, 117, .18) 0 2px, transparent 2px 11px),
+                #fffdf8;
+            box-shadow: inset 0 0 0 8px rgba(22, 58, 117, .14);
+        }
+
+        .certificate-frame-victorian .certificate-frame {
+            border: 14px double #4b2e16;
+            background:
+                radial-gradient(circle at 24px 24px, rgba(75, 46, 22, .70) 0 8px, transparent 9px),
+                linear-gradient(135deg, transparent 0 40%, rgba(196, 151, 47, .18) 40% 47%, transparent 47%),
+                #fff8e7;
+            background-size: 70px 70px, auto, auto;
+            box-shadow: inset 0 0 0 8px rgba(196, 151, 47, .35);
+        }
+
+        .certificate-frame-laurel .certificate-frame {
+            border: 14px solid transparent;
+            background:
+                linear-gradient(#fffdf8, #fffdf8) padding-box,
+                repeating-linear-gradient(135deg, #2f6f46 0 7px, #d9ead3 7px 13px, transparent 13px 24px) border-box;
+            box-shadow: inset 0 0 0 4px #2f6f46;
+        }
+
+        .certificate-frame-cornerflourish .certificate-frame {
+            border: 6px solid #c4972f;
+            background:
+                radial-gradient(circle at 0 0, transparent 0 58px, rgba(196, 151, 47, .55) 59px 64px, transparent 65px),
+                radial-gradient(circle at 100% 0, transparent 0 58px, rgba(196, 151, 47, .55) 59px 64px, transparent 65px),
+                radial-gradient(circle at 0 100%, transparent 0 58px, rgba(196, 151, 47, .55) 59px 64px, transparent 65px),
+                radial-gradient(circle at 100% 100%, transparent 0 58px, rgba(196, 151, 47, .55) 59px 64px, transparent 65px),
+                #fffdf8;
+            box-shadow: inset 0 0 0 4px #f4dfaa;
+        }
+
+        .certificate-frame-finelace .certificate-frame {
+            border: 18px solid transparent;
+            background:
+                linear-gradient(#fffdf8, #fffdf8) padding-box,
+                repeating-linear-gradient(45deg, #d6b25e 0 8px, #fff7dd 8px 16px, transparent 16px 24px) border-box;
+            box-shadow: inset 0 0 0 4px #d6b25e;
+        }
+
+        .certificate-frame-aofturquoise .certificate-frame {
+            border: 28px solid transparent;
+            background:
+                linear-gradient(#fffdf8, #fffdf8) padding-box,
+                repeating-linear-gradient(45deg, transparent 0 14px, rgba(255, 255, 255, .95) 14px 18px, transparent 18px 32px) border-box,
+                repeating-linear-gradient(135deg, transparent 0 14px, rgba(255, 255, 255, .95) 14px 18px, transparent 18px 32px) border-box,
+                linear-gradient(#007f93, #007f93) border-box;
+            box-shadow: inset 0 0 0 4px #8b1e2d, inset 0 0 0 9px #fff, inset 0 0 0 13px #007f93;
+        }
+
+        .certificate-frame-antique .certificate-frame {
+            border: 14px double #8a5a22;
+            background:
+                linear-gradient(45deg, rgba(138, 90, 34, .13) 25%, transparent 25% 75%, rgba(138, 90, 34, .13) 75%),
+                #fff8e7;
+            background-size: 32px 32px;
+            box-shadow: inset 0 0 0 8px rgba(138, 90, 34, .18);
+        }
+
+        .certificate-font-georgia {
+            --cert-font: Georgia, "Times New Roman", serif;
+        }
+
+        .certificate-font-garamond {
+            --cert-font: Garamond, Georgia, "Times New Roman", serif;
+        }
+
+        .certificate-font-playfair {
+            --cert-font: "Playfair Display", Georgia, "Times New Roman", serif;
+        }
+
+        .certificate-font-merriweather {
+            --cert-font: Merriweather, Georgia, "Times New Roman", serif;
+        }
+
+        .certificate-font-cambria {
+            --cert-font: Cambria, Georgia, "Times New Roman", serif;
+        }
+
+        .certificate-font-times {
+            --cert-font: "Times New Roman", Times, serif;
+        }
+
+        .certificate-font-arial {
+            --cert-font: Arial, Helvetica, sans-serif;
+        }
+
+        .certificate-font-verdana {
+            --cert-font: Verdana, Geneva, sans-serif;
+        }
+
+        .certificate-font-opensans {
+            --cert-font: "Open Sans", Arial, Helvetica, sans-serif;
+        }
+
+        .certificate-mark {
+            display: inline-grid;
+            place-items: center;
+            width: 72px;
+            height: 72px;
+            margin-bottom: 22px;
+            border-radius: 50%;
+            color: #fff;
+            background: linear-gradient(135deg, var(--brand), var(--accent));
+            font-size: 28px;
+            font-weight: 950;
+        }
+
+        .certificate-logo {
+            display: inline-grid;
+            place-items: center;
+            min-width: 96px;
+            height: 72px;
+            margin-bottom: 22px;
+        }
+
+        .certificate-logo img {
+            max-width: 170px;
+            max-height: 72px;
+            object-fit: contain;
+        }
+
+        .certificate-title {
+            margin: 0;
+            font-size: clamp(32px, calc(var(--cert-title-size) * 1px), 76px);
+            font-family: var(--cert-font);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .certificate-course {
+            max-width: 760px;
+            margin: 24px auto 0;
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1.35;
+        }
+
+        .certificate-name {
+            display: inline-block;
+            min-width: min(560px, 100%);
+            margin: 34px auto 18px;
+            padding: 12px 20px;
+            border-bottom: 2px solid #d9cda8;
+            font-size: clamp(28px, calc(var(--cert-title-size) * .78px), 56px);
+            font-family: var(--cert-font);
+            font-weight: 700;
+        }
+
+        .certificate-text {
+            max-width: 720px;
+            margin: 0 auto;
+            color: #344054;
+            font-size: clamp(11px, calc(var(--cert-text-size) * 1px), 28px);
+            line-height: 1.8;
+            font-weight: 650;
+        }
+
+        .certificate-footer {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: end;
+            margin-top: 58px;
+            text-align: left;
+        }
+
+        .certificate-footer strong {
+            display: block;
+            color: var(--ink);
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .certificate-footer span {
+            display: block;
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 750;
+        }
+
+        .signature {
+            text-align: right;
+        }
+
+        .signature img {
+            max-width: 110px;
+            max-height: 58px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+
+        .certificate-unavailable {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        @@media (max-width: 720px) {
+            .certificate-page {
+                margin: 22px auto;
+                padding: 14px;
+            }
+
+            .certificate-frame {
+                padding: 28px 18px;
+            }
+
+            .certificate-footer {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .signature {
+                text-align: center;
+            }
+        }
+
+        @@page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        @@media print {
+            html,
+            body {
+                width: 277mm;
+                height: 190mm;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background: #fff;
+            }
+
+            .certificate-actions {
+                display: none;
+            }
+
+            .certificate-page {
+                width: 277mm;
+                height: 190mm;
+                min-height: 0;
+                margin: 0;
+                padding: 5mm;
+                border-radius: 0;
+                box-shadow: none;
+                overflow: hidden;
+                page-break-after: avoid;
+                page-break-inside: avoid;
+                break-after: avoid;
+                break-inside: avoid;
+            }
+
+            .certificate-frame {
+                width: 100%;
+                height: 100%;
+                min-height: 0;
+                padding: 12mm 16mm 10mm;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .certificate-logo,
+            .certificate-mark {
+                margin-bottom: 4mm;
+            }
+
+            .certificate-logo {
+                height: 16mm;
+            }
+
+            .certificate-logo img {
+                max-height: 16mm;
+            }
+
+            .certificate-mark {
+                width: 16mm;
+                height: 16mm;
+                font-size: 18px;
+            }
+
+            .certificate-title {
+                font-size: clamp(22pt, calc(var(--cert-title-size) * .7pt), 36pt);
+            }
+
+            .certificate-course {
+                margin-top: 6mm;
+                font-size: 17pt;
+            }
+
+            .certificate-name {
+                margin: 8mm auto 5mm;
+                padding: 3mm 8mm;
+                font-size: clamp(20pt, calc(var(--cert-title-size) * .55pt), 30pt);
+            }
+
+            .certificate-text {
+                line-height: 1.45;
+                font-size: clamp(10pt, calc(var(--cert-text-size) * .72pt), 15pt);
+            }
+
+            .certificate-footer {
+                margin-top: auto;
+                grid-template-columns: 1fr 1fr;
+                text-align: left;
+            }
+
+            .signature {
+                text-align: right;
+            }
+        }
+    </style>
+</head>
+<body>
+@if (ViewBag.puan != true)
+{
+    <div class="certificate-unavailable">
+        <div class="card shadow-lg border-danger text-center" style="max-width: 520px;">
+            <div class="card-header bg-danger text-white fw-bold">
+                Sertifika Alınamadı
+            </div>
+            <div class="card-body">
+                <p class="card-text fs-5 text-danger">
+                    @ViewBag.mesaj
+                </p>
+                <hr />
+                @if (ViewBag.hideScore != true)
+                {
+                    <p class="mb-1">
+                        <b>Aldığınız Not:</b>
+                        <span class="text-dark">@String.Format("{0:n2}", ViewBag.not)</span>
+                    </p>
+                    <p class="mb-0">
+                        <b>Olması Gereken Not:</b>
+                        <span class="text-dark">@String.Format("{0:n2}", ViewBag.snotu)</span>
+                    </p>
+                }
+            </div>
+            <div class="card-footer text-muted">
+                @if (ViewBag.hideScore == true)
+                {
+                    <text>Lütfen sınavınız tamamlandıktan sonra tekrar kontrol ediniz.</text>
+                }
+                else
+                {
+                    <text>Lütfen daha yüksek bir not alarak tekrar deneyiniz.</text>
+                }
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="certificate-actions">
+        <button class="certificate-print-btn" type="button" onclick="window.print()">Sertifikayı yazdır</button>
+    </div>
+
+    <main class="certificate-page certificate-theme-@sertifikaTema.ToLowerInvariant() certificate-frame-@sertifikaCerceve.ToLowerInvariant() certificate-font-@sertifikaFont.ToLowerInvariant()">
+        <section class="certificate-frame">
+            @if (!string.IsNullOrWhiteSpace(sertifikaLogo))
+            {
+                <div class="certificate-logo">
+                    <img src="@sertifikaLogo" alt="Sertifika logosu" />
+                </div>
+            }
+            else
+            {
+                <div class="certificate-mark">E</div>
+            }
+            <h1 class="certificate-title">@sertifikaBaslik</h1>
+            <div class="certificate-course">@anketAdi</div>
+
+            <div class="certificate-name">Sn. @adSoyad</div>
+
+            <p class="certificate-text">
+                @if (!string.IsNullOrWhiteSpace(sertifikaMetni))
+                {
+                    @sertifikaMetni
+                }
+                else
+                {
+                    <text>@tarih tarihinde tamamlanan bu eğitim/sınav kapsamında gerekli başarı koşullarını sağlayarak bu sertifikayı almaya hak kazanmıştır.</text>
+                }
+            </p>
+
+            <div class="certificate-footer">
+                <div>
+                    <strong>Düzenleme Tarihi</strong>
+                    <span>@tarih</span>
+                </div>
+                <div class="signature">
+                    @if (!string.IsNullOrWhiteSpace(imza))
+                    {
+                        <img src="@imza" alt="İmza" />
+                    }
+                    <strong>Eğitimi Veren</strong>
+                    @if (!string.IsNullOrWhiteSpace(egitimVeren))
+                    {
+                        <span>@egitimVeren</span>
+                    }
+                </div>
+            </div>
+        </section>
+    </main>
+}
+</body>
+</html>

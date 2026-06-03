@@ -1,0 +1,111 @@
+@model IEnumerable<survey.Models.Personel>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="panel">
+    <div>
+        <h4>KULLANICI LİSTESİ</h4>
+    </div>
+    <div class="panel-body">
+
+        <table class="table">
+            <tr>
+                <td></td>
+                <th>
+                    Kullanıcı Adı
+                </th>
+                <th>
+                    Tc
+                </th>
+                <th>
+                    Pasif
+                </th>
+                <th>
+                    Ünvanı
+                </th>
+                <th>
+                    Mail
+                </th>
+                <th>
+                    Telefon
+                </th>
+                <th>
+                    Adres
+                </th>
+                <th>
+                    Kullanıcı Adı
+                </th>
+                <th>
+                    Şifre
+                </th>
+                <th>
+                    Pasif
+                </th>
+                <th>
+                    Admin
+                </th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <a class="fa fa-pencil" title="Personel düzenleme" href="@Url.Action("PersonelEdit", "Ayar", new { id = item.PersonelId })"></a>
+                        <a class="fa fa-trash-o" title="Personel sil" href="@Url.Action("PersonelDelete", "Ayar", new { id = item.PersonelId})"></a>
+                    </td>
+
+                    <td>
+                        @item.KullaniciAdi
+                    </td>
+                    <td>
+                        @item.Tc
+                    </td>
+                    <td>
+                        @if (item.Pasif != true)
+                        {
+                            <b style="color:darkgreen">Aktif</b>
+                        }
+                        else
+                        {
+                            <b style="color: darkgrey">Pasif</b>
+
+                        }
+                    </td>
+                    <td>
+                        @item.Unvan.UnvanAdi
+                    </td>
+                    <td>
+                        @item.Mail
+                    </td>
+                    <td>
+                        @item.Telefon
+                    </td>
+                    <td>
+                        @item.Adres
+                    </td>
+                    <td>
+                        @item.KullaniciAdi
+                    </td>
+                    <td>
+                        @item.Sifre
+                    </td>
+                    <td>
+                        @item.Pasif
+                    </td>
+                    <td>
+                        @item.Admin
+                    </td>
+
+                </tr>
+            }
+
+        </table>
+        <div class="col-lg-9"></div>
+        <div class="col-lg-3">
+            <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
+            <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("UserCreate", "Ayar")">Yeni</a>
+        </div>
+
+    </div>
+</div>

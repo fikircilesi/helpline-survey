@@ -1,0 +1,702 @@
+@model IEnumerable<survey.Models.Havuz>
+
+@functions {
+    public class ReportRow
+    {
+        public string Ad { get; set; }
+        public int Kisi { get; set; }
+        public double Puan { get; set; }
+        public int Soru { get; set; }
+    }
+
+    public class ReportBreakdown
+    {
+        public string Id { get; set; }
+        public string Baslik { get; set; }
+        public List<ReportRow> Satirlar { get; set; }
+    }
+
+    public string RenderRows(List<ReportRow> rows, string emptyMessage)
+    {
+        Func<string, string> enc = System.Net.WebUtility.HtmlEncode;
+
+        if (rows == null || !rows.Any())
+        {
+            return "<div class=\"report-empty\">" + enc(emptyMessage) + "</div>";
+        }
+
+        var html = new System.Text.StringBuilder();
+        html.Append("<div class=\"table-responsive\"><table class=\"report-table\"><thead><tr>");
+        html.Append("<th>Başlık</th><th>Katılım</th><th>Soru</th><th>Puan</th>");
+        html.Append("</tr></thead><tbody>");
+
+        foreach (var row in rows)
+        {
+            var puan = Math.Max(0, Math.Min(100, row.Puan));
+            var width = puan.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+            html.Append("<tr>");
+            html.Append("<td>").Append(enc(row.Ad)).Append("</td>");
+            html.Append("<td>").Append(row.Kisi).Append(" kişi</td>");
+            html.Append("<td>").Append(row.Soru).Append("</td>");
+            html.Append("<td class=\"score-cell\"><strong>")
+                .Append(String.Format("{0:n2} %", puan))
+                .Append("</strong><div class=\"score-bar\"><span style=\"width:")
+                .Append(width)
+                .Append("\"></span></div></td>");
+            html.Append("</tr>");
+        }
+
+        html.Append("</tbody></table></div>");
+        return html.ToString();
+    }
+}
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var kayitlar = (Model ?? Enumerable.Empty<survey.Models.Havuz>()).ToList();
+    var sinavMi = ViewBag.sinav == true;
+    var calismaTuru = sinavMi ? "Sınav / eğitim" : "Anket";
+    var anketAdi = Convert.ToString(ViewBag.adi ?? ViewBag.anketadi ?? "Rapor");
+    var geriId = ViewBag.ank ?? ViewBag.id;
+
+    Func<survey.Models.Havuz, string> KatilimciAnahtari = kayit =>
+    {
+        if (kayit?.User != null && kayit.UserId != null)
+        {
+            return "u:" + kayit.UserId.Value;
+        }
+
+        if (kayit?.Isimsiz != null)
+        {
+            return "k:" + kayit.Isimsiz.Value;
+        }
+
+        if (kayit?.UserId != null)
+        {
+            return "u:" + kayit.UserId.Value;
+        }
+
+        return "h:" + (kayit?.HavuzId ?? 0);
+    };
+
+    Func<IEnumerable<survey.Models.Havuz>, List<survey.Models.Havuz>> SonSoruCevaplari = rows =>
+        (rows ?? Enumerable.Empty<survey.Models.Havuz>())
+            .Where(x => x.SoruID != null)
+            .GroupBy(x => x.SoruID.Value)
+            .Select(g => g
+                .OrderByDescending(x => x.KayitTar ?? DateTime.MinValue)
+                .ThenByDescending(x => x.HavuzId)
+                .First())
+            .ToList();
+
+    Func<survey.Models.Havuz, double> SoruPuani = kayit =>
+    {
+        var puan = kayit?.SoruPuan ?? kayit?.Soru?.SoruPuan ?? 0;
+        return puan > 0 ? puan : 1;
+    };
+
+    Func<survey.Models.Havuz, double> AnketCevapPuani = kayit =>
+    {
+        var puan = kayit?.Cevap?.CevapPuan ?? kayit?.CevapPuan ?? 0;
+        return Math.Max(0, Math.Min(5, puan));
+    };
+
+    Func<IEnumerable<survey.Models.Havuz>, double> KisiPuani = rows =>
+    {
+        var liste = SonSoruCevaplari(rows);
+        if (!liste.Any())
+        {
+            return 0;
+        }
+
+        if (sinavMi)
+        {
+            var toplam = liste.Sum(SoruPuani);
+            var dogru = liste
+                .Where(x => x.Cevap != null && x.Cevap.Dogru == true)
+                .Sum(SoruPuani);
+
+            return toplam <= 0 ? 0 : dogru / toplam * 100;
+        }
+
+        var toplamAgirlik = liste.Sum(SoruPuani);
+        var agirlikliPuan = liste.Sum(x => AnketCevapPuani(x) * SoruPuani(x));
+
+        return toplamAgirlik <= 0 ? 0 : agirlikliPuan / toplamAgirlik * 20;
+    };
+
+    Func<IEnumerable<survey.Models.Havuz>, double> OrtalamaPuan = rows =>
+        (rows ?? Enumerable.Empty<survey.Models.Havuz>())
+            .GroupBy(KatilimciAnahtari)
+            .Select(KisiPuani)
+            .DefaultIfEmpty(0)
+            .Average();
+
+    Func<IEnumerable<survey.Models.Havuz>, int> KisiSayisi = rows =>
+        (rows ?? Enumerable.Empty<survey.Models.Havuz>())
+            .GroupBy(KatilimciAnahtari)
+            .Count();
+
+    Func<double, string> PercentText = value => String.Format("{0:n2} %", Math.Max(0, Math.Min(100, value)));
+    Func<double, string> PercentWidth = value => Math.Max(0, Math.Min(100, value)).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+    Func<string, string> TextOrDefault = value => String.IsNullOrWhiteSpace(value) ? "Tanımsız" : value;
+
+    var katilimGruplari = kayitlar.GroupBy(KatilimciAnahtari).ToList();
+    var toplamKatilim = katilimGruplari.Count;
+    var tanimli = kayitlar.Where(x => x.User != null && x.UserId != null).Select(x => x.UserId).Distinct().Count();
+    var tanimsiz = katilimGruplari.Count(g => g.Any(x => x.Isimsiz != null) || !g.Any(x => x.User != null));
+    var genelPuan = OrtalamaPuan(kayitlar);
+    var cevaplananSoru = kayitlar.Count(x => x.SoruID != null);
+    var toplamSoru = kayitlar.Where(x => x.SoruID != null).Select(x => x.SoruID).Distinct().Count();
+
+    var soruOzetleri = kayitlar
+        .Where(x => x.SoruID != null)
+        .GroupBy(x => x.SoruID.Value)
+        .Select(g => new ReportRow
+        {
+            Ad = TextOrDefault(g.FirstOrDefault()?.Soru?.SoruAdi) == "Tanımsız" ? "Soru #" + g.Key : TextOrDefault(g.FirstOrDefault()?.Soru?.SoruAdi),
+            Kisi = KisiSayisi(g),
+            Puan = OrtalamaPuan(g),
+            Soru = 1
+        })
+        .ToList();
+
+    var soruGruplari = kayitlar
+        .Where(x => x.SoruID != null)
+        .GroupBy(x => TextOrDefault(x.SoruGrup?.SoruGrupAdi ?? x.Soru?.SoruGrup?.SoruGrupAdi))
+        .Select(g => new ReportRow
+        {
+            Ad = g.Key,
+            Kisi = KisiSayisi(g),
+            Puan = OrtalamaPuan(g),
+            Soru = g.Select(x => x.SoruID).Where(x => x != null).Distinct().Count()
+        })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var soruDetaylari = kayitlar
+        .Where(x => x.SoruID != null)
+        .GroupBy(x => new
+        {
+            SoruId = x.SoruID.Value,
+            Grup = TextOrDefault(x.SoruGrup?.SoruGrupAdi ?? x.Soru?.SoruGrup?.SoruGrupAdi)
+        })
+        .Select(g => new
+        {
+            Ad = TextOrDefault(g.FirstOrDefault()?.Soru?.SoruAdi) == "Tanımsız" ? "Soru #" + g.Key.SoruId : TextOrDefault(g.FirstOrDefault()?.Soru?.SoruAdi),
+            Grup = g.Key.Grup,
+            Kisi = KisiSayisi(g),
+            Puan = OrtalamaPuan(g)
+        })
+        .OrderBy(x => x.Grup)
+        .ThenBy(x => x.Ad)
+        .ToList();
+
+    Func<string, IEnumerable<survey.Models.Havuz>, ReportRow> MakeRow = (ad, rows) => new ReportRow
+    {
+        Ad = TextOrDefault(ad),
+        Kisi = KisiSayisi(rows),
+        Puan = OrtalamaPuan(rows),
+        Soru = rows.Where(x => x.SoruID != null).Select(x => x.SoruID).Distinct().Count()
+    };
+
+    var departmanRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Departman?.DepartmanAdi))
+        .GroupBy(x => x.User.Departman.DepartmanAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var cinsiyetRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Cinsiyet?.CinsiyetAdi))
+        .GroupBy(x => x.User.Cinsiyet.CinsiyetAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var egitimRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Egitim?.EgitimAdi))
+        .GroupBy(x => x.User.Egitim.EgitimAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var sehirRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Sehir?.SehiarAdi))
+        .GroupBy(x => x.User.Sehir.SehiarAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var subeRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Sube?.SubeAdi))
+        .GroupBy(x => x.User.Sube.SubeAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var unvanRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Unvan?.UnvanAdi))
+        .GroupBy(x => x.User.Unvan.UnvanAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var yakaRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Yaka?.YakaAdi))
+        .GroupBy(x => x.User.Yaka.YakaAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var yoneticiRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Yonetici?.YoneticiAdi))
+        .GroupBy(x => x.User.Yonetici.YoneticiAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var yasRows = kayitlar
+        .Where(x => x.User?.UserDogumTar != null)
+        .GroupBy(x =>
+        {
+            var dogum = x.User.UserDogumTar.Value;
+            var yas = DateTime.Today.Year - dogum.Year;
+            if (dogum.Date > DateTime.Today.AddYears(-yas))
+            {
+                yas--;
+            }
+
+            return yas + " yaş";
+        })
+        .Select(g => MakeRow(g.Key, g))
+        .OrderBy(x => x.Ad)
+        .ToList();
+
+    var kirilimlar = new List<ReportBreakdown>
+    {
+        new ReportBreakdown { Id = "Departman", Baslik = "Departman", Satirlar = departmanRows },
+        new ReportBreakdown { Id = "Cinsiyet", Baslik = "Cinsiyet", Satirlar = cinsiyetRows },
+        new ReportBreakdown { Id = "Egitim", Baslik = "Eğitim", Satirlar = egitimRows },
+        new ReportBreakdown { Id = "Yas", Baslik = "Yaş", Satirlar = yasRows },
+        new ReportBreakdown { Id = "Sehir", Baslik = "Şehir", Satirlar = sehirRows },
+        new ReportBreakdown { Id = "Sube", Baslik = "Şube", Satirlar = subeRows },
+        new ReportBreakdown { Id = "Unvan", Baslik = "Unvan", Satirlar = unvanRows },
+        new ReportBreakdown { Id = "Yaka", Baslik = "Yaka", Satirlar = yakaRows },
+        new ReportBreakdown { Id = "Yonetici", Baslik = "Yönetici", Satirlar = yoneticiRows }
+    };
+}
+
+<style>
+    .report-shell {
+        max-width: 1380px;
+        margin: 24px auto;
+        padding: 0 18px 34px;
+    }
+
+    .report-hero {
+        border: 1px solid #d7e3f4;
+        border-radius: 10px;
+        background: linear-gradient(120deg, #ecfbf8 0%, #f9fbff 48%, #eef2ff 100%);
+        padding: 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
+    }
+
+    .report-eyebrow {
+        color: #2457ff;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        font-size: 12px;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .report-title {
+        margin: 0;
+        color: #001a3a;
+        font-size: 34px;
+        font-weight: 800;
+    }
+
+    .report-subtitle {
+        margin: 8px 0 0;
+        max-width: 760px;
+        color: #536278;
+        font-size: 15px;
+        line-height: 1.55;
+    }
+
+    .report-actions {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .report-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #cbd8ee;
+        background: #fff;
+        color: #001a3a;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .report-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .report-badge {
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #12325f;
+        padding: 7px 11px;
+        font-weight: 800;
+        font-size: 12px;
+    }
+
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin: 16px 0;
+    }
+
+    .metric-card {
+        border: 1px solid #d7e3f4;
+        border-radius: 8px;
+        background: #fff;
+        padding: 18px;
+    }
+
+    .metric-value {
+        color: #001a3a;
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .metric-label {
+        color: #536278;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+
+    .report-card {
+        border: 1px solid #d7e3f4;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, .06);
+    }
+
+    .report-tabs {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 14px;
+        border-bottom: 1px solid #dce6f5;
+        background: #fbfdff;
+    }
+
+    .report-tabs .nav-link {
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: #2457ff;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .report-tabs .nav-link.active {
+        border-color: #bfd0ef;
+        background: #fff;
+        color: #001a3a;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, .05);
+    }
+
+    .report-pane {
+        padding: 18px;
+    }
+
+    .section-title {
+        margin: 0 0 12px;
+        color: #001a3a;
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .report-table th {
+        background: #16202b;
+        color: #fff;
+        padding: 12px;
+        font-weight: 800;
+        border: 1px solid #293542;
+    }
+
+    .report-table td {
+        padding: 12px;
+        border: 1px solid #e0e7f2;
+        vertical-align: middle;
+    }
+
+    .report-table tr:nth-child(even) td {
+        background: #f8fbff;
+    }
+
+    .score-cell {
+        min-width: 190px;
+    }
+
+    .score-bar {
+        height: 8px;
+        background: #e8eef8;
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 6px;
+    }
+
+    .score-bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #18b7a4, #4361ee);
+    }
+
+    .report-alert,
+    .report-empty {
+        border-radius: 8px;
+        padding: 16px;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .report-alert {
+        border: 1px solid #badcf6;
+        background: #eff9ff;
+        color: #0b5884;
+        margin: 16px 0;
+    }
+
+    .report-empty {
+        border: 1px dashed #c7d5ea;
+        background: #f8fbff;
+        color: #5d6b82;
+        text-align: center;
+    }
+
+    .split-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    @@media (max-width: 900px) {
+        .report-hero {
+            flex-direction: column;
+        }
+
+        .metric-grid,
+        .split-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="report-shell">
+    <section class="report-hero">
+        <div>
+            <div class="report-eyebrow">Evalio Studio</div>
+            <h1 class="report-title">@anketAdi</h1>
+            <p class="report-subtitle">
+                Bu rapor seçilen çalışmanın sonuçlarını soru, soru grubu, kişi ve tanımlı profil kırılımlarına göre özetler.
+                Profil bilgisi olmayan katılımcılar soru ve grup analizlerine dahil edilir.
+            </p>
+            <div class="report-badges">
+                <span class="report-badge">@calismaTuru</span>
+                <span class="report-badge">@toplamKatilim katılım</span>
+                <span class="report-badge">Ortalama @PercentText(genelPuan)</span>
+            </div>
+        </div>
+        <div class="report-actions">
+            @if (!sinavMi)
+            {
+                <a class="report-btn" target="_blank" href="@Url.Action("MemnuniyetRaporu", "Home", new { id = ViewBag.id })">
+                    <i class="fa fa-file-pdf"></i> Memnuniyet raporu
+                </a>
+            }
+            <a class="report-btn" href="@Url.Action("AnketIndex1", "Home", new { id = geriId })">
+                <i class="fa fa-arrow-left"></i> Genel rapora dön
+            </a>
+        </div>
+    </section>
+
+    @if (tanimsiz > 0 && tanimli == 0)
+    {
+        <div class="report-alert">
+            Bu çalışmada katılımcılar bağlantı / katılım kodu ile tanımsız geldiği için departman, şehir, cinsiyet gibi profil kırılımları boş olabilir.
+            Bu durumda doğru okuma soru, soru grubu ve kişiye göre sonuç sekmelerinden yapılır.
+        </div>
+    }
+
+    <section class="metric-grid">
+        <div class="metric-card">
+            <div class="metric-value">@PercentText(genelPuan)</div>
+            <div class="metric-label">Genel ortalama</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">@toplamKatilim</div>
+            <div class="metric-label">Katılım</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">@toplamSoru</div>
+            <div class="metric-label">Yanıtlanan farklı soru</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">@tanimli / @tanimsiz</div>
+            <div class="metric-label">Tanımlı / tanımsız kişi</div>
+        </div>
+    </section>
+
+    <section class="report-card">
+        <ul class="nav report-tabs" role="tablist">
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#Rapor" role="tab">Rapor</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Soru" role="tab">Soru</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#SoruGrup" role="tab">Soru Grup</a></li>
+            @foreach (var item in kirilimlar)
+            {
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#@item.Id" role="tab">@item.Baslik</a></li>
+            }
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Kisi" role="tab">Kişiye Göre</a></li>
+        </ul>
+
+        <div class="tab-content report-pane">
+            <div class="tab-pane fade show active" id="Rapor" role="tabpanel">
+                <div class="split-grid">
+                    <div>
+                        <h2 class="section-title">Soru grubu özeti</h2>
+                        @Html.Raw(RenderRows(soruGruplari, "Bu çalışma için soru grubu sonucu yok."))
+                    </div>
+                    <div>
+                        <h2 class="section-title">En düşük / yüksek sorular</h2>
+                        @Html.Raw(RenderRows(soruOzetleri.OrderByDescending(x => x.Puan).ToList(), "Bu çalışma için soru sonucu yok."))
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="Soru" role="tabpanel">
+                <h2 class="section-title">Soruya göre sonuç</h2>
+                @if (!soruDetaylari.Any())
+                {
+                    <div class="report-empty">Bu çalışma için soru sonucu bulunamadı.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Soru</th>
+                                    <th>Soru grubu</th>
+                                    <th>Katılım</th>
+                                    <th>Puan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in soruDetaylari)
+                                {
+                                    <tr>
+                                        <td>@row.Ad</td>
+                                        <td>@row.Grup</td>
+                                        <td>@row.Kisi kişi</td>
+                                        <td class="score-cell">
+                                            <strong>@PercentText(row.Puan)</strong>
+                                            <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <div class="tab-pane fade" id="SoruGrup" role="tabpanel">
+                <h2 class="section-title">Soru grubuna göre sonuç</h2>
+                @Html.Raw(RenderRows(soruGruplari, "Bu çalışma için soru grubu sonucu bulunamadı."))
+            </div>
+
+            @foreach (var item in kirilimlar)
+            {
+                <div class="tab-pane fade" id="@item.Id" role="tabpanel">
+                    <h2 class="section-title">@item.Baslik kırılımı</h2>
+                    @Html.Raw(RenderRows(item.Satirlar, item.Baslik + " bilgisi tanımlı katılımcı bulunmadığı için bu kırılım boş."))
+                </div>
+            }
+
+            <div class="tab-pane fade" id="Kisi" role="tabpanel">
+                <h2 class="section-title">Kişiye göre sonuç</h2>
+                @if (!katilimGruplari.Any())
+                {
+                    <div class="report-empty">Henüz katılım yok.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Katılımcı</th>
+                                    <th>Departman</th>
+                                    <th>Şehir</th>
+                                    <th>Unvan</th>
+                                    <th>Yanıt</th>
+                                    <th>Puan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var grup in katilimGruplari)
+                                {
+                                    var user = grup.FirstOrDefault(x => x.User != null)?.User;
+                                    var firstRec = grup.FirstOrDefault();
+                                    var katilimci = !String.IsNullOrWhiteSpace(user?.UserAdi)
+                                        ? user.UserAdi
+                                        : (firstRec?.Isimsiz != null ? "Katılımcı #" + firstRec.Isimsiz : "Tanımsız");
+                                    var puan = KisiPuani(grup);
+                                    <tr>
+                                        <td>@katilimci</td>
+                                        <td>@TextOrDefault(user?.Departman?.DepartmanAdi)</td>
+                                        <td>@TextOrDefault(user?.Sehir?.SehiarAdi)</td>
+                                        <td>@TextOrDefault(user?.Unvan?.UnvanAdi)</td>
+                                        <td>@SonSoruCevaplari(grup).Count / @toplamSoru</td>
+                                        <td class="score-cell">
+                                            <strong>@PercentText(puan)</strong>
+                                            <div class="score-bar"><span style="width:@PercentWidth(puan)"></span></div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,1183 @@
+@model IEnumerable<survey.Models.Havuz>
+@using System
+@using System.Collections.Generic
+@using System.Globalization
+@using System.Linq
+
+@functions {
+    public class ReportRow
+    {
+        public string Ad { get; set; }
+        public string Alt { get; set; }
+        public int Kisi { get; set; }
+        public int Soru { get; set; }
+        public double Puan { get; set; }
+        public string Link { get; set; }
+    }
+
+    public class BreakdownBlock
+    {
+        public string Baslik { get; set; }
+        public string Ikon { get; set; }
+        public List<ReportRow> Satirlar { get; set; }
+    }
+
+    public string KatilimciAnahtari(survey.Models.Havuz kayit)
+    {
+        if (kayit?.User != null && kayit.UserId != null)
+        {
+            return "u:" + kayit.UserId.Value;
+        }
+
+        if (kayit?.Isimsiz != null)
+        {
+            return "k:" + kayit.Isimsiz.Value;
+        }
+
+        if (kayit?.UserId != null)
+        {
+            return "u:" + kayit.UserId.Value;
+        }
+
+        return "h:" + (kayit?.HavuzId ?? 0);
+    }
+
+    public List<survey.Models.Havuz> SonSoruCevaplari(IEnumerable<survey.Models.Havuz> kayitlar)
+    {
+        return (kayitlar ?? Enumerable.Empty<survey.Models.Havuz>())
+            .Where(x => x.SoruID != null)
+            .GroupBy(x => x.SoruID.Value)
+            .Select(g => g
+                .OrderByDescending(x => x.KayitTar ?? DateTime.MinValue)
+                .ThenByDescending(x => x.HavuzId)
+                .First())
+            .ToList();
+    }
+
+    public double SoruPuani(survey.Models.Havuz kayit)
+    {
+        var puan = kayit?.SoruPuan ?? kayit?.Soru?.SoruPuan ?? 0;
+        return puan > 0 ? puan : 1;
+    }
+
+    public double AnketCevapPuani(survey.Models.Havuz kayit)
+    {
+        var puan = kayit?.Cevap?.CevapPuan ?? kayit?.CevapPuan ?? 0;
+        return Math.Max(0, Math.Min(5, puan));
+    }
+
+    public double KisiPuani(IEnumerable<survey.Models.Havuz> kayitlar, bool sinavMi)
+    {
+        var liste = SonSoruCevaplari(kayitlar);
+        if (!liste.Any())
+        {
+            return 0;
+        }
+
+        if (sinavMi)
+        {
+            var toplam = liste.Sum(SoruPuani);
+            var dogru = liste
+                .Where(x => x.Cevap != null && x.Cevap.Dogru == true)
+                .Sum(SoruPuani);
+
+            return toplam <= 0 ? 0 : dogru / toplam * 100;
+        }
+
+        var toplamAgirlik = liste.Sum(SoruPuani);
+        var agirlikliPuan = liste.Sum(x => AnketCevapPuani(x) * SoruPuani(x));
+
+        return toplamAgirlik <= 0 ? 0 : agirlikliPuan / toplamAgirlik * 20;
+    }
+
+    public double OrtalamaPuan(IEnumerable<survey.Models.Havuz> kayitlar, bool sinavMi)
+    {
+        return (kayitlar ?? Enumerable.Empty<survey.Models.Havuz>())
+            .GroupBy(KatilimciAnahtari)
+            .Select(g => KisiPuani(g, sinavMi))
+            .DefaultIfEmpty(0)
+            .Average();
+    }
+
+    public int KisiSayisi(IEnumerable<survey.Models.Havuz> kayitlar)
+    {
+        return (kayitlar ?? Enumerable.Empty<survey.Models.Havuz>())
+            .GroupBy(KatilimciAnahtari)
+            .Count();
+    }
+
+    public string FormatScore(double value)
+    {
+        return Math.Max(0, Math.Min(100, value)).ToString("N2", new CultureInfo("tr-TR"));
+    }
+
+    public string FormatOne(double value)
+    {
+        return Math.Max(0, Math.Min(100, value)).ToString("N1", new CultureInfo("tr-TR"));
+    }
+
+    public string PercentWidth(double value)
+    {
+        return Math.Max(0, Math.Min(100, value)).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
+
+    public string SafeText(string value, string fallback = "Tanımsız")
+    {
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
+    }
+
+    public string YasEtiketi(int dogumYili)
+    {
+        var yas = DateTime.Today.Year - dogumYili;
+        if (yas < 18)
+        {
+            return "18 yaş altı";
+        }
+
+        if (yas <= 24)
+        {
+            return "18-24 yaş";
+        }
+
+        if (yas <= 34)
+        {
+            return "25-34 yaş";
+        }
+
+        if (yas <= 44)
+        {
+            return "35-44 yaş";
+        }
+
+        if (yas <= 54)
+        {
+            return "45-54 yaş";
+        }
+
+        return "55+ yaş";
+    }
+}
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var kayitlar = (Model ?? Enumerable.Empty<survey.Models.Havuz>()).ToList();
+    var sinavMi = ViewBag.sinav == true;
+    var calismaTuru = sinavMi ? "Sınav / eğitim" : "Anket";
+    var anketAdi = Convert.ToString(ViewBag.adi ?? kayitlar.FirstOrDefault()?.Anket?.AnketAdi ?? "Çalışma raporu");
+    var anketId = 0;
+    int.TryParse(Convert.ToString(ViewBag.id), out anketId);
+
+    Func<string, int?, string> detayLink = (action, idValue) =>
+        idValue.HasValue && idValue.Value > 0
+            ? Url.Action(action, "Home", new { id = idValue.Value, ank = anketId })
+            : null;
+
+    var katilimGruplari = kayitlar.GroupBy(KatilimciAnahtari).ToList();
+    var toplamKatilim = katilimGruplari.Count;
+    var toplamSoru = kayitlar
+        .Where(x => x.SoruID != null)
+        .Select(x => x.SoruID.Value)
+        .Distinct()
+        .Count();
+    var toplamYanıt = katilimGruplari.Sum(g => SonSoruCevaplari(g).Count);
+    var beklenenYanıt = Math.Max(1, toplamKatilim * Math.Max(1, toplamSoru));
+    var tamamlama = toplamKatilim == 0 || toplamSoru == 0 ? 0 : toplamYanıt * 100.0 / beklenenYanıt;
+    var genelPuan = OrtalamaPuan(kayitlar, sinavMi);
+    var tanimli = katilimGruplari.Count(g => g.Any(x => x.User != null && !string.IsNullOrWhiteSpace(x.User.UserAdi)));
+    var tanimsiz = Math.Max(0, toplamKatilim - tanimli);
+
+    var genelLink = anketId > 0 ? Url.Action("AnketGenelIndex", "Home", new { id = anketId, ank = anketId }) : null;
+
+    var soruRows = kayitlar
+        .Where(x => x.SoruID != null && x.Soru != null)
+        .GroupBy(x => new
+        {
+            Id = x.SoruID.Value,
+            Ad = x.Soru.SoruAdi,
+            Grup = x.SoruGrup?.SoruGrupAdi ?? x.Soru.SoruGrup?.SoruGrupAdi ?? "Grupsuz"
+        })
+        .Select(g => new ReportRow
+        {
+            Ad = SafeText(g.Key.Ad, "Soru"),
+            Alt = SafeText(g.Key.Grup, "Grupsuz"),
+            Kisi = KisiSayisi(g),
+            Soru = 1,
+            Puan = OrtalamaPuan(g, sinavMi),
+            Link = detayLink("AnketSoruIndex", g.Key.Id)
+        })
+        .OrderBy(x => x.Puan)
+        .ToList();
+
+    var soruGrubuRows = kayitlar
+        .Where(x => x.SoruGrupId != null || x.Soru?.SoruGrupId != null || x.SoruGrup != null || x.Soru?.SoruGrup != null)
+        .GroupBy(x => new
+        {
+            Id = x.SoruGrupId ?? x.Soru?.SoruGrupId ?? 0,
+            Ad = x.SoruGrup?.SoruGrupAdi ?? x.Soru?.SoruGrup?.SoruGrupAdi ?? "Grupsuz"
+        })
+        .Select(g => new ReportRow
+        {
+            Ad = SafeText(g.Key.Ad, "Grupsuz"),
+            Alt = "Soru grubu",
+            Kisi = KisiSayisi(g),
+            Soru = g.Where(x => x.SoruID != null).Select(x => x.SoruID.Value).Distinct().Count(),
+            Puan = OrtalamaPuan(g, sinavMi),
+            Link = detayLink("AnketSoruGrupIndex", g.Key.Id)
+        })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var departmanRows = kayitlar
+        .Where(x => x.User?.Departman != null)
+        .GroupBy(x => new { Id = x.User.UserDepartman, Ad = x.User.Departman.DepartmanAdi })
+        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketDepartmanIndex", g.Key.Id) })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var cinsiyetRows = kayitlar
+        .Where(x => x.User?.Cinsiyet != null)
+        .GroupBy(x => new { Id = x.User.UserCinsiyet, Ad = x.User.Cinsiyet.CinsiyetAdi })
+        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketCinsiyetIndex", g.Key.Id) })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var egitimRows = kayitlar
+        .Where(x => x.User?.Egitim != null)
+        .GroupBy(x => new { Id = x.User.UserEgitim, Ad = x.User.Egitim.EgitimAdi })
+        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketEgitimIndex", g.Key.Id) })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var yasRows = kayitlar
+        .Where(x => x.User?.UserDogumTar != null)
+        .GroupBy(x => new { Yil = x.User.UserDogumTar.Value.Year, Ad = YasEtiketi(x.User.UserDogumTar.Value.Year) })
+        .GroupBy(x => x.Key.Ad)
+        .Select(g => new ReportRow
+        {
+            Ad = g.Key,
+            Kisi = KisiSayisi(g.SelectMany(x => x)),
+            Soru = toplamSoru,
+            Puan = OrtalamaPuan(g.SelectMany(x => x), sinavMi)
+        })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var sehirRows = kayitlar
+        .Where(x => x.User?.Sehir != null)
+        .GroupBy(x => new { Id = x.User.UserSehir, Ad = x.User.Sehir.SehiarAdi })
+        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketSehirIndex", g.Key.Id) })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var subeRows = kayitlar
+        .Where(x => x.User?.Sube != null)
+        .GroupBy(x => new { Id = x.User.UserSube, Ad = x.User.Sube.SubeAdi })
+        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketSubeIndex", g.Key.Id) })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var unvanRows = kayitlar
+        .Where(x => x.User?.Unvan != null)
+        .GroupBy(x => new { Id = x.User.UserUnvan, Ad = x.User.Unvan.UnvanAdi })
+        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketUnvanIndex", g.Key.Id) })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var yakaRows = kayitlar
+        .Where(x => x.User?.Yaka != null)
+        .GroupBy(x => new { Id = x.User.UserYaka, Ad = x.User.Yaka.YakaAdi })
+        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketYakaIndex", g.Key.Id) })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var yoneticiRows = kayitlar
+        .Where(x => x.User?.Yonetici != null)
+        .GroupBy(x => new { Id = x.User.UserYoneticisi, Ad = x.User.Yonetici.YoneticiAdi })
+        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketYoneticiIndex", g.Key.Id) })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var kisiRows = katilimGruplari
+        .Select(g =>
+        {
+            var user = g.FirstOrDefault(x => x.User != null)?.User;
+            var firstRec = g.FirstOrDefault();
+            var detayId = user?.UserId ?? firstRec?.Isimsiz ?? firstRec?.UserId;
+            var profil = user == null
+                ? "Tanımsız katılımcı"
+                : string.Join(" / ", new[]
+                    {
+                        user.Departman?.DepartmanAdi,
+                        user.Unvan?.UnvanAdi,
+                        user.Sehir?.SehiarAdi
+                    }
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .DefaultIfEmpty("Profil bilgisi yok"));
+
+            return new ReportRow
+            {
+                Ad = !string.IsNullOrWhiteSpace(user?.UserAdi)
+                    ? user.UserAdi
+                    : (firstRec?.Isimsiz != null ? "Katılımcı #" + firstRec.Isimsiz : "Tanımsız katılımcı"),
+                Alt = profil,
+                Kisi = SonSoruCevaplari(g).Count,
+                Soru = toplamSoru,
+                Puan = KisiPuani(g, sinavMi),
+                Link = detayId != null ? Url.Action("AnketUserIndex", "Home", new { id = detayId.Value, ank = anketId }) : null
+            };
+        })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var breakdowns = new List<BreakdownBlock>
+    {
+        new BreakdownBlock { Baslik = "Departman", Ikon = "fa-sitemap", Satirlar = departmanRows },
+        new BreakdownBlock { Baslik = "Cinsiyet", Ikon = "fa-venus-mars", Satirlar = cinsiyetRows },
+        new BreakdownBlock { Baslik = "Eğitim", Ikon = "fa-graduation-cap", Satirlar = egitimRows },
+        new BreakdownBlock { Baslik = "Yaş", Ikon = "fa-calendar", Satirlar = yasRows },
+        new BreakdownBlock { Baslik = "Şehir", Ikon = "fa-map-marker-alt", Satirlar = sehirRows },
+        new BreakdownBlock { Baslik = "Şube", Ikon = "fa-building", Satirlar = subeRows },
+        new BreakdownBlock { Baslik = "Unvan", Ikon = "fa-id-badge", Satirlar = unvanRows },
+        new BreakdownBlock { Baslik = "Yaka", Ikon = "fa-layer-group", Satirlar = yakaRows },
+        new BreakdownBlock { Baslik = "Yönetici", Ikon = "fa-user-tie", Satirlar = yoneticiRows }
+    }
+    .Where(x => x.Satirlar != null && x.Satirlar.Any())
+    .ToList();
+
+    var enIyiGrup = soruGrubuRows.OrderByDescending(x => x.Puan).FirstOrDefault();
+    var enDusukGrup = soruGrubuRows.OrderBy(x => x.Puan).FirstOrDefault();
+    var enIyiSoru = soruRows.OrderByDescending(x => x.Puan).FirstOrDefault();
+    var enDusukSoru = soruRows.OrderBy(x => x.Puan).FirstOrDefault();
+}
+
+<div class="report-showcase">
+    <section class="report-hero">
+        <div>
+            <span class="eyebrow">Evalio Studio</span>
+            <h1>@anketAdi</h1>
+            <p>@calismaTuru sonuçları tek ekranda; katılım, genel skor, soru kırılımları ve kişi bazlı performans birlikte okunur.</p>
+            <div class="hero-chips">
+                <span><i class="fa fa-poll"></i> @calismaTuru</span>
+                <span><i class="fa fa-users"></i> @toplamKatilim katılımcı</span>
+                <span><i class="fa fa-list-check"></i> @toplamSoru soru</span>
+                <span><i class="fa fa-chart-line"></i> @FormatScore(genelPuan)%</span>
+            </div>
+        </div>
+        <div class="hero-actions">
+            @if (!sinavMi)
+            {
+                <a class="showcase-btn primary" target="_blank" href="@Url.Action("MemnuniyetRaporu", "Home", new { id = anketId })">
+                    <i class="fa fa-file-pdf"></i> Memnuniyet Raporu
+                </a>
+            }
+            @if (!string.IsNullOrWhiteSpace(genelLink))
+            {
+                <a class="showcase-btn" href="@genelLink">
+                    <i class="fa fa-table"></i> Detay Rapor
+                </a>
+            }
+            <a class="showcase-btn" href="@Url.Action("AnketIndex", "Home", new { id = anketId })">
+                <i class="fa fa-layer-group"></i> Rapor Merkezi
+            </a>
+        </div>
+    </section>
+
+    <section class="metric-grid">
+        <div class="metric-card">
+            <span>Genel skor</span>
+            <strong>@FormatScore(genelPuan)%</strong>
+            <small>@(sinavMi ? "Doğru cevap başarısı" : "Memnuniyet ortalaması")</small>
+        </div>
+        <div class="metric-card">
+            <span>Katılım</span>
+            <strong>@toplamKatilim</strong>
+            <small>@tanimli tanımlı, @tanimsiz tanımsız</small>
+        </div>
+        <div class="metric-card">
+            <span>Yanıt kapsamı</span>
+            <strong>@FormatScore(tamamlama)%</strong>
+            <small>@toplamYanıt / @beklenenYanıt yanıt</small>
+        </div>
+        <div class="metric-card">
+            <span>Soru grubu</span>
+            <strong>@soruGrubuRows.Count</strong>
+            <small>@toplamSoru soru raporlandı</small>
+        </div>
+    </section>
+
+    <section class="visual-grid">
+        <article class="score-panel">
+            <div class="score-ring" style="--score:@PercentWidth(genelPuan)">
+                <div>
+                    <strong>@FormatOne(genelPuan)</strong>
+                    <span>%</span>
+                </div>
+            </div>
+            <div class="score-copy">
+                <span>Genel görünüm</span>
+                <h2>@(genelPuan >= 80 ? "Güçlü tablo" : genelPuan >= 60 ? "Geliştirilebilir alanlar var" : "Dikkat isteyen sonuç")</h2>
+                <p>@(sinavMi ? "Sınav puanı doğru cevaplara göre ağırlıklı hesaplandı." : "Anket puanı cevap puanlarının 100 üzerinden normalize edilmiş ortalamasıdır.")</p>
+            </div>
+        </article>
+
+        <article class="insight-board">
+            <div class="insight-card positive">
+                <span>En güçlü kırılım</span>
+                <strong>@(enIyiGrup?.Ad ?? "Henüz yok")</strong>
+                <small>@(enIyiGrup == null ? "Veri oluşmadı" : FormatScore(enIyiGrup.Puan) + "%")</small>
+            </div>
+            <div class="insight-card warning">
+                <span>İyileştirme adayı</span>
+                <strong>@(enDusukGrup?.Ad ?? "Henüz yok")</strong>
+                <small>@(enDusukGrup == null ? "Veri oluşmadı" : FormatScore(enDusukGrup.Puan) + "%")</small>
+            </div>
+            <div class="insight-card blue">
+                <span>En yüksek soru</span>
+                <strong>@(enIyiSoru?.Ad ?? "Henüz yok")</strong>
+                <small>@(enIyiSoru == null ? "Veri oluşmadı" : FormatScore(enIyiSoru.Puan) + "%")</small>
+            </div>
+            <div class="insight-card coral">
+                <span>En düşük soru</span>
+                <strong>@(enDusukSoru?.Ad ?? "Henüz yok")</strong>
+                <small>@(enDusukSoru == null ? "Veri oluşmadı" : FormatScore(enDusukSoru.Puan) + "%")</small>
+            </div>
+        </article>
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <div>
+                <span>Rapor kırılımı</span>
+                <h2>Soru grupları</h2>
+            </div>
+            <small>@soruGrubuRows.Count kırılım</small>
+        </div>
+
+        @if (soruGrubuRows.Any())
+        {
+            <div class="ranking-list">
+                @foreach (var row in soruGrubuRows)
+                {
+                    <div class="ranking-row">
+                        <div class="ranking-title">
+                            <strong>@row.Ad</strong>
+                            <span>@row.Soru soru · @row.Kisi katılımcı</span>
+                        </div>
+                        <div class="ranking-score">
+                            <b>@FormatScore(row.Puan)%</b>
+                            <div class="score-bar"><i style="width:@PercentWidth(row.Puan)"></i></div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(row.Link))
+                        {
+                            <a href="@row.Link" class="row-action" title="Detay">
+                                <i class="fa fa-arrow-right"></i>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa fa-circle-info"></i>
+                Bu çalışma için soru grubu kırılımı bulunamadı.
+            </div>
+        }
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <div>
+                <span>Soru performansı</span>
+                <h2>Tek tek sorular</h2>
+            </div>
+            <small>@soruRows.Count soru</small>
+        </div>
+
+        @if (soruRows.Any())
+        {
+            <div class="question-grid">
+                @foreach (var row in soruRows)
+                {
+                    <a class="question-card" href="@(row.Link ?? "#")">
+                        <div>
+                            <span>@row.Alt</span>
+                            <strong>@row.Ad</strong>
+                        </div>
+                        <div class="question-score">
+                            <b>@FormatScore(row.Puan)%</b>
+                            <div class="score-bar"><i style="width:@PercentWidth(row.Puan)"></i></div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa fa-circle-info"></i>
+                Bu çalışma için soru sonucu oluşmadı.
+            </div>
+        }
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <div>
+                <span>Organizasyon kırılımları</span>
+                <h2>Profil bazlı okumalar</h2>
+            </div>
+            <small>@breakdowns.Count aktif kırılım</small>
+        </div>
+
+        @if (breakdowns.Any())
+        {
+            <div class="breakdown-grid">
+                @foreach (var block in breakdowns)
+                {
+                    <article class="breakdown-card">
+                        <div class="breakdown-head">
+                            <i class="fa @block.Ikon"></i>
+                            <strong>@block.Baslik</strong>
+                        </div>
+                        @foreach (var row in block.Satirlar.Take(6))
+                        {
+                            <div class="mini-row">
+                                <div>
+                                    <strong>@row.Ad</strong>
+                                    <span>@row.Kisi katılımcı</span>
+                                </div>
+                                <div>
+                                    <b>@FormatScore(row.Puan)%</b>
+                                    <div class="score-bar tiny"><i style="width:@PercentWidth(row.Puan)"></i></div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(row.Link))
+                                {
+                                    <a href="@row.Link" title="Detay">
+                                        <i class="fa fa-arrow-right"></i>
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa fa-circle-info"></i>
+                Bu çalışma katılım kodu ile tanımsız tamamlandığı için profil kırılımları boş olabilir.
+            </div>
+        }
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <div>
+                <span>Katılımcı görünümü</span>
+                <h2>Kişiye göre sonuçlar</h2>
+            </div>
+            <small>@kisiRows.Count kayıt</small>
+        </div>
+
+        @if (kisiRows.Any())
+        {
+            <div class="person-list">
+                @foreach (var row in kisiRows)
+                {
+                    <a class="person-card" href="@(row.Link ?? "#")">
+                        <div class="person-avatar">@row.Ad.Substring(0, 1).ToUpper(new CultureInfo("tr-TR"))</div>
+                        <div class="person-info">
+                            <strong>@row.Ad</strong>
+                            <span>@row.Alt</span>
+                        </div>
+                        <div class="person-progress">
+                            <b>@FormatScore(row.Puan)%</b>
+                            <small>@row.Kisi / @row.Soru cevap</small>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa fa-circle-info"></i>
+                Katılımcı sonucu henüz oluşmadı.
+            </div>
+        }
+    </section>
+</div>
+
+<style>
+    .report-showcase {
+        width: min(1580px, calc(100% - 48px));
+        margin: 28px auto 56px;
+        color: #061a35;
+    }
+
+    .report-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 28px;
+        padding: 34px;
+        border: 1px solid #cfe0f6;
+        border-radius: 14px;
+        background:
+            linear-gradient(130deg, rgba(225, 253, 246, .95), rgba(244, 247, 255, .88) 56%, rgba(255, 249, 235, .7)),
+            #ffffff;
+        box-shadow: 0 24px 60px rgba(24, 48, 88, .10);
+    }
+
+    .eyebrow,
+    .section-head span {
+        display: inline-flex;
+        color: #255ef5;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .report-hero h1 {
+        margin: 10px 0 8px;
+        font-size: 36px;
+        font-weight: 900;
+        letter-spacing: 0;
+    }
+
+    .report-hero p {
+        max-width: 760px;
+        margin: 0;
+        color: #53627a;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    .hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .hero-chips span,
+    .metric-card small,
+    .report-section small {
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #24436d;
+        font-weight: 800;
+        font-size: 12px;
+        padding: 8px 11px;
+    }
+
+    .hero-chips i {
+        color: #11a99b;
+        margin-right: 6px;
+    }
+
+    .hero-actions {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        min-width: 330px;
+    }
+
+    .showcase-btn,
+    .row-action,
+    .mini-row a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid #cfe0f6;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #071832;
+        font-weight: 900;
+        text-decoration: none;
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .showcase-btn {
+        min-height: 42px;
+        padding: 0 16px;
+    }
+
+    .showcase-btn.primary {
+        border-color: #22b8a6;
+        background: linear-gradient(135deg, #16bca9, #3562f4);
+        color: #ffffff;
+        box-shadow: 0 16px 32px rgba(34, 105, 244, .18);
+    }
+
+    .showcase-btn:hover,
+    .row-action:hover,
+    .mini-row a:hover,
+    .question-card:hover,
+    .person-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 35px rgba(19, 42, 80, .12);
+        text-decoration: none;
+    }
+
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin: 16px 0;
+    }
+
+    .metric-card,
+    .report-section,
+    .score-panel,
+    .insight-board,
+    .breakdown-card,
+    .person-card,
+    .question-card {
+        border: 1px solid #d7e3f4;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .96);
+        box-shadow: 0 16px 38px rgba(27, 49, 86, .08);
+    }
+
+    .metric-card {
+        padding: 20px;
+    }
+
+    .metric-card span {
+        display: block;
+        color: #64748b;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .metric-card strong {
+        display: block;
+        color: #061a35;
+        font-size: 30px;
+        font-weight: 950;
+        line-height: 1;
+    }
+
+    .metric-card small {
+        display: inline-flex;
+        margin-top: 14px;
+        padding: 7px 10px;
+    }
+
+    .visual-grid {
+        display: grid;
+        grid-template-columns: minmax(360px, .95fr) minmax(0, 1.05fr);
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .score-panel {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 22px;
+        align-items: center;
+        padding: 24px;
+        overflow: hidden;
+        background: linear-gradient(160deg, #ffffff, #f3fbff 58%, #fff7e5);
+    }
+
+    .score-ring {
+        width: 205px;
+        aspect-ratio: 1;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: conic-gradient(#18b7a4 var(--score), #e9eef8 0);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .8), 0 20px 40px rgba(36, 99, 235, .14);
+    }
+
+    .score-ring div {
+        display: grid;
+        place-items: center;
+        width: 142px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: inset 0 0 0 1px #dce8f7;
+    }
+
+    .score-ring strong {
+        font-size: 38px;
+        font-weight: 950;
+        line-height: 1;
+    }
+
+    .score-ring span {
+        color: #64748b;
+        font-weight: 900;
+    }
+
+    .score-copy span,
+    .insight-card span,
+    .breakdown-head,
+    .question-card span,
+    .person-info span {
+        color: #64748b;
+        font-weight: 800;
+        font-size: 12px;
+    }
+
+    .score-copy h2 {
+        margin: 8px 0 10px;
+        font-size: 26px;
+        font-weight: 950;
+    }
+
+    .score-copy p {
+        margin: 0;
+        color: #54627a;
+        line-height: 1.7;
+    }
+
+    .insight-board {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        padding: 14px;
+        background: #f8fbff;
+    }
+
+    .insight-card {
+        min-height: 136px;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #dbe7f6;
+        background: #ffffff;
+    }
+
+    .insight-card strong {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 48px;
+        margin: 10px 0;
+        color: #071832;
+        font-size: 18px;
+        font-weight: 950;
+        line-height: 1.35;
+    }
+
+    .insight-card small {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 7px 10px;
+        font-weight: 950;
+    }
+
+    .insight-card.positive small {
+        background: #e6fff7;
+        color: #047864;
+    }
+
+    .insight-card.warning small {
+        background: #fff4d9;
+        color: #9a6500;
+    }
+
+    .insight-card.blue small {
+        background: #e8f0ff;
+        color: #2753d9;
+    }
+
+    .insight-card.coral small {
+        background: #fff0ed;
+        color: #b13d2c;
+    }
+
+    .report-section {
+        margin-top: 16px;
+        padding: 18px;
+    }
+
+    .section-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .section-head h2 {
+        margin: 4px 0 0;
+        font-size: 23px;
+        font-weight: 950;
+    }
+
+    .ranking-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .ranking-row {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) minmax(260px, .8fr) 44px;
+        gap: 16px;
+        align-items: center;
+        padding: 14px;
+        border: 1px solid #dce8f7;
+        border-radius: 12px;
+        background: linear-gradient(90deg, #ffffff, #f8fbff);
+    }
+
+    .ranking-title strong,
+    .mini-row strong,
+    .question-card strong,
+    .person-info strong {
+        display: block;
+        color: #071832;
+        font-weight: 950;
+    }
+
+    .ranking-title span,
+    .mini-row span {
+        display: block;
+        margin-top: 4px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .ranking-score {
+        display: grid;
+        gap: 8px;
+    }
+
+    .ranking-score b,
+    .mini-row b,
+    .question-score b,
+    .person-progress b {
+        color: #071832;
+        font-weight: 950;
+    }
+
+    .score-bar {
+        height: 9px;
+        border-radius: 999px;
+        background: #e9eef8;
+        overflow: hidden;
+    }
+
+    .score-bar i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #17baa7, #5065f6, #ffb340);
+    }
+
+    .score-bar.tiny {
+        width: 110px;
+        height: 7px;
+        margin-top: 6px;
+    }
+
+    .row-action {
+        width: 38px;
+        height: 38px;
+    }
+
+    .question-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .question-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 170px;
+        gap: 16px;
+        align-items: center;
+        padding: 16px;
+        text-decoration: none;
+        transition: transform .16s ease, box-shadow .16s ease;
+    }
+
+    .question-card strong {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin-top: 6px;
+        line-height: 1.45;
+    }
+
+    .question-score {
+        display: grid;
+        gap: 8px;
+    }
+
+    .breakdown-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .breakdown-card {
+        padding: 14px;
+    }
+
+    .breakdown-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .breakdown-head i {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: #eef5ff;
+        color: #245cf4;
+    }
+
+    .breakdown-head strong {
+        color: #071832;
+        font-size: 16px;
+        font-weight: 950;
+    }
+
+    .mini-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto 32px;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 0;
+        border-top: 1px solid #edf2f9;
+    }
+
+    .mini-row a {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+    }
+
+    .person-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .person-card {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) 150px;
+        gap: 14px;
+        align-items: center;
+        padding: 14px;
+        text-decoration: none;
+    }
+
+    .person-avatar {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #18b7a4, #5065f6);
+        color: #ffffff;
+        font-size: 18px;
+        font-weight: 950;
+        box-shadow: 0 12px 24px rgba(80, 101, 246, .18);
+    }
+
+    .person-info strong {
+        margin-bottom: 4px;
+    }
+
+    .person-progress {
+        text-align: right;
+    }
+
+    .person-progress small {
+        display: block;
+        margin-top: 4px;
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .empty-state {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 18px;
+        border: 1px dashed #c5d6ef;
+        border-radius: 12px;
+        background: #f8fbff;
+        color: #53627a;
+        font-weight: 900;
+    }
+
+    @@media (max-width: 1200px) {
+        .metric-grid,
+        .breakdown-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .visual-grid,
+        .question-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .report-showcase {
+            width: min(100% - 24px, 1580px);
+            margin-top: 16px;
+        }
+
+        .report-hero,
+        .score-panel,
+        .ranking-row,
+        .question-card,
+        .person-card {
+            grid-template-columns: 1fr;
+        }
+
+        .report-hero {
+            display: grid;
+            padding: 24px;
+        }
+
+        .report-hero h1 {
+            font-size: 28px;
+        }
+
+        .hero-actions {
+            justify-content: stretch;
+            min-width: 0;
+        }
+
+        .showcase-btn {
+            flex: 1 1 100%;
+        }
+
+        .metric-grid,
+        .insight-board,
+        .breakdown-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .score-ring {
+            width: 188px;
+            margin: 0 auto;
+        }
+
+        .person-progress {
+            text-align: left;
+        }
+    }
+</style>

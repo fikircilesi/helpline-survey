@@ -1,0 +1,75 @@
+@model survey.Models.Personel
+
+@{
+    ViewBag.Title = "UserEdit";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@using (Html.BeginForm("UserEdit", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    @Html.AntiForgeryToken()
+
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    @Html.HiddenFor(model => model.PersonelId)
+    @Html.HiddenFor(model => model.PersonelAdi)
+    @Html.HiddenFor(model => model.KullaniciAdi)
+    @Html.HiddenFor(model => model.KayitTarihi)
+    @Html.HiddenFor(model => model.Pasif)
+    @Html.HiddenFor(model => model.Tc)
+    @Html.HiddenFor(model => model.Telefon)
+    @Html.HiddenFor(model => model.Adres)
+    @Html.HiddenFor(model => model.Admin)
+    @Html.HiddenFor(model => model.Unvan)
+    @Html.HiddenFor(model => model.Mail)
+
+    <div class="panel">
+        <h4 style="color:cadetblue" class="text-uppercase">PERSONEL BİLGİLERİ</h4>
+
+        <table class="table" style="background-color:white">
+            <tr>
+                <td>
+                    <b>Profil Resmi</b>
+                    <input type="file" name="uploadfile" id="uploadfile" />
+                </td>
+                <td hidden>
+                    @Html.EditorFor(model => model.Resim, new { htmlAttributes = new { @class = "form-control" } })
+                </td>
+
+                <td>
+                    <img height=30 width="30" src="~/Content/personel/@Html.DisplayFor(modelItem => Model.Resim)" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Ünvan</b>
+                    @Html.DropDownListFor(m => m.Unvani, (List<SelectListItem>)ViewBag.Unv, "Seçim", new { @class = "form-control", @Required = "" })
+                    @Html.ValidationMessageFor(model => model.Unvani, "", new { @class = "text-danger" })
+                </td>
+            </tr>
+            <tr>
+
+                <td>
+                    <b>Kullanıcı Adı</b>
+                    @Html.TextBoxFor(model => model.KullaniciAdi, new { @class = "form-control", @maxlength = "15", @disabled = "disabled" })
+                </td>
+                <td>
+                    <b>Şifre</b>
+                    @Html.TextBoxFor(m => m.Sifre, new { @class = "form-control", @maxlength = "15" })
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Mail</b>
+                    @Html.EditorFor(model => model.Mail, new { htmlAttributes = new { @class = "form-control", @Required = "", @disabled = "disabled" } })
+                </td>
+            </tr>
+        </table>
+        <div class="form-group">
+            <div class="col-lg-9"></div>
+            <a title="Geri" class="btn btn-primary" href="@Url.Action("Index", "Home", new { id = ViewBag.id, mgz = ViewBag.mgz })">Geri</a>
+            <input hidden name="id" value="@ViewBag.id">
+            <input hidden name="mgz" value="@ViewBag.mgz">
+            <button type="submit" class="btn btn-primary">Kayıt</button>
+        </div>
+    </div>
+}

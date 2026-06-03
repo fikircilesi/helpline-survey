@@ -1,0 +1,618 @@
+@model IEnumerable<survey.Models.Havuz>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var sonuc1 = new List<string>();
+    var sonuc2 = new List<float>();
+
+}
+
+<script src="~/Scripts/jquery-3.7.1.js"></script>
+<script src="~/Scripts/chart.js"></script>
+<script src="~/Scripts/chart.min.js"></script>
+
+
+<div class="panel">
+    <div>
+        <h4 class="text-uppercase">
+            <a class="btn btn-primary btn-outline-primary fa fa-backward" href="@Url.Action("AnketIndex1", "Home", new { id = ViewBag.ank })"></a>
+            @ViewBag.adi (@ViewBag.anketadi)
+        </h4>
+    </div>
+    <div class="panel-body">
+        <table class="table">
+            <tr>
+                <th>
+                    @{
+                        var item3 = Model.Where(x => x.UserId != null);
+                        var item4 = Model.Where(x => x.Isimsiz != null);
+
+                        var ktll = item3.GroupBy(x => x.UserId);
+                        var tanimli = ktll.Count();
+
+                        var ktll1 = item4.GroupBy(x => x.Isimsiz);
+                        var tanimsiz = ktll1.Count();
+                        <b style="color:green">@tanimli Tanımlı </b>
+                        <b style="color:orangered">@tanimsiz Tanımsız Katılım</b>
+                    }
+                </th>
+            </tr>
+        </table>
+    </div>
+
+    <div class="card-block">
+        <!-- Row start -->
+        <div class="row">
+            <div class="col-lg-12 col-xl-12">
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs  tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab"
+                           href="#Genel" role="tab">Genel</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Departman" role="tab">Departman</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Cinsiyet" role="tab">Cinsiyet</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Egitim" role="tab">Eğitim</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Yasi" role="tab">Yaş</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Sehir" role="tab">Şehir</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Sube" role="tab">Şube</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Unvani" role="tab">Ünvan</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Yaka" role="tab">Yaka</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab"
+                           href="#Yonetici" role="tab">Yönetici</a>
+                    </li>
+                </ul>
+                <!-- Tab panes -->
+                <div class="tab-content tabs card-block">
+                    <div class="tab-pane active" id="Genel" role="tabpanel">
+                        <div>
+                            <canvas id="myChart1" style="width:400px; height:150px"></canvas>
+                        </div>
+
+                    </div>
+                    <div class="tab-pane" id="Departman" role="tabpanel">
+                        <div>
+                            <canvas id="myChart2" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="Cinsiyet"
+                         role="tabpanel">
+                        <div>
+                            <canvas id="myChart3" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="Egitim"
+                         role="tabpanel">
+                        <div>
+                            <canvas id="myChart4" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="Yasi"
+                         role="tabpanel">
+                        <div>
+                            <canvas id="myChart5" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="Sehir"
+                         role="tabpanel">
+                        <div>
+                            <canvas id="myChart7" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="Sube"
+                         role="tabpanel">
+                        <div>
+                            <canvas id="myChart8" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="Unvani"
+                         role="tabpanel">
+                        <div>
+                            <canvas id="myChart9" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="Yaka"
+                         role="tabpanel">
+                        <div>
+                            <canvas id="myChart10" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="Yonetici"
+                         role="tabpanel">
+                        <div>
+                            <canvas id="myChart11" style="width:400px; height:150px"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Row end -->
+    </div>
+
+
+
+
+
+</div>
+
+
+
+<script>
+                            const ctx1 = document.getElementById('myChart1');
+                            const ctx2 = document.getElementById('myChart2');
+                            const ctx3 = document.getElementById('myChart3');
+                            const ctx4 = document.getElementById('myChart4');
+                            const ctx5 = document.getElementById('myChart5');
+                            const ctx6 = document.getElementById('myChart6');
+                            const ctx7 = document.getElementById('myChart7');
+                            const ctx8 = document.getElementById('myChart8');
+                            const ctx9 = document.getElementById('myChart9');
+                            const ctx10 = document.getElementById('myChart10');
+                            const ctx11 = document.getElementById('myChart11');
+                            new Chart(ctx1, {
+                                type: 'bar',
+                                data: {
+                                    labels: [@foreach (var item1 in ViewBag.baslik){<text>'@item1',</text>}],
+                                    datasets: [{
+                                        label: 'Memnuniyet Anketi',
+                                        data: [@foreach (var item in ViewBag.puan){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                        backgroundColor: [
+                                            'rgba(0,123,255)',   // Mavi tonu
+                                            'rgba(232,62,140)',  // pembe tonu
+                                            'rgba(220,53,69)',   // Sarı tonu
+                                            'rgba(241,194,50)',  // Sarı tonu
+                                            'rgba(253,126,20)',  // turuncu tonu
+                                            'rgba(220,53,69)',   // Kırmızı
+                                            'rgba(40,167,69)',   // Yeşil tonu
+                                            'rgba(23,162,184)',  // Mavi tonu
+                                            'rgba(52,58,64)',    // Gri tonu
+                                            'rgba(22,83,126)',   // Mavi tonu
+                                            'rgba(116,71,0)',    // Kahve tonu
+                                            'rgba(111,66,193)',  // Mor tonu
+                                            'rgba(213,166,189)', // pembe tonu
+                                            'rgba(215,72,62)',   // Kırmızı
+                                            'rgba(246,178,107)', // turuncu tonu
+                                            'rgba(32,201,151)',  // açık yeşil tonu
+                                            'rgba(127,96,0)',    // Kahve tonu
+                                            'rgba(102,16,242)',  // Mor tonu
+
+                                        ],
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    indexAxis: 'x', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true
+                                        }
+                                    }
+                                }
+                            });
+                            new Chart(ctx2, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik1){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan1){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx3, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik2){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan2){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx4, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik3){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan3){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx5, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik4){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan4){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx6, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik5){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan5){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx7, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik7){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan7){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx8, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik8){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan8){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx9, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik9){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan9){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx10, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik10){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan10){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            new Chart(ctx11, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [@foreach (var item in ViewBag.baslik11){<text>'@item',</text>}],
+                                        datasets: [{
+                                            label: 'Memnuniyet Anketi',
+                                            data: [@foreach (var item in ViewBag.puan11){<text>@(String.Format("{0:n2}", item).Trim().Replace(',', '.')),</text>}],
+                                            backgroundColor: [
+                                                'rgba(0,123,255)',   // Mavi tonu
+                                                'rgba(232,62,140)',  // pembe tonu
+                                                'rgba(220,53,69)',   // Sarı tonu
+                                                'rgba(241,194,50)',  // Sarı tonu
+                                                'rgba(253,126,20)',  // turuncu tonu
+                                                'rgba(220,53,69)',   // Kırmızı
+                                                'rgba(40,167,69)',   // Yeşil tonu
+                                                'rgba(23,162,184)',  // Mavi tonu
+                                                'rgba(52,58,64)',    // Gri tonu
+                                                'rgba(22,83,126)',   // Mavi tonu
+                                                'rgba(116,71,0)',    // Kahve tonu
+                                                'rgba(111,66,193)',  // Mor tonu
+                                                'rgba(213,166,189)', // pembe tonu
+                                                'rgba(215,72,62)',   // Kırmızı
+                                                'rgba(246,178,107)', // turuncu tonu
+                                                'rgba(32,201,151)',  // açık yeşil tonu
+                                                'rgba(127,96,0)',    // Kahve tonu
+                                                'rgba(102,16,242)',  // Mor tonu
+
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+</script>

@@ -1,0 +1,1488 @@
+@model survey.Controllers.HomeController.SertifikaWizardForm
+@{
+    ViewBag.Title = "Sertifika Sihirbazı";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var zaman = string.IsNullOrWhiteSpace(Model.SertifikaVerilisZamani) ? "SureBitince" : Model.SertifikaVerilisZamani;
+    var vurgu = string.IsNullOrWhiteSpace(Model.SertifikaVurguRengi) ? "#2563eb" : Model.SertifikaVurguRengi;
+    var cerceve = string.IsNullOrWhiteSpace(Model.SertifikaCerceve) ? "Classic" : Model.SertifikaCerceve;
+    var font = string.IsNullOrWhiteSpace(Model.SertifikaFont) ? "Georgia" : Model.SertifikaFont;
+    var yaziPunto = Model.SertifikaYaziPunto.HasValue ? Model.SertifikaYaziPunto.Value : 17;
+    var baslikPunto = Model.SertifikaBaslikPunto.HasValue ? Model.SertifikaBaslikPunto.Value : 44;
+    var logo = Model.SertifikaLogo;
+    var imza = Model.Imza;
+    var fontOptions = new[]
+    {
+        new SelectListItem { Value = "Georgia", Text = "Georgia", Selected = font == "Georgia" },
+        new SelectListItem { Value = "Garamond", Text = "Garamond", Selected = font == "Garamond" },
+        new SelectListItem { Value = "Playfair", Text = "Playfair", Selected = font == "Playfair" },
+        new SelectListItem { Value = "Merriweather", Text = "Merriweather", Selected = font == "Merriweather" },
+        new SelectListItem { Value = "Cambria", Text = "Cambria", Selected = font == "Cambria" },
+        new SelectListItem { Value = "Times", Text = "Times New Roman", Selected = font == "Times" },
+        new SelectListItem { Value = "Arial", Text = "Arial", Selected = font == "Arial" },
+        new SelectListItem { Value = "Verdana", Text = "Verdana", Selected = font == "Verdana" },
+        new SelectListItem { Value = "OpenSans", Text = "Open Sans", Selected = font == "OpenSans" }
+    };
+    var onizlemeMetni = string.IsNullOrWhiteSpace(Model.SertifikaMetni)
+        ? "Başarı koşullarını sağlayan katılımcılar için sertifika bu görsel dilde hazırlanır. Yetki ve zamanlama kuralları katılım portalında otomatik uygulanır."
+        : Model.SertifikaMetni
+            .Replace("{adSoyad}", "Katılımcı")
+            .Replace("{egitim}", Model.AnketAdi)
+            .Replace("{tarih}", DateTime.Now.ToString("dd.MM.yyyy"))
+            .Replace("{egitimVeren}", string.IsNullOrWhiteSpace(Model.EgitimVeren) ? "Düzenleyen" : Model.EgitimVeren);
+}
+
+<style>
+    .cert-wizard {
+        max-width: 1180px;
+        margin: 24px auto;
+        color: #0f1f35;
+    }
+
+    .cert-shell {
+        overflow: hidden;
+        border: 1px solid #d9e3f2;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 22px 60px rgba(24, 38, 66, .10);
+    }
+
+    .cert-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 28px 32px;
+        background: linear-gradient(135deg, rgba(24,183,164,.12), rgba(67,97,238,.10));
+        border-bottom: 1px solid #d9e3f2;
+    }
+
+    .cert-kicker {
+        margin: 0 0 8px;
+        color: #3157ff;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+    }
+
+    .cert-title {
+        margin: 0;
+        font-size: clamp(26px, 3vw, 38px);
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .cert-subtitle {
+        max-width: 720px;
+        margin: 10px 0 0;
+        color: #55657d;
+        font-size: 15px;
+        line-height: 1.6;
+        font-weight: 650;
+    }
+
+    .cert-actions {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .cert-btn {
+        min-height: 42px;
+        padding: 0 18px;
+        border: 1px solid #cddbf0;
+        border-radius: 8px;
+        background: #fff;
+        color: #102238;
+        font-weight: 900;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .cert-btn.primary {
+        border-color: #2563eb;
+        color: #fff;
+        background: #2563eb;
+    }
+
+    .cert-body {
+        padding: 30px 32px 34px;
+    }
+
+    .cert-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+        gap: 24px;
+        align-items: start;
+    }
+
+    .cert-panel {
+        border: 1px solid #d9e3f2;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .cert-panel + .cert-panel {
+        margin-top: 18px;
+    }
+
+    .cert-panel-head {
+        padding: 18px 20px;
+        border-bottom: 1px solid #e8eef7;
+        background: #f8fbff;
+    }
+
+    .cert-panel-head h3 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 950;
+    }
+
+    .cert-panel-head p {
+        margin: 7px 0 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.5;
+        font-weight: 650;
+    }
+
+    .cert-panel-body {
+        padding: 20px;
+    }
+
+    .cert-switch-row,
+    .cert-check-row {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        padding: 14px;
+        border: 1px solid #d9e3f2;
+        border-radius: 8px;
+        background: #fbfdff;
+    }
+
+    .cert-check-row + .cert-check-row {
+        margin-top: 12px;
+    }
+
+    .cert-switch-row input,
+    .cert-check-row input {
+        width: 20px;
+        height: 20px;
+        margin-top: 2px;
+        accent-color: #18b7a4;
+    }
+
+    .cert-switch-row strong,
+    .cert-check-row strong {
+        display: block;
+        font-size: 15px;
+        font-weight: 950;
+    }
+
+    .cert-switch-row span,
+    .cert-check-row span {
+        display: block;
+        margin-top: 5px;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.5;
+        font-weight: 650;
+    }
+
+    .cert-radio-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .cert-radio {
+        display: block;
+        min-height: 138px;
+        padding: 14px;
+        border: 1px solid #d9e3f2;
+        border-radius: 8px;
+        background: #fbfdff;
+        cursor: pointer;
+    }
+
+    .cert-radio input {
+        width: 18px;
+        height: 18px;
+        accent-color: #4361ee;
+    }
+
+    .cert-radio strong {
+        display: block;
+        margin-top: 12px;
+        font-size: 14px;
+        font-weight: 950;
+    }
+
+    .cert-radio span {
+        display: block;
+        margin-top: 7px;
+        color: #667085;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 650;
+    }
+
+    .cert-radio:has(input:checked) {
+        border-color: #4361ee;
+        background: #eef3ff;
+        box-shadow: inset 0 0 0 1px #4361ee;
+    }
+
+    .cert-frame-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .cert-frame-option {
+        display: grid;
+        gap: 8px;
+        min-height: 108px;
+        padding: 10px;
+        border: 1px solid #d9e3f2;
+        border-radius: 8px;
+        background: #fbfdff;
+        cursor: pointer;
+    }
+
+    .cert-frame-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .cert-frame-option strong {
+        font-size: 12px;
+        font-weight: 950;
+    }
+
+    .cert-frame-option:has(input:checked) {
+        border-color: #4361ee;
+        background: #eef3ff;
+        box-shadow: inset 0 0 0 1px #4361ee;
+    }
+
+    .frame-swatch {
+        display: block;
+        position: relative;
+        height: 46px;
+        border-radius: 5px;
+        background: #fffdf8;
+        overflow: hidden;
+    }
+
+    .frame-classic {
+        border: 2px solid var(--theme-color, #4361ee);
+    }
+
+    .frame-doublegold {
+        border: 5px double #d6b25e;
+    }
+
+    .frame-ribbon {
+        border: 1px solid #cddbf0;
+        border-top: 8px solid var(--theme-color, #4361ee);
+    }
+
+    .frame-cornerseal {
+        border: 2px solid #cddbf0;
+    }
+
+    .frame-cornerseal::before,
+    .frame-cornerseal::after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border: 4px solid var(--theme-color, #4361ee);
+    }
+
+    .frame-cornerseal::before {
+        top: 0;
+        left: 0;
+        border-right: 0;
+        border-bottom: 0;
+    }
+
+    .frame-cornerseal::after {
+        right: 0;
+        bottom: 0;
+        border-left: 0;
+        border-top: 0;
+    }
+
+    .frame-gradientwash {
+        border: 1px solid #cddbf0;
+        background: linear-gradient(135deg, rgba(24,183,164,.20), rgba(67,97,238,.15), #fffdf8);
+    }
+
+    .frame-royal {
+        border: 3px solid #172554;
+        box-shadow: inset 0 0 0 4px rgba(214,178,94,.45);
+    }
+
+    .frame-sidestripe {
+        border: 1px solid #cddbf0;
+        border-left: 9px solid var(--theme-color, #4361ee);
+    }
+
+    .frame-topband {
+        border: 1px solid #cddbf0;
+        background: linear-gradient(180deg, var(--theme-color, #4361ee) 0 18%, #fffdf8 18%);
+    }
+
+    .frame-minimalline {
+        border: 0;
+        border-bottom: 5px solid var(--theme-color, #4361ee);
+        background: #fff;
+    }
+
+    .frame-artdeco {
+        border: 2px solid #111827;
+        background:
+            linear-gradient(135deg, transparent 0 34%, rgba(214,178,94,.45) 34% 42%, transparent 42%),
+            linear-gradient(315deg, transparent 0 34%, rgba(214,178,94,.45) 34% 42%, transparent 42%),
+            #fffdf8;
+    }
+
+    .frame-blueclassic {
+        border: 5px double #163a75;
+        background:
+            repeating-linear-gradient(90deg, #163a75 0 7px, #f7f4e6 7px 11px),
+            #fffdf8;
+        box-shadow: inset 0 0 0 8px #f7f4e6;
+    }
+
+    .frame-lacecolor {
+        border: 5px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(90deg, #18b7a4 0 9px, #e879f9 9px 18px, #f4c430 18px 27px, #111827 27px 36px) border-box;
+        box-shadow: inset 0 0 0 2px #fff;
+    }
+
+    .frame-goldornate {
+        border: 6px solid #c4972f;
+        background:
+            repeating-linear-gradient(45deg, rgba(196,151,47,.65) 0 4px, transparent 4px 8px),
+            #fffdf8;
+        box-shadow: inset 0 0 0 7px #fff7dd, inset 0 0 0 10px #c4972f;
+    }
+
+    .frame-sealribbon {
+        border: 3px solid #d6b25e;
+        background:
+            radial-gradient(circle at 16% 78%, #b91c1c 0 13px, transparent 14px),
+            linear-gradient(135deg, rgba(214,178,94,.24), transparent 42%),
+            #fffdf8;
+    }
+
+    .frame-formalaward {
+        border: 4px double #1f2937;
+        background:
+            linear-gradient(90deg, #1f2937 0 9px, transparent 9px calc(100% - 9px), #1f2937 calc(100% - 9px)),
+            linear-gradient(180deg, #d6b25e 0 7px, transparent 7px calc(100% - 7px), #d6b25e calc(100% - 7px)),
+            #fffdf8;
+    }
+
+    .frame-floralgold {
+        border: 4px double #c4972f;
+        background:
+            repeating-linear-gradient(90deg, rgba(196,151,47,.70) 0 6px, transparent 6px 12px),
+            #fffdf8;
+    }
+
+    .frame-ottoman {
+        border: 5px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(90deg, #0f3f5f 0 12px, #f7f4e6 12px 18px, #d6b25e 18px 24px, #f7f4e6 24px 30px) border-box;
+        box-shadow: inset 0 0 0 2px #0f3f5f;
+    }
+
+    .frame-guilloche {
+        border: 3px double #163a75;
+        background:
+            repeating-radial-gradient(ellipse at center, rgba(22,58,117,.42) 0 2px, transparent 2px 7px),
+            #fffdf8;
+    }
+
+    .frame-victorian {
+        border: 5px double #4b2e16;
+        background:
+            radial-gradient(circle at 8px 8px, #4b2e16 0 4px, transparent 5px),
+            linear-gradient(135deg, transparent 42%, rgba(196,151,47,.45) 42% 49%, transparent 49%),
+            #fffdf8;
+        background-size: 24px 24px, auto, auto;
+    }
+
+    .frame-laurel {
+        border: 3px solid #2f6f46;
+        background:
+            repeating-linear-gradient(135deg, rgba(47,111,70,.55) 0 4px, transparent 4px 10px),
+            #fffdf8;
+    }
+
+    .frame-cornerflourish {
+        border: 2px solid #c4972f;
+        background:
+            radial-gradient(circle at 0 0, transparent 0 16px, rgba(196,151,47,.70) 17px 20px, transparent 21px),
+            radial-gradient(circle at 100% 100%, transparent 0 16px, rgba(196,151,47,.70) 17px 20px, transparent 21px),
+            #fffdf8;
+    }
+
+    .frame-finelace {
+        border: 5px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(45deg, #d6b25e 0 4px, #fff7dd 4px 8px, transparent 8px 12px) border-box;
+    }
+
+    .frame-aofturquoise {
+        border: 6px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(45deg, transparent 0 8px, rgba(255,255,255,.92) 8px 10px, transparent 10px 18px) border-box,
+            repeating-linear-gradient(135deg, transparent 0 8px, rgba(255,255,255,.92) 8px 10px, transparent 10px 18px) border-box,
+            linear-gradient(#00859a, #00859a) border-box;
+        box-shadow: inset 0 0 0 2px #8b1e2d, inset 0 0 0 4px #fff;
+    }
+
+    .frame-antique {
+        border: 5px double #8a5a22;
+        background:
+            linear-gradient(45deg, rgba(138,90,34,.22) 25%, transparent 25% 75%, rgba(138,90,34,.22) 75%),
+            #fff8e7;
+        background-size: 18px 18px;
+    }
+
+    .cert-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .cert-field.full {
+        grid-column: 1 / -1;
+    }
+
+    .cert-design-grid {
+        align-items: start;
+    }
+
+    .cert-type-settings {
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px solid #e2eaf6;
+        border-radius: 8px;
+        background: #fbfdff;
+    }
+
+    .cert-type-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: baseline;
+        margin-bottom: 12px;
+    }
+
+    .cert-type-head strong {
+        color: #0f1f35;
+        font-size: 14px;
+        font-weight: 950;
+    }
+
+    .cert-type-head span {
+        color: #667085;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 650;
+        text-align: right;
+    }
+
+    .cert-field label {
+        display: block;
+        margin-bottom: 7px;
+        color: #344054;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .cert-input,
+    .cert-textarea {
+        width: 100%;
+        border: 1px solid #cddbf0;
+        border-radius: 8px;
+        background: #fff;
+        color: #0f1f35;
+        font-size: 15px;
+        font-weight: 650;
+    }
+
+    .cert-input {
+        min-height: 44px;
+        padding: 0 13px;
+    }
+
+    .cert-textarea {
+        min-height: 112px;
+        padding: 12px 13px;
+        resize: vertical;
+    }
+
+    .cert-help {
+        display: block;
+        margin-top: 6px;
+        color: #667085;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 650;
+    }
+
+    .cert-color-row {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+    }
+
+    .cert-color {
+        width: 72px;
+        min-height: 44px;
+        padding: 4px;
+        border: 1px solid #cddbf0;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+    }
+
+    .cert-logo-preview {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        padding: 9px 11px;
+        border: 1px dashed #cddbf0;
+        border-radius: 8px;
+        background: #fbfdff;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .cert-logo-preview img {
+        width: 52px;
+        height: 34px;
+        object-fit: contain;
+    }
+
+    .cert-signature-preview {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px dashed #cddbf0;
+        border-radius: 8px;
+        background: #fbfdff;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .cert-signature-preview[hidden] {
+        display: none;
+    }
+
+    .cert-signature-preview img {
+        width: 112px;
+        height: 48px;
+        object-fit: contain;
+        mix-blend-mode: multiply;
+    }
+
+    .cert-validation {
+        margin-bottom: 18px;
+        padding: 12px 14px;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        background: #fff1f2;
+        color: #9f1239;
+        font-weight: 800;
+    }
+
+    .cert-preview {
+        --cert-accent: #4361ee;
+        position: sticky;
+        top: 18px;
+        padding: 22px;
+        border: 1px solid #d9cda8;
+        border-radius: 8px;
+        box-sizing: border-box;
+        background:
+            linear-gradient(135deg, rgba(24,183,164,.10), transparent 30%),
+            linear-gradient(315deg, rgba(67,97,238,.10), transparent 30%),
+            #fffdf8;
+        text-align: center;
+    }
+
+    .cert-preview.frame-doublegold {
+        border: 7px double #d6b25e;
+    }
+
+    .cert-preview.frame-ribbon {
+        border-top: 14px solid var(--cert-accent);
+    }
+
+    .cert-preview.frame-cornerseal {
+        box-shadow: inset 0 0 0 2px #d9e3f2, inset 18px 18px 0 -14px var(--cert-accent), inset -18px -18px 0 -14px var(--cert-accent);
+    }
+
+    .cert-preview.frame-gradientwash {
+        background:
+            linear-gradient(135deg, rgba(24,183,164,.17), rgba(67,97,238,.13), transparent 64%),
+            #fffdf8;
+    }
+
+    .cert-preview.frame-royal {
+        border: 4px solid #172554;
+        box-shadow: inset 0 0 0 6px rgba(214,178,94,.45);
+    }
+
+    .cert-preview.frame-sidestripe {
+        border-left: 14px solid var(--cert-accent);
+    }
+
+    .cert-preview.frame-topband {
+        background:
+            linear-gradient(180deg, var(--cert-accent) 0 12px, transparent 12px),
+            linear-gradient(135deg, rgba(24,183,164,.10), transparent 30%),
+            #fffdf8;
+    }
+
+    .cert-preview.frame-minimalline {
+        border: 1px solid #d9e3f2;
+        border-bottom: 8px solid var(--cert-accent);
+        background: #fff;
+    }
+
+    .cert-preview.frame-artdeco {
+        border: 3px solid #111827;
+        background:
+            linear-gradient(135deg, transparent 0 38%, rgba(214,178,94,.20) 38% 42%, transparent 42%),
+            linear-gradient(315deg, transparent 0 38%, rgba(214,178,94,.20) 38% 42%, transparent 42%),
+            #fffdf8;
+    }
+
+    .cert-preview.frame-blueclassic {
+        border: 9px double #163a75;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(90deg, #163a75 0 12px, #f7f4e6 12px 18px) border-box;
+        box-shadow: inset 0 0 0 4px #163a75, inset 0 0 0 10px #f7f4e6;
+    }
+
+    .cert-preview.frame-lacecolor {
+        border: 12px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(90deg, #18b7a4 0 14px, #e879f9 14px 28px, #f4c430 28px 42px, #111827 42px 56px) border-box;
+        box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 6px rgba(17,24,39,.10);
+    }
+
+    .cert-preview.frame-goldornate {
+        border: 10px solid #c4972f;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(45deg, #c4972f 0 5px, #fff7dd 5px 10px) border-box;
+        box-shadow: inset 0 0 0 4px #fff7dd, inset 0 0 0 8px #c4972f;
+    }
+
+    .cert-preview.frame-sealribbon {
+        border: 5px double #d6b25e;
+        background:
+            radial-gradient(circle at 14% 80%, rgba(185,28,28,.92) 0 23px, transparent 24px),
+            linear-gradient(135deg, rgba(214,178,94,.20), transparent 46%),
+            #fffdf8;
+    }
+
+    .cert-preview.frame-formalaward {
+        border: 6px double #1f2937;
+        background:
+            linear-gradient(90deg, #1f2937 0 14px, transparent 14px calc(100% - 14px), #1f2937 calc(100% - 14px)),
+            linear-gradient(180deg, #d6b25e 0 10px, transparent 10px calc(100% - 10px), #d6b25e calc(100% - 10px)),
+            #fffdf8;
+    }
+
+    .cert-preview.frame-floralgold {
+        border: 12px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(90deg, #c4972f 0 12px, #fff7dd 12px 18px, rgba(196,151,47,.55) 18px 30px, #fff7dd 30px 36px) border-box;
+        box-shadow: inset 0 0 0 2px #d6b25e;
+    }
+
+    .cert-preview.frame-ottoman {
+        border: 14px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(90deg, #0f3f5f 0 18px, #f7f4e6 18px 27px, #d6b25e 27px 36px, #f7f4e6 36px 45px) border-box;
+        box-shadow: inset 0 0 0 3px #0f3f5f, inset 0 0 0 7px #fff;
+    }
+
+    .cert-preview.frame-guilloche {
+        border: 10px double #163a75;
+        background:
+            repeating-radial-gradient(ellipse at center, rgba(22,58,117,.20) 0 2px, transparent 2px 9px),
+            #fffdf8;
+        box-shadow: inset 0 0 0 5px rgba(22,58,117,.15);
+    }
+
+    .cert-preview.frame-victorian {
+        border: 10px double #4b2e16;
+        background:
+            radial-gradient(circle at 18px 18px, rgba(75,46,22,.70) 0 6px, transparent 7px),
+            linear-gradient(135deg, transparent 0 40%, rgba(196,151,47,.18) 40% 47%, transparent 47%),
+            #fff8e7;
+        background-size: 52px 52px, auto, auto;
+        box-shadow: inset 0 0 0 5px rgba(196,151,47,.35);
+    }
+
+    .cert-preview.frame-laurel {
+        border: 9px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(135deg, #2f6f46 0 5px, #d9ead3 5px 9px, transparent 9px 16px) border-box;
+        box-shadow: inset 0 0 0 2px #2f6f46;
+    }
+
+    .cert-preview.frame-cornerflourish {
+        border: 4px solid #c4972f;
+        background:
+            radial-gradient(circle at 0 0, transparent 0 42px, rgba(196,151,47,.55) 43px 47px, transparent 48px),
+            radial-gradient(circle at 100% 0, transparent 0 42px, rgba(196,151,47,.55) 43px 47px, transparent 48px),
+            radial-gradient(circle at 0 100%, transparent 0 42px, rgba(196,151,47,.55) 43px 47px, transparent 48px),
+            radial-gradient(circle at 100% 100%, transparent 0 42px, rgba(196,151,47,.55) 43px 47px, transparent 48px),
+            #fffdf8;
+        box-shadow: inset 0 0 0 2px #f4dfaa;
+    }
+
+    .cert-preview.frame-finelace {
+        border: 12px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(45deg, #d6b25e 0 6px, #fff7dd 6px 12px, transparent 12px 18px) border-box;
+        box-shadow: inset 0 0 0 2px #d6b25e;
+    }
+
+    .cert-preview.frame-aofturquoise {
+        border: 22px solid transparent;
+        background:
+            linear-gradient(#fffdf8, #fffdf8) padding-box,
+            repeating-linear-gradient(45deg, transparent 0 10px, rgba(255,255,255,.95) 10px 13px, transparent 13px 24px) border-box,
+            repeating-linear-gradient(135deg, transparent 0 10px, rgba(255,255,255,.95) 10px 13px, transparent 13px 24px) border-box,
+            linear-gradient(#007f93, #007f93) border-box;
+        box-shadow: inset 0 0 0 3px #8b1e2d, inset 0 0 0 7px #fff, inset 0 0 0 10px #007f93;
+    }
+
+    .cert-preview.frame-antique {
+        border: 9px double #8a5a22;
+        background:
+            linear-gradient(45deg, rgba(138,90,34,.13) 25%, transparent 25% 75%, rgba(138,90,34,.13) 75%),
+            #fff8e7;
+        background-size: 24px 24px;
+        box-shadow: inset 0 0 0 5px rgba(138,90,34,.18);
+    }
+
+    .cert-preview.font-georgia {
+        --cert-font: Georgia, "Times New Roman", serif;
+    }
+
+    .cert-preview.font-garamond {
+        --cert-font: Garamond, Georgia, "Times New Roman", serif;
+    }
+
+    .cert-preview.font-playfair {
+        --cert-font: "Playfair Display", Georgia, "Times New Roman", serif;
+    }
+
+    .cert-preview.font-merriweather {
+        --cert-font: Merriweather, Georgia, "Times New Roman", serif;
+    }
+
+    .cert-preview.font-cambria {
+        --cert-font: Cambria, Georgia, "Times New Roman", serif;
+    }
+
+    .cert-preview.font-times {
+        --cert-font: "Times New Roman", Times, serif;
+    }
+
+    .cert-preview.font-arial {
+        --cert-font: Arial, Helvetica, sans-serif;
+    }
+
+    .cert-preview.font-verdana {
+        --cert-font: Verdana, Geneva, sans-serif;
+    }
+
+    .cert-preview.font-opensans {
+        --cert-font: "Open Sans", Arial, Helvetica, sans-serif;
+    }
+
+    .cert-preview-mark {
+        display: inline-grid;
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        color: #fff;
+        background: linear-gradient(135deg, #18b7a4, var(--cert-accent));
+        font-weight: 950;
+    }
+
+    .cert-preview-logo {
+        display: inline-grid;
+        place-items: center;
+        min-width: 72px;
+        height: 54px;
+        margin-bottom: 4px;
+    }
+
+    .cert-preview-logo img {
+        max-width: 112px;
+        max-height: 54px;
+        object-fit: contain;
+    }
+
+    .cert-preview h3 {
+        margin: 18px 0 8px;
+        font-family: var(--cert-font, Georgia, "Times New Roman", serif);
+        font-size: clamp(24px, calc(var(--cert-title-size, 44) * .70px), 44px);
+        line-height: 1.05;
+        font-weight: 700;
+    }
+
+    .cert-preview-course {
+        margin: 16px 0;
+        font-weight: 950;
+        line-height: 1.4;
+    }
+
+    .cert-preview-name {
+        margin: 20px 0 14px;
+        padding-bottom: 9px;
+        border-bottom: 1px solid #d9cda8;
+        font-family: var(--cert-font, Georgia, "Times New Roman", serif);
+        font-size: clamp(20px, calc(var(--cert-title-size, 44) * .58px), 34px);
+        font-weight: 700;
+    }
+
+    .cert-name-help {
+        display: block;
+        margin-top: -6px;
+        margin-bottom: 10px;
+        color: #667085;
+        font-size: 11px;
+        font-weight: 750;
+    }
+
+    .cert-preview p {
+        color: #526071;
+        font-size: clamp(11px, calc(var(--cert-text-size, 17) * .76px), 22px);
+        line-height: 1.65;
+        font-weight: 650;
+    }
+
+    .cert-preview-footer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        align-items: end;
+        margin-top: 28px;
+        text-align: left;
+    }
+
+    .cert-preview-footer strong {
+        display: block;
+        color: #0f1f35;
+        font-size: 12px;
+        font-weight: 950;
+    }
+
+    .cert-preview-footer span {
+        display: block;
+        margin-top: 4px;
+        color: #667085;
+        font-size: 11px;
+        font-weight: 750;
+    }
+
+    .cert-preview-signature {
+        text-align: right;
+    }
+
+    .cert-preview-signature img {
+        display: block;
+        width: 92px;
+        height: 42px;
+        margin: 0 0 7px auto;
+        object-fit: contain;
+        mix-blend-mode: multiply;
+    }
+
+    .cert-preview-signature img[hidden] {
+        display: none;
+    }
+
+    .cert-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    @@media (max-width: 980px) {
+        .cert-head,
+        .cert-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .cert-grid,
+        .cert-head {
+            display: block;
+        }
+
+        .cert-actions {
+            margin-top: 18px;
+        }
+
+        .cert-radio-grid,
+        .cert-frame-grid,
+        .cert-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .cert-preview {
+            position: static;
+            margin-top: 18px;
+        }
+    }
+</style>
+
+<div class="cert-wizard">
+    <div class="cert-shell">
+        <div class="cert-head">
+            <div>
+                <p class="cert-kicker">Evalio Studio</p>
+                <h1 class="cert-title">Sertifika Sihirbazı</h1>
+                <p class="cert-subtitle">
+                    @Model.AnketAdi için sertifikanın kimlere, ne zaman ve hangi koşulla verileceğini buradan yönetin.
+                </p>
+            </div>
+            <div class="cert-actions">
+                <a class="cert-btn" href="@Url.Action("Indexgosterge", "Home")">Geri</a>
+            </div>
+        </div>
+
+        <div class="cert-body">
+            @using (Html.BeginForm("SertifikaWizard", "Home", FormMethod.Post, new { enctype = "multipart/form-data", @class = "certificate-wizard-form" }))
+            {
+                @Html.AntiForgeryToken()
+                @Html.HiddenFor(x => x.AnketId)
+                <input type="hidden" name="SertifikaLogo" value="@Model.SertifikaLogo" />
+                <input type="hidden" name="SertifikaTema" value="Modern" />
+
+                if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="cert-validation">
+                        @Html.ValidationSummary(false)
+                    </div>
+                }
+
+                <div class="cert-grid">
+                    <div>
+                        <section class="cert-panel">
+                            <div class="cert-panel-head">
+                                <h3>Sertifika politikası</h3>
+                                <p>Bu çalışma sonunda sertifika üretilecek mi ve katılımcı kendi çıktısını alabilecek mi?</p>
+                            </div>
+                            <div class="cert-panel-body">
+                                <label class="cert-switch-row">
+                                    <input type="checkbox" name="SertifikaAktif" value="true" @(Model.SertifikaAktif ? "checked" : "") />
+                                    <span>
+                                        <strong>Sertifika üretimi aktif</strong>
+                                        <span>Kapalıysa kimse sertifika alamaz; raporlar ve puanlar ayrı kalır.</span>
+                                    </span>
+                                </label>
+
+                                <label class="cert-check-row">
+                                    <input type="checkbox" name="SertifikaKatilimciErisimi" value="true" @(Model.SertifikaKatilimciErisimi ? "checked" : "") />
+                                    <span>
+                                        <strong>Katılımcı kendi sertifikasını indirebilsin</strong>
+                                        <span>Kapalıysa sertifika sadece yönetici tarafından kontrol edilip paylaşılır.</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="cert-panel">
+                            <div class="cert-panel-head">
+                                <h3>Veriliş zamanı</h3>
+                                <p>Sertifika ne zaman hazır sayılmalı?</p>
+                            </div>
+                            <div class="cert-panel-body">
+                                <div class="cert-radio-grid">
+                                    <label class="cert-radio">
+                                        <input type="radio" name="SertifikaVerilisZamani" value="SureBitince" @(zaman == "SureBitince" ? "checked" : "") />
+                                        <strong>Süre kapanınca</strong>
+                                        <span>Sınav süresi tamamlanmadan sertifika açılmaz. Sınavlar için önerilir.</span>
+                                    </label>
+                                    <label class="cert-radio">
+                                        <input type="radio" name="SertifikaVerilisZamani" value="Tamamlayinca" @(zaman == "Tamamlayinca" ? "checked" : "") />
+                                        <strong>Tamamlayınca</strong>
+                                        <span>Tüm sorular cevaplanır ve puan yeterliyse sertifika hemen hazır olur.</span>
+                                    </label>
+                                    <label class="cert-radio">
+                                        <input type="radio" name="SertifikaVerilisZamani" value="YayinBitince" @(zaman == "YayinBitince" ? "checked" : "") />
+                                        <strong>Yayın bitince</strong>
+                                        <span>Katılım dönemi kapanınca sertifika açılır. Toplu eğitimlerde kullanışlıdır.</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="cert-panel">
+                            <div class="cert-panel-head">
+                                <h3>Sertifika tasarımı</h3>
+                                <p>Nakışlı çerçeve stilini, vurgu rengini, logoyu ve yazı dengesini seçin.</p>
+                            </div>
+                            <div class="cert-panel-body">
+                                <div class="cert-frame-grid">
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="Classic" @(cerceve == "Classic" ? "checked" : "") />
+                                        <span class="frame-swatch frame-classic"></span>
+                                        <strong>Klasik</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="DoubleGold" @(cerceve == "DoubleGold" ? "checked" : "") />
+                                        <span class="frame-swatch frame-doublegold"></span>
+                                        <strong>Çift Altın</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="Ribbon" @(cerceve == "Ribbon" ? "checked" : "") />
+                                        <span class="frame-swatch frame-ribbon"></span>
+                                        <strong>Şerit</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="CornerSeal" @(cerceve == "CornerSeal" ? "checked" : "") />
+                                        <span class="frame-swatch frame-cornerseal"></span>
+                                        <strong>Köşe Mührü</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="GradientWash" @(cerceve == "GradientWash" ? "checked" : "") />
+                                        <span class="frame-swatch frame-gradientwash"></span>
+                                        <strong>Renk Geçişli</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="Royal" @(cerceve == "Royal" ? "checked" : "") />
+                                        <span class="frame-swatch frame-royal"></span>
+                                        <strong>Kraliyet</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="SideStripe" @(cerceve == "SideStripe" ? "checked" : "") />
+                                        <span class="frame-swatch frame-sidestripe"></span>
+                                        <strong>Yan Şerit</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="TopBand" @(cerceve == "TopBand" ? "checked" : "") />
+                                        <span class="frame-swatch frame-topband"></span>
+                                        <strong>Üst Bant</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="MinimalLine" @(cerceve == "MinimalLine" ? "checked" : "") />
+                                        <span class="frame-swatch frame-minimalline"></span>
+                                        <strong>Minimal Çizgi</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="ArtDeco" @(cerceve == "ArtDeco" ? "checked" : "") />
+                                        <span class="frame-swatch frame-artdeco"></span>
+                                        <strong>Art Deco</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="BlueClassic" @(cerceve == "BlueClassic" ? "checked" : "") />
+                                        <span class="frame-swatch frame-blueclassic"></span>
+                                        <strong>Mavi Klasik</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="LaceColor" @(cerceve == "LaceColor" ? "checked" : "") />
+                                        <span class="frame-swatch frame-lacecolor"></span>
+                                        <strong>Renkli Dantel</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="GoldOrnate" @(cerceve == "GoldOrnate" ? "checked" : "") />
+                                        <span class="frame-swatch frame-goldornate"></span>
+                                        <strong>Altın Desen</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="SealRibbon" @(cerceve == "SealRibbon" ? "checked" : "") />
+                                        <span class="frame-swatch frame-sealribbon"></span>
+                                        <strong>Mühürlü</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="FormalAward" @(cerceve == "FormalAward" ? "checked" : "") />
+                                        <span class="frame-swatch frame-formalaward"></span>
+                                        <strong>Resmi Belge</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="FloralGold" @(cerceve == "FloralGold" ? "checked" : "") />
+                                        <span class="frame-swatch frame-floralgold"></span>
+                                        <strong>Çiçekli Altın</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="Ottoman" @(cerceve == "Ottoman" ? "checked" : "") />
+                                        <span class="frame-swatch frame-ottoman"></span>
+                                        <strong>Osmanlı Motif</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="AofTurquoise" @(cerceve == "AofTurquoise" ? "checked" : "") />
+                                        <span class="frame-swatch frame-aofturquoise"></span>
+                                        <strong>AÖF Turkuaz</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="Guilloche" @(cerceve == "Guilloche" ? "checked" : "") />
+                                        <span class="frame-swatch frame-guilloche"></span>
+                                        <strong>Guilloche</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="Victorian" @(cerceve == "Victorian" ? "checked" : "") />
+                                        <span class="frame-swatch frame-victorian"></span>
+                                        <strong>Viktoryen</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="Laurel" @(cerceve == "Laurel" ? "checked" : "") />
+                                        <span class="frame-swatch frame-laurel"></span>
+                                        <strong>Defne Nakışı</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="CornerFlourish" @(cerceve == "CornerFlourish" ? "checked" : "") />
+                                        <span class="frame-swatch frame-cornerflourish"></span>
+                                        <strong>Köşe Nakışı</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="FineLace" @(cerceve == "FineLace" ? "checked" : "") />
+                                        <span class="frame-swatch frame-finelace"></span>
+                                        <strong>İnce Dantel</strong>
+                                    </label>
+                                    <label class="cert-frame-option" style="--theme-color:@vurgu">
+                                        <input type="radio" name="SertifikaCerceve" value="Antique" @(cerceve == "Antique" ? "checked" : "") />
+                                        <span class="frame-swatch frame-antique"></span>
+                                        <strong>Antik Kağıt</strong>
+                                    </label>
+                                </div>
+
+                                <div class="cert-form-grid cert-design-grid" style="margin-top:16px;">
+                                    <div class="cert-field">
+                                        <label for="SertifikaVurguRengi">Vurgu rengi</label>
+                                        <div class="cert-color-row">
+                                            <input class="cert-color" id="SertifikaVurguRengi" name="SertifikaVurguRengi" type="color" value="@vurgu" />
+                                            <span class="cert-help">Çerçeve, rozet ve başlık vurgularında kullanılır.</span>
+                                        </div>
+                                    </div>
+                                    <div class="cert-field">
+                                        <label for="LogoDosyasi">Logo</label>
+                                        <input class="cert-input" id="LogoDosyasi" name="LogoDosyasi" type="file" accept="image/png,image/jpeg,image/webp" />
+                                        @if (!string.IsNullOrWhiteSpace(logo))
+                                        {
+                                            <span class="cert-logo-preview">
+                                                <img src="@logo" alt="Mevcut logo" />
+                                                Mevcut logo korunur.
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="cert-type-settings">
+                                    <div class="cert-type-head">
+                                        <strong>Yazı ayarı</strong>
+                                        <span>Başlık, katılımcı adı ve açıklama metni sertifika içinde dengeli kalacak şekilde ayarlanır.</span>
+                                    </div>
+                                    <div class="cert-form-grid">
+                                    <div class="cert-field">
+                                        <label for="SertifikaFont">Yazı fontu</label>
+                                        @Html.DropDownList("SertifikaFont", fontOptions, new { @class = "cert-input", id = "SertifikaFont" })
+                                    </div>
+                                    <div class="cert-field">
+                                        <label for="SertifikaYaziPunto">Metin puntosu</label>
+                                        <input class="cert-input" id="SertifikaYaziPunto" name="SertifikaYaziPunto" type="number" min="11" max="28" value="@yaziPunto" />
+                                        <span class="cert-help">Sertifika açıklama metni için 11-28 arası.</span>
+                                    </div>
+                                    <div class="cert-field">
+                                        <label for="SertifikaBaslikPunto">Başlık puntosu</label>
+                                        <input class="cert-input" id="SertifikaBaslikPunto" name="SertifikaBaslikPunto" type="number" min="24" max="72" value="@baslikPunto" />
+                                        <span class="cert-help">Başlık ve katılımcı adı için 24-72 arası.</span>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="cert-panel">
+                            <div class="cert-panel-head">
+                                <h3>Sertifika içeriği</h3>
+                                <p>Başlık, geçme notu, düzenleyen ve isteğe bağlı sertifika cümlesini belirleyin.</p>
+                            </div>
+                            <div class="cert-panel-body">
+                                <div class="cert-form-grid">
+                                    <div class="cert-field">
+                                        <label for="SertifikaNotu">Geçme notu</label>
+                                        <input class="cert-input" id="SertifikaNotu" name="SertifikaNotu" type="number" min="0" max="100" value="@Model.SertifikaNotu" />
+                                    </div>
+                                    <div class="cert-field">
+                                        <label for="EgitimVeren">Düzenleyen</label>
+                                        <input class="cert-input" id="EgitimVeren" name="EgitimVeren" value="@Model.EgitimVeren" />
+                                    </div>
+                                    <div class="cert-field full">
+                                        <label for="SertifikaBaslik">Sertifika başlığı</label>
+                                        <input class="cert-input" id="SertifikaBaslik" name="SertifikaBaslik" value="@Model.SertifikaBaslik" />
+                                    </div>
+                                    <div class="cert-field full">
+                                        <label for="SertifikaMetni">Sertifika metni</label>
+                                        <textarea class="cert-textarea" id="SertifikaMetni" name="SertifikaMetni" maxlength="600">@Model.SertifikaMetni</textarea>
+                                        <span class="cert-help">Boş bırakırsanız varsayılan metin kullanılır. Desteklenen alanlar: {adSoyad}, {egitim}, {tarih}, {egitimVeren}</span>
+                                    </div>
+                                    <div class="cert-field full">
+                                        <label for="ImzaDosyasi">Eğitici imzası</label>
+                                        <input class="cert-input" id="ImzaDosyasi" name="ImzaDosyasi" type="file" accept="image/png,image/jpeg,image/webp" />
+                                        <span class="cert-signature-preview" data-signature-field-preview @(string.IsNullOrWhiteSpace(imza) ? "hidden" : "")>
+                                            <img data-signature-field-img src="@(string.IsNullOrWhiteSpace(imza) ? "" : Url.Content(imza))" alt="Eğitici imzası önizlemesi" />
+                                            <span data-signature-field-text>@(string.IsNullOrWhiteSpace(imza) ? "Yeni imza önizlemesi" : "Mevcut imza korunur.")</span>
+                                        </span>
+                                        @if (!string.IsNullOrWhiteSpace(imza))
+                                        {
+                                            <span class="cert-help">Yeni dosya seçerseniz imza güncellenir.</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="cert-help">Dosya seçtiğinizde imza önizlemesi burada ve sağdaki sertifika taslağında görünür.</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div class="cert-footer">
+                            <a class="cert-btn" href="@Url.Action("Indexgosterge", "Home")">Vazgeç</a>
+                            <button class="cert-btn primary" type="submit">Kaydet</button>
+                        </div>
+                    </div>
+
+                    <aside class="cert-preview frame-@cerceve.ToLowerInvariant() font-@font.ToLowerInvariant()" style="--cert-accent:@vurgu; --cert-text-size:@yaziPunto; --cert-title-size:@baslikPunto">
+                        <div data-cert-logo-area>
+                            @if (!string.IsNullOrWhiteSpace(logo))
+                            {
+                                <div class="cert-preview-logo">
+                                    <img src="@logo" alt="Sertifika logosu" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="cert-preview-mark">E</div>
+                            }
+                        </div>
+                        <h3 data-cert-title>@(string.IsNullOrWhiteSpace(Model.SertifikaBaslik) ? "Katılım Sertifikası" : Model.SertifikaBaslik)</h3>
+                        <div class="cert-preview-course">@Model.AnketAdi</div>
+                        <div class="cert-preview-name">Sn. Katılımcı</div>
+                        <span class="cert-name-help">Gerçek sertifikada katılımcı adı otomatik gelir.</span>
+                        <p data-cert-text>@onizlemeMetni</p>
+                        <div class="cert-preview-footer">
+                            <div>
+                                <strong>Düzenleme Tarihi</strong>
+                                <span>@DateTime.Now.ToString("dd.MM.yyyy")</span>
+                            </div>
+                            <div class="cert-preview-signature">
+                                <img data-cert-signature-img src="@(string.IsNullOrWhiteSpace(imza) ? "" : Url.Content(imza))" alt="Eğitici imzası" @(string.IsNullOrWhiteSpace(imza) ? "hidden" : "") />
+                                <strong>Eğitimi Veren</strong>
+                                <span data-cert-organizer>@(string.IsNullOrWhiteSpace(Model.EgitimVeren) ? "Düzenleyen" : Model.EgitimVeren)</span>
+                            </div>
+                        </div>
+                        <template>
+                            Başarı koşullarını sağlayan katılımcılar için sertifika bu görsel dilde hazırlanır.
+                            Yetki ve zamanlama kuralları katılım portalında otomatik uygulanır.
+                        </template>
+                    </aside>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var preview = document.querySelector(".cert-preview");
+        if (!preview) return;
+
+        var colorInput = document.getElementById("SertifikaVurguRengi");
+        var titleInput = document.getElementById("SertifikaBaslik");
+        var titleTarget = document.querySelector("[data-cert-title]");
+        var logoInput = document.getElementById("LogoDosyasi");
+        var logoArea = document.querySelector("[data-cert-logo-area]");
+        var textInput = document.getElementById("SertifikaMetni");
+        var textTarget = document.querySelector("[data-cert-text]");
+        var fontInput = document.getElementById("SertifikaFont");
+        var textSizeInput = document.getElementById("SertifikaYaziPunto");
+        var titleSizeInput = document.getElementById("SertifikaBaslikPunto");
+        var organizerInput = document.getElementById("EgitimVeren");
+        var organizerTarget = document.querySelector("[data-cert-organizer]");
+        var signatureInput = document.getElementById("ImzaDosyasi");
+        var signatureFieldPreview = document.querySelector("[data-signature-field-preview]");
+        var signatureFieldImg = document.querySelector("[data-signature-field-img]");
+        var signatureFieldText = document.querySelector("[data-signature-field-text]");
+        var signaturePreviewImg = document.querySelector("[data-cert-signature-img]");
+        var courseName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AnketAdi ?? "Eğitim"));
+        var fallbackText = "Başarı koşullarını sağlayan katılımcılar için sertifika bu görsel dilde hazırlanır. Yetki ve zamanlama kuralları katılım portalında otomatik uygulanır.";
+
+        function updateFrame() {
+            var selected = document.querySelector("input[name='SertifikaCerceve']:checked");
+            var frame = selected ? selected.value.toLowerCase() : "classic";
+            preview.classList.remove(
+                "frame-classic",
+                "frame-doublegold",
+                "frame-ribbon",
+                "frame-cornerseal",
+                "frame-gradientwash",
+                "frame-royal",
+                "frame-sidestripe",
+                "frame-topband",
+                "frame-minimalline",
+                "frame-artdeco",
+                "frame-blueclassic",
+                "frame-lacecolor",
+                "frame-goldornate",
+                "frame-sealribbon",
+                "frame-formalaward",
+                "frame-floralgold",
+                "frame-ottoman",
+                "frame-aofturquoise",
+                "frame-guilloche",
+                "frame-victorian",
+                "frame-laurel",
+                "frame-cornerflourish",
+                "frame-finelace",
+                "frame-antique"
+            );
+            preview.classList.add("frame-" + frame);
+        }
+
+        function updateFont() {
+            var font = fontInput && fontInput.value ? fontInput.value.toLowerCase() : "georgia";
+            preview.classList.remove("font-georgia", "font-garamond", "font-playfair", "font-merriweather", "font-cambria", "font-times", "font-arial", "font-verdana", "font-opensans");
+            preview.classList.add("font-" + font);
+        }
+
+        function updateSizes() {
+            if (textSizeInput && textSizeInput.value) {
+                preview.style.setProperty("--cert-text-size", textSizeInput.value);
+            }
+            if (titleSizeInput && titleSizeInput.value) {
+                preview.style.setProperty("--cert-title-size", titleSizeInput.value);
+            }
+        }
+
+        function updateColor() {
+            if (colorInput && colorInput.value) {
+                preview.style.setProperty("--cert-accent", colorInput.value);
+                document.querySelectorAll(".cert-frame-option").forEach(function (item) {
+                    item.style.setProperty("--theme-color", colorInput.value);
+                });
+            }
+        }
+
+        function updateTitle() {
+            if (titleTarget && titleInput) {
+                titleTarget.textContent = titleInput.value.trim() || "Katılım Sertifikası";
+            }
+        }
+
+        function formatCertificateText(value) {
+            var text = value && value.trim() ? value : fallbackText;
+            var organizer = organizerInput && organizerInput.value.trim() ? organizerInput.value.trim() : "Düzenleyen";
+            return text
+                .replaceAll("{adSoyad}", "Katılımcı")
+                .replaceAll("{egitim}", courseName || "Eğitim")
+                .replaceAll("{tarih}", new Date().toLocaleDateString("tr-TR"))
+                .replaceAll("{egitimVeren}", organizer);
+        }
+
+        function updateText() {
+            if (textTarget) {
+                textTarget.textContent = formatCertificateText(textInput ? textInput.value : "");
+            }
+        }
+
+        function updateOrganizer() {
+            if (organizerTarget && organizerInput) {
+                organizerTarget.textContent = organizerInput.value.trim() || "Düzenleyen";
+            }
+            updateText();
+        }
+
+        function updateSignaturePreview(url) {
+            if (signatureFieldPreview && signatureFieldImg) {
+                signatureFieldImg.src = url;
+                signatureFieldPreview.hidden = false;
+            }
+            if (signatureFieldText) {
+                signatureFieldText.textContent = "Yeni imza önizlemesi";
+            }
+            if (signaturePreviewImg) {
+                signaturePreviewImg.src = url;
+                signaturePreviewImg.hidden = false;
+            }
+        }
+
+        document.querySelectorAll("input[name='SertifikaCerceve']").forEach(function (item) {
+            item.addEventListener("change", updateFrame);
+        });
+
+        if (colorInput) colorInput.addEventListener("input", updateColor);
+        if (titleInput) titleInput.addEventListener("input", updateTitle);
+        if (textInput) textInput.addEventListener("input", updateText);
+        if (fontInput) fontInput.addEventListener("change", updateFont);
+        if (textSizeInput) textSizeInput.addEventListener("input", updateSizes);
+        if (titleSizeInput) titleSizeInput.addEventListener("input", updateSizes);
+        if (organizerInput) organizerInput.addEventListener("input", updateOrganizer);
+        if (logoInput && logoArea) {
+            logoInput.addEventListener("change", function () {
+                var file = logoInput.files && logoInput.files[0];
+                if (!file) return;
+                var url = URL.createObjectURL(file);
+                logoArea.innerHTML = '<div class="cert-preview-logo"><img src="' + url + '" alt="Sertifika logosu" /></div>';
+            });
+        }
+        if (signatureInput) {
+            signatureInput.addEventListener("change", function () {
+                var file = signatureInput.files && signatureInput.files[0];
+                if (!file) return;
+                updateSignaturePreview(URL.createObjectURL(file));
+            });
+        }
+
+        updateFrame();
+        updateColor();
+        updateFont();
+        updateSizes();
+        updateTitle();
+        updateOrganizer();
+    })();
+</script>

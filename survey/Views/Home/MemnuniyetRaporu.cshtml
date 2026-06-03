@@ -1,0 +1,913 @@
+@model IEnumerable<survey.Models.Havuz>
+
+@functions {
+    public class ReportRow
+    {
+        public string Ad { get; set; }
+        public int Kisi { get; set; }
+        public double Puan { get; set; }
+        public int Soru { get; set; }
+    }
+
+    public string SafeText(string value, string fallback = "Tanımsız")
+    {
+        return String.IsNullOrWhiteSpace(value) ? fallback : value;
+    }
+
+    public string PercentText(double value)
+    {
+        return String.Format("{0:n2}", Math.Max(0, Math.Min(100, value)));
+    }
+
+    public string PercentWidth(double value)
+    {
+        return Math.Max(0, Math.Min(100, value)).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+    }
+}
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var anket = ViewBag.Anket as survey.Models.Anket;
+    var kayitlar = (Model ?? Enumerable.Empty<survey.Models.Havuz>()).ToList();
+    var anketAdi = SafeText(anket?.AnketAdi ?? Convert.ToString(ViewBag.adi), "Memnuniyet Anketi");
+    var raporTarihi = ViewBag.RaporTarihi is DateTime ? (DateTime)ViewBag.RaporTarihi : DateTime.Now;
+    var hedefKitle = ViewBag.HedefKitle is int ? (int)ViewBag.HedefKitle : 0;
+
+    Func<survey.Models.Havuz, string> KatilimciAnahtari = kayit =>
+    {
+        if (kayit?.User != null && kayit.UserId != null)
+        {
+            return "u:" + kayit.UserId.Value;
+        }
+
+        if (kayit?.Isimsiz != null)
+        {
+            return "k:" + kayit.Isimsiz.Value;
+        }
+
+        if (kayit?.UserId != null)
+        {
+            return "u:" + kayit.UserId.Value;
+        }
+
+        return "h:" + (kayit?.HavuzId ?? 0);
+    };
+
+    Func<IEnumerable<survey.Models.Havuz>, List<survey.Models.Havuz>> SonSoruCevaplari = rows =>
+        (rows ?? Enumerable.Empty<survey.Models.Havuz>())
+            .Where(x => x.SoruID != null)
+            .GroupBy(x => x.SoruID.Value)
+            .Select(g => g
+                .OrderByDescending(x => x.KayitTar ?? DateTime.MinValue)
+                .ThenByDescending(x => x.HavuzId)
+                .First())
+            .ToList();
+
+    Func<survey.Models.Havuz, double> SoruPuani = kayit =>
+    {
+        var puan = kayit?.SoruPuan ?? kayit?.Soru?.SoruPuan ?? 0;
+        return puan > 0 ? puan : 1;
+    };
+
+    Func<survey.Models.Havuz, double> CevapPuani = kayit =>
+    {
+        var puan = kayit?.Cevap?.CevapPuan ?? kayit?.CevapPuan ?? 0;
+        return Math.Max(0, Math.Min(5, puan));
+    };
+
+    Func<IEnumerable<survey.Models.Havuz>, double> KisiPuani = rows =>
+    {
+        var liste = SonSoruCevaplari(rows);
+        if (!liste.Any())
+        {
+            return 0;
+        }
+
+        var toplamAgirlik = liste.Sum(SoruPuani);
+        var toplamCevapPuani = liste.Sum(x => CevapPuani(x) * SoruPuani(x));
+
+        return toplamAgirlik <= 0 ? 0 : toplamCevapPuani / toplamAgirlik * 20;
+    };
+
+    Func<IEnumerable<survey.Models.Havuz>, double> OrtalamaPuan = rows =>
+        (rows ?? Enumerable.Empty<survey.Models.Havuz>())
+            .GroupBy(KatilimciAnahtari)
+            .Select(KisiPuani)
+            .DefaultIfEmpty(0)
+            .Average();
+
+    Func<IEnumerable<survey.Models.Havuz>, int> KisiSayisi = rows =>
+        (rows ?? Enumerable.Empty<survey.Models.Havuz>())
+            .GroupBy(KatilimciAnahtari)
+            .Count();
+
+    Func<string, IEnumerable<survey.Models.Havuz>, ReportRow> MakeRow = (ad, rows) => new ReportRow
+    {
+        Ad = SafeText(ad),
+        Kisi = KisiSayisi(rows),
+        Puan = OrtalamaPuan(rows),
+        Soru = rows.Where(x => x.SoruID != null).Select(x => x.SoruID).Distinct().Count()
+    };
+
+    Func<DateTime?, string> YasAraligi = dogum =>
+    {
+        if (dogum == null)
+        {
+            return null;
+        }
+
+        var yas = DateTime.Today.Year - dogum.Value.Year;
+        if (dogum.Value.Date > DateTime.Today.AddYears(-yas))
+        {
+            yas--;
+        }
+
+        if (yas < 25) return "18 - 24";
+        if (yas < 35) return "25 - 34";
+        if (yas < 45) return "35 - 44";
+        if (yas < 55) return "45 - 54";
+        return "55 +";
+    };
+
+    var toplamKatilim = kayitlar.GroupBy(KatilimciAnahtari).Count();
+    var tanimliKatilim = kayitlar.Where(x => x.User != null && x.UserId != null).Select(x => x.UserId).Distinct().Count();
+    var tanimsizKatilim = toplamKatilim - tanimliKatilim;
+    var toplamSoru = kayitlar.Where(x => x.SoruID != null).Select(x => x.SoruID).Distinct().Count();
+    var genelMemnuniyet = OrtalamaPuan(kayitlar);
+    var katilimOrani = hedefKitle > 0 ? toplamKatilim * 100.0 / hedefKitle : 0;
+
+    var soruGrubuRows = kayitlar
+        .Where(x => x.SoruID != null)
+        .GroupBy(x => SafeText(x.SoruGrup?.SoruGrupAdi ?? x.Soru?.SoruGrup?.SoruGrupAdi, "Grupsuz"))
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var soruRows = kayitlar
+        .Where(x => x.SoruID != null)
+        .GroupBy(x => new
+        {
+            SoruId = x.SoruID.Value,
+            Grup = SafeText(x.SoruGrup?.SoruGrupAdi ?? x.Soru?.SoruGrup?.SoruGrupAdi, "Grupsuz")
+        })
+        .Select(g => new ReportRow
+        {
+            Ad = SafeText(g.FirstOrDefault()?.Soru?.SoruAdi, "Soru #" + g.Key.SoruId),
+            Kisi = KisiSayisi(g),
+            Puan = OrtalamaPuan(g),
+            Soru = 1
+        })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var departmanRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Departman?.DepartmanAdi))
+        .GroupBy(x => x.User.Departman.DepartmanAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var cinsiyetRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Cinsiyet?.CinsiyetAdi))
+        .GroupBy(x => x.User.Cinsiyet.CinsiyetAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var egitimRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Egitim?.EgitimAdi))
+        .GroupBy(x => x.User.Egitim.EgitimAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var yasRows = kayitlar
+        .Where(x => x.User?.UserDogumTar != null)
+        .GroupBy(x => YasAraligi(x.User.UserDogumTar))
+        .Select(g => MakeRow(g.Key, g))
+        .OrderBy(x => x.Ad)
+        .ToList();
+
+    var sehirRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Sehir?.SehiarAdi))
+        .GroupBy(x => x.User.Sehir.SehiarAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var subeRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Sube?.SubeAdi))
+        .GroupBy(x => x.User.Sube.SubeAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var unvanRows = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Unvan?.UnvanAdi))
+        .GroupBy(x => x.User.Unvan.UnvanAdi)
+        .Select(g => MakeRow(g.Key, g))
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var genelKirilimlar = new List<Tuple<string, List<ReportRow>>>
+    {
+        Tuple.Create("Departmana Göre Memnuniyet Oranları", departmanRows),
+        Tuple.Create("Cinsiyete Göre Memnuniyet Oranları", cinsiyetRows),
+        Tuple.Create("Eğitim Durumuna Göre Memnuniyet Oranları", egitimRows),
+        Tuple.Create("Yaşa Göre Memnuniyet Oranları", yasRows),
+        Tuple.Create("Şehre Göre Memnuniyet Oranları", sehirRows),
+        Tuple.Create("Şubeye Göre Memnuniyet Oranları", subeRows),
+        Tuple.Create("Unvana Göre Memnuniyet Oranları", unvanRows)
+    }.Where(x => x.Item2.Any()).ToList();
+
+    var soruGrubuDetaylari = kayitlar
+        .Where(x => x.SoruID != null)
+        .GroupBy(x => SafeText(x.SoruGrup?.SoruGrupAdi ?? x.Soru?.SoruGrup?.SoruGrupAdi, "Grupsuz"))
+        .Select(g => new
+        {
+            Ad = g.Key,
+            Puan = OrtalamaPuan(g),
+            Kisi = KisiSayisi(g),
+            Sorular = g.GroupBy(x => x.SoruID.Value)
+                .Select(s => new ReportRow
+                {
+                    Ad = SafeText(s.FirstOrDefault()?.Soru?.SoruAdi, "Soru #" + s.Key),
+                    Kisi = KisiSayisi(s),
+                    Puan = OrtalamaPuan(s),
+                    Soru = 1
+                })
+                .OrderByDescending(x => x.Puan)
+                .ToList(),
+            Cinsiyet = g.Where(x => !String.IsNullOrWhiteSpace(x.User?.Cinsiyet?.CinsiyetAdi))
+                .GroupBy(x => x.User.Cinsiyet.CinsiyetAdi)
+                .Select(s => MakeRow(s.Key, s))
+                .OrderByDescending(x => x.Puan)
+                .ToList(),
+            Egitim = g.Where(x => !String.IsNullOrWhiteSpace(x.User?.Egitim?.EgitimAdi))
+                .GroupBy(x => x.User.Egitim.EgitimAdi)
+                .Select(s => MakeRow(s.Key, s))
+                .OrderByDescending(x => x.Puan)
+                .ToList(),
+            Yas = g.Where(x => x.User?.UserDogumTar != null)
+                .GroupBy(x => YasAraligi(x.User.UserDogumTar))
+                .Select(s => MakeRow(s.Key, s))
+                .OrderBy(x => x.Ad)
+                .ToList()
+        })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+
+    var departmanDetaylari = kayitlar
+        .Where(x => !String.IsNullOrWhiteSpace(x.User?.Departman?.DepartmanAdi))
+        .GroupBy(x => x.User.Departman.DepartmanAdi)
+        .Select(g => new
+        {
+            Ad = g.Key,
+            Puan = OrtalamaPuan(g),
+            Kisi = KisiSayisi(g),
+            Gruplar = g.Where(x => x.SoruID != null)
+                .GroupBy(x => SafeText(x.SoruGrup?.SoruGrupAdi ?? x.Soru?.SoruGrup?.SoruGrupAdi, "Grupsuz"))
+                .Select(s => MakeRow(s.Key, s))
+                .OrderByDescending(x => x.Puan)
+                .ToList(),
+            Cinsiyet = g.Where(x => !String.IsNullOrWhiteSpace(x.User?.Cinsiyet?.CinsiyetAdi))
+                .GroupBy(x => x.User.Cinsiyet.CinsiyetAdi)
+                .Select(s => MakeRow(s.Key, s))
+                .OrderByDescending(x => x.Puan)
+                .ToList(),
+            Egitim = g.Where(x => !String.IsNullOrWhiteSpace(x.User?.Egitim?.EgitimAdi))
+                .GroupBy(x => x.User.Egitim.EgitimAdi)
+                .Select(s => MakeRow(s.Key, s))
+                .OrderByDescending(x => x.Puan)
+                .ToList(),
+            Yas = g.Where(x => x.User?.UserDogumTar != null)
+                .GroupBy(x => YasAraligi(x.User.UserDogumTar))
+                .Select(s => MakeRow(s.Key, s))
+                .OrderBy(x => x.Ad)
+                .ToList()
+        })
+        .OrderByDescending(x => x.Puan)
+        .ToList();
+}
+
+<style>
+    .satisfaction-shell {
+        max-width: 1120px;
+        margin: 22px auto 48px;
+        padding: 0 18px;
+        color: #001a3a;
+    }
+
+    .report-toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .report-toolbar-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .report-action {
+        border: 1px solid #cbd8ee;
+        background: #fff;
+        color: #001a3a;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 800;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .report-action.primary {
+        background: #2457ff;
+        border-color: #2457ff;
+        color: #fff;
+    }
+
+    .report-page {
+        background: #fff;
+        border: 1px solid #d9e4f5;
+        border-radius: 8px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
+        margin-bottom: 18px;
+        padding: 34px;
+        min-height: 760px;
+        page-break-after: always;
+    }
+
+    .cover-page {
+        display: flex;
+        min-height: 780px;
+        flex-direction: column;
+        justify-content: center;
+        background: linear-gradient(135deg, #effbf8 0%, #ffffff 48%, #eef2ff 100%);
+    }
+
+    .report-eyebrow {
+        color: #2457ff;
+        font-weight: 900;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-size: 12px;
+        margin-bottom: 16px;
+    }
+
+    .cover-title {
+        font-size: 44px;
+        font-weight: 900;
+        line-height: 1.08;
+        margin: 0;
+        max-width: 760px;
+    }
+
+    .cover-subtitle {
+        font-size: 24px;
+        margin-top: 18px;
+        color: #536278;
+        font-weight: 800;
+    }
+
+    .cover-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 48px;
+    }
+
+    .meta-card,
+    .summary-card {
+        border: 1px solid #d9e4f5;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .85);
+        padding: 18px;
+    }
+
+    .meta-label,
+    .summary-label {
+        color: #607089;
+        font-weight: 800;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .8px;
+    }
+
+    .meta-value,
+    .summary-value {
+        font-size: 28px;
+        font-weight: 900;
+        margin-top: 8px;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: 900;
+        margin: 0 0 6px;
+    }
+
+    .page-subtitle {
+        color: #607089;
+        font-weight: 700;
+        margin-bottom: 24px;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 26px;
+    }
+
+    .big-score {
+        border: 1px solid #d9e4f5;
+        border-radius: 10px;
+        padding: 24px;
+        background: #f8fbff;
+        margin-bottom: 24px;
+    }
+
+    .big-score-number {
+        font-size: 52px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .score-bar {
+        height: 12px;
+        background: #e8eef8;
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 12px;
+    }
+
+    .score-bar span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #18b7a4, #4361ee);
+        border-radius: inherit;
+    }
+
+    .bar-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .bar-row {
+        display: grid;
+        grid-template-columns: minmax(180px, 300px) 1fr 86px;
+        gap: 12px;
+        align-items: center;
+        border-bottom: 1px solid #eef2f7;
+        padding: 8px 0;
+    }
+
+    .bar-label {
+        font-weight: 800;
+        color: #22324b;
+    }
+
+    .bar-value {
+        text-align: right;
+        font-weight: 900;
+    }
+
+    .two-col {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .section-card {
+        border: 1px solid #d9e4f5;
+        border-radius: 8px;
+        padding: 18px;
+        background: #fff;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 900;
+        margin: 0 0 14px;
+    }
+
+    .report-empty {
+        border: 1px dashed #c7d5ea;
+        background: #f8fbff;
+        color: #607089;
+        border-radius: 8px;
+        padding: 18px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    .small-note {
+        color: #607089;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 10px;
+    }
+
+    .page-footer {
+        margin-top: 30px;
+        color: #7a879b;
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid #e5edf8;
+        padding-top: 12px;
+    }
+
+    @@media print {
+        @@page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        body {
+            background: #fff !important;
+        }
+
+        .pcoded-navbar,
+        .pcoded-header,
+        .navbar,
+        .main-menu,
+        .report-toolbar,
+        .no-print {
+            display: none !important;
+        }
+
+        .pcoded-content,
+        .pcoded-main-container,
+        .page-wrapper,
+        .page-body-wrapper,
+        .satisfaction-shell {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: none !important;
+            width: 100% !important;
+        }
+
+        .report-page {
+            box-shadow: none;
+            border: 0;
+            border-radius: 0;
+            min-height: auto;
+            margin: 0;
+            padding: 12mm;
+        }
+
+        .cover-page {
+            min-height: 175mm;
+        }
+    }
+</style>
+
+<div class="satisfaction-shell">
+    <div class="report-toolbar no-print">
+        <strong>@anketAdi memnuniyet raporu</strong>
+        <div class="report-toolbar-actions">
+            <a class="report-action" href="@Url.Action("AnketIndex1", "Home", new { id = ViewBag.id })">
+                <i class="fa fa-arrow-left"></i> Rapora dön
+            </a>
+            <button type="button" class="report-action primary" onclick="window.print()">
+                <i class="fa fa-print"></i> PDF / Yazdır
+            </button>
+        </div>
+    </div>
+
+    <section class="report-page cover-page">
+        <div class="report-eyebrow">Evalio Studio</div>
+        <h1 class="cover-title">@anketAdi</h1>
+        <div class="cover-subtitle">Çalışan Memnuniyet Anketi Raporu</div>
+        <div class="cover-meta">
+            <div class="meta-card">
+                <div class="meta-label">Rapor Tarihi</div>
+                <div class="meta-value">@raporTarihi.ToString("dd.MM.yyyy")</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Toplam Katılım</div>
+                <div class="meta-value">@toplamKatilim</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Genel Memnuniyet</div>
+                <div class="meta-value">@PercentText(genelMemnuniyet)%</div>
+            </div>
+        </div>
+        <div class="page-footer">
+            <span>@anketAdi</span>
+            <span>Evalio Studio</span>
+        </div>
+    </section>
+
+    <section class="report-page">
+        <h2 class="page-title">Genel Memnuniyet</h2>
+        <div class="page-subtitle">Katılım ve genel memnuniyet göstergeleri.</div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">Toplam Katılım</div>
+                <div class="summary-value">@toplamKatilim</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Katılım Oranı</div>
+                <div class="summary-value">@(hedefKitle > 0 ? PercentText(katilimOrani) + "%" : "-")</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Tanımlı / Tanımsız</div>
+                <div class="summary-value">@tanimliKatilim / @tanimsizKatilim</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Soru Sayısı</div>
+                <div class="summary-value">@toplamSoru</div>
+            </div>
+        </div>
+
+        <div class="big-score">
+            <div class="summary-label">Genel Memnuniyet Oranı</div>
+            <div class="big-score-number">@PercentText(genelMemnuniyet)%</div>
+            <div class="score-bar"><span style="width:@PercentWidth(genelMemnuniyet)"></span></div>
+        </div>
+
+        <div class="section-card">
+            <h3 class="section-title">Soru Grubu Bazlı Değerlendirme</h3>
+            @if (!soruGrubuRows.Any())
+            {
+                <div class="report-empty">Soru grubu sonucu bulunamadı.</div>
+            }
+            else
+            {
+                <div class="bar-list">
+                    @foreach (var row in soruGrubuRows)
+                    {
+                        <div class="bar-row">
+                            <div class="bar-label">@row.Ad</div>
+                            <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                            <div class="bar-value">@PercentText(row.Puan)%</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="page-footer">
+            <span>Genel Memnuniyet</span>
+            <span>@raporTarihi.ToString("dd.MM.yyyy HH:mm")</span>
+        </div>
+    </section>
+
+    @if (genelKirilimlar.Any())
+    {
+        <section class="report-page">
+            <h2 class="page-title">Genel Kırılımlar</h2>
+            <div class="page-subtitle">Profil bilgisi tanımlı olan katılımcılara göre memnuniyet oranları.</div>
+            <div class="two-col">
+                @foreach (var item in genelKirilimlar)
+                {
+                    <div class="section-card">
+                        <h3 class="section-title">@item.Item1</h3>
+                        <div class="bar-list">
+                            @foreach (var row in item.Item2)
+                            {
+                                <div class="bar-row">
+                                    <div class="bar-label">@row.Ad</div>
+                                    <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                                    <div class="bar-value">@PercentText(row.Puan)%</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="page-footer">
+                <span>Genel Kırılımlar</span>
+                <span>Profil bilgisi olmayan katılımcılar bu sayfadaki kırılımlara dahil değildir.</span>
+            </div>
+        </section>
+    }
+
+    <section class="report-page">
+        <h2 class="page-title">Soru Bazlı Değerlendirme</h2>
+        <div class="page-subtitle">Tüm soruların ortalama memnuniyet oranı.</div>
+        @if (!soruRows.Any())
+        {
+            <div class="report-empty">Soru sonucu bulunamadı.</div>
+        }
+        else
+        {
+            <div class="bar-list">
+                @foreach (var row in soruRows)
+                {
+                    <div class="bar-row">
+                        <div class="bar-label">@row.Ad</div>
+                        <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                        <div class="bar-value">@PercentText(row.Puan)%</div>
+                    </div>
+                }
+            </div>
+        }
+        <div class="page-footer">
+            <span>Soru Bazlı Değerlendirme</span>
+            <span>@toplamSoru soru</span>
+        </div>
+    </section>
+
+    @foreach (var grup in soruGrubuDetaylari)
+    {
+        <section class="report-page">
+            <h2 class="page-title">@grup.Ad</h2>
+            <div class="page-subtitle">Soru grubu bazlı değerlendirme.</div>
+            <div class="big-score">
+                <div class="summary-label">@grup.Ad Memnuniyet Oranı</div>
+                <div class="big-score-number">@PercentText(grup.Puan)%</div>
+                <div class="score-bar"><span style="width:@PercentWidth(grup.Puan)"></span></div>
+            </div>
+
+            <div class="section-card">
+                <h3 class="section-title">Bu Gruptaki Sorular</h3>
+                <div class="bar-list">
+                    @foreach (var row in grup.Sorular)
+                    {
+                        <div class="bar-row">
+                            <div class="bar-label">@row.Ad</div>
+                            <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                            <div class="bar-value">@PercentText(row.Puan)%</div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (grup.Cinsiyet.Any() || grup.Egitim.Any() || grup.Yas.Any())
+            {
+                <div class="two-col" style="margin-top:18px;">
+                    @if (grup.Cinsiyet.Any())
+                    {
+                        <div class="section-card">
+                            <h3 class="section-title">Cinsiyete Göre</h3>
+                            <div class="bar-list">
+                                @foreach (var row in grup.Cinsiyet)
+                                {
+                                    <div class="bar-row">
+                                        <div class="bar-label">@row.Ad</div>
+                                        <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                                        <div class="bar-value">@PercentText(row.Puan)%</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (grup.Egitim.Any())
+                    {
+                        <div class="section-card">
+                            <h3 class="section-title">Eğitim Durumuna Göre</h3>
+                            <div class="bar-list">
+                                @foreach (var row in grup.Egitim)
+                                {
+                                    <div class="bar-row">
+                                        <div class="bar-label">@row.Ad</div>
+                                        <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                                        <div class="bar-value">@PercentText(row.Puan)%</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (grup.Yas.Any())
+                    {
+                        <div class="section-card">
+                            <h3 class="section-title">Yaşa Göre</h3>
+                            <div class="bar-list">
+                                @foreach (var row in grup.Yas)
+                                {
+                                    <div class="bar-row">
+                                        <div class="bar-label">@row.Ad</div>
+                                        <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                                        <div class="bar-value">@PercentText(row.Puan)%</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="page-footer">
+                <span>Soru Grubu Bazlı Değerlendirme</span>
+                <span>@grup.Kisi katılımcı</span>
+            </div>
+        </section>
+    }
+
+    @if (departmanDetaylari.Any())
+    {
+        <section class="report-page">
+            <h2 class="page-title">Departmanlara Göre Değerlendirme</h2>
+            <div class="page-subtitle">Her departmanın genel memnuniyet ve soru grubu kırılımı.</div>
+            <div class="bar-list">
+                @foreach (var row in departmanRows)
+                {
+                    <div class="bar-row">
+                        <div class="bar-label">@row.Ad</div>
+                        <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                        <div class="bar-value">@PercentText(row.Puan)%</div>
+                    </div>
+                }
+            </div>
+            <div class="page-footer">
+                <span>Departmanlara Göre Değerlendirme</span>
+                <span>@departmanRows.Count departman</span>
+            </div>
+        </section>
+    }
+
+    @foreach (var departman in departmanDetaylari)
+    {
+        <section class="report-page">
+            <h2 class="page-title">@departman.Ad</h2>
+            <div class="page-subtitle">Departman bazlı memnuniyet raporu.</div>
+            <div class="big-score">
+                <div class="summary-label">@departman.Ad Memnuniyet Oranı</div>
+                <div class="big-score-number">@PercentText(departman.Puan)%</div>
+                <div class="score-bar"><span style="width:@PercentWidth(departman.Puan)"></span></div>
+            </div>
+
+            <div class="section-card">
+                <h3 class="section-title">Soru Grubu Kırılımı</h3>
+                <div class="bar-list">
+                    @foreach (var row in departman.Gruplar)
+                    {
+                        <div class="bar-row">
+                            <div class="bar-label">@row.Ad</div>
+                            <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                            <div class="bar-value">@PercentText(row.Puan)%</div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (departman.Cinsiyet.Any() || departman.Egitim.Any() || departman.Yas.Any())
+            {
+                <div class="two-col" style="margin-top:18px;">
+                    @if (departman.Cinsiyet.Any())
+                    {
+                        <div class="section-card">
+                            <h3 class="section-title">Cinsiyete Göre</h3>
+                            <div class="bar-list">
+                                @foreach (var row in departman.Cinsiyet)
+                                {
+                                    <div class="bar-row">
+                                        <div class="bar-label">@row.Ad</div>
+                                        <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                                        <div class="bar-value">@PercentText(row.Puan)%</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (departman.Egitim.Any())
+                    {
+                        <div class="section-card">
+                            <h3 class="section-title">Eğitim Durumuna Göre</h3>
+                            <div class="bar-list">
+                                @foreach (var row in departman.Egitim)
+                                {
+                                    <div class="bar-row">
+                                        <div class="bar-label">@row.Ad</div>
+                                        <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                                        <div class="bar-value">@PercentText(row.Puan)%</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (departman.Yas.Any())
+                    {
+                        <div class="section-card">
+                            <h3 class="section-title">Yaşa Göre</h3>
+                            <div class="bar-list">
+                                @foreach (var row in departman.Yas)
+                                {
+                                    <div class="bar-row">
+                                        <div class="bar-label">@row.Ad</div>
+                                        <div class="score-bar"><span style="width:@PercentWidth(row.Puan)"></span></div>
+                                        <div class="bar-value">@PercentText(row.Puan)%</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="page-footer">
+                <span>Departmanlara Göre Değerlendirme</span>
+                <span>@departman.Kisi katılımcı</span>
+            </div>
+        </section>
+    }
+</div>

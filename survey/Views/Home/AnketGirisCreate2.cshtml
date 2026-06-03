@@ -1,0 +1,969 @@
+@model survey.Models.Tumcontroller
+@{
+    Layout = "~/Views/Shared/_AnketLayout.cshtml";
+
+    var sorular = (Model.Sor ?? Enumerable.Empty<survey.Models.Soru>())
+        .OrderBy(x => x.SoruSira)
+        .ThenBy(x => x.SoruId)
+        .ToList();
+    var cevaplar = (Model.Cev ?? Enumerable.Empty<survey.Models.Cevap>()).ToList();
+    var havuz = (Model.Hav ?? Enumerable.Empty<survey.Models.Havuz>()).ToList();
+
+    int? sessionUserId = null;
+    if (Session["id"] != null)
+    {
+        sessionUserId = Convert.ToInt32(Session["id"]);
+    }
+
+    int? katilimKodu = null;
+    if (ViewBag.kod != null)
+    {
+        katilimKodu = Convert.ToInt32(ViewBag.kod);
+    }
+
+    int? linkUserId = null;
+    if (ViewBag.user != null)
+    {
+        linkUserId = Convert.ToInt32(ViewBag.user);
+    }
+
+    Func<survey.Models.Soru, survey.Models.Havuz> seciliBul = soru => havuz.FirstOrDefault(h =>
+        h.SoruID == soru.SoruId &&
+        (
+            (katilimKodu.HasValue && h.Isimsiz == katilimKodu.Value) ||
+            (!katilimKodu.HasValue && sessionUserId.HasValue && h.UserId == sessionUserId.Value) ||
+            (!katilimKodu.HasValue && linkUserId.HasValue && h.UserId == linkUserId.Value)
+        ));
+
+    var ilkCevapsizIndex = sorular.FindIndex(x => seciliBul(x) == null);
+    if (ilkCevapsizIndex < 0)
+    {
+        ilkCevapsizIndex = 0;
+    }
+
+    var cevaplananSayisi = sorular.Count(x => seciliBul(x) != null);
+    var calismaTuru = Convert.ToString(ViewBag.calismaTuru ?? (ViewBag.sinav == true ? "Sınav" : "Anket"));
+    var calismaTuruKucuk = calismaTuru.ToLower(new System.Globalization.CultureInfo("tr-TR"));
+    var bitirMetni = calismaTuru == "Anket" ? "Anketi Bitir" : (calismaTuru == "Eğitim" ? "Eğitimi Bitir" : "Sınavı Bitir");
+    var tamamlandiBaslik = calismaTuru + " tamamlandı";
+}
+
+<style>
+    body {
+        background: #f5f7fb;
+    }
+
+    .exam-shell {
+        width: min(920px, calc(100% - 24px));
+        margin: 18px auto 34px;
+        color: #18243a;
+    }
+
+    .exam-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        margin-bottom: 14px;
+        padding: 18px;
+        border: 1px solid #dde6f2;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(22, 34, 51, .07);
+    }
+
+    .exam-title {
+        margin: 0;
+        color: #111827;
+        font-size: 20px;
+        font-weight: 900;
+        line-height: 1.35;
+    }
+
+    .exam-welcome,
+    .exam-meta {
+        margin: 6px 0 0;
+        color: #667085;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .timer-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 8px;
+        color: #9f1239;
+        background: #fff1f2;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .progress-panel {
+        margin-bottom: 14px;
+        padding: 14px 16px;
+        border: 1px solid #dde6f2;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .progress-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #344054;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .progress-track {
+        height: 8px;
+        margin-top: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e8eef7;
+    }
+
+    .progress-bar {
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #18b7a4, #4361ee);
+        transition: width .18s ease;
+    }
+
+    .question-card {
+        padding: 18px;
+        border: 1px solid #d9e3f0;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 14px 34px rgba(22, 34, 51, .08);
+    }
+
+    .question-card[hidden] {
+        display: none;
+    }
+
+    .question-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .question-title {
+        margin: 0;
+        color: #172033;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.5;
+    }
+
+    .question-number {
+        color: #4361ee;
+        white-space: nowrap;
+    }
+
+    .answer-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .answer-form {
+        margin: 0;
+    }
+
+    .answer-option {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 44px;
+        padding: 11px 13px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: #344054;
+        background: #eef3fb;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.35;
+        text-align: left;
+        cursor: pointer;
+        transition: border-color .16s ease, background .16s ease, color .16s ease, transform .16s ease;
+    }
+
+    .answer-option:hover {
+        color: #111827;
+        border-color: #bfd0e7;
+        background: #e7eef9;
+        transform: translateY(-1px);
+    }
+
+    .answer-option.is-selected {
+        color: #063f33;
+        border-color: #5bd5b8;
+        background: #dff9ef;
+        box-shadow: inset 4px 0 0 #18b7a4;
+    }
+
+    .answer-option:disabled {
+        cursor: wait;
+        opacity: .72;
+        transform: none;
+    }
+
+    .empty-options {
+        min-height: 44px;
+        padding: 12px;
+        border-radius: 8px;
+        color: #92400e;
+        background: #fffbeb;
+        font-weight: 800;
+    }
+
+    .selected-answer-label {
+        min-height: 22px;
+        margin-top: 12px;
+        color: #08724f;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .question-navigation {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        margin-top: 14px;
+        padding: 14px;
+        border: 1px solid #dde6f2;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .nav-btn,
+    .finish-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 15px;
+        border: 1px solid #ccd7e6;
+        border-radius: 8px;
+        color: #233047;
+        background: #fff;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .nav-btn:disabled {
+        color: #98a2b3;
+        background: #f8fafc;
+        cursor: not-allowed;
+    }
+
+    .finish-btn {
+        color: #fff;
+        border-color: transparent;
+        background: #e03b4d;
+    }
+
+    .question-dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+
+    .step-dot {
+        width: 30px;
+        height: 30px;
+        border: 1px solid #ccd7e6;
+        border-radius: 50%;
+        color: #344054;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .step-dot.is-active {
+        color: #fff;
+        border-color: #4361ee;
+        background: #4361ee;
+    }
+
+    .step-dot.is-answered:not(.is-active) {
+        color: #063f33;
+        border-color: #5bd5b8;
+        background: #dff9ef;
+    }
+
+    .save-status {
+        min-height: 20px;
+        margin-top: 10px;
+        color: #667085;
+        font-size: 13px;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .completion-overlay[hidden] {
+        display: none;
+    }
+
+    .completion-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2200;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+            radial-gradient(circle at 18% 18%, rgba(24, 183, 164, .22), transparent 30%),
+            radial-gradient(circle at 82% 20%, rgba(67, 97, 238, .20), transparent 28%),
+            linear-gradient(135deg, rgba(12, 18, 32, .92), rgba(20, 34, 52, .94));
+        backdrop-filter: blur(8px);
+    }
+
+    .completion-card {
+        position: relative;
+        width: min(560px, 100%);
+        padding: 34px 28px 28px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .22);
+        border-radius: 8px;
+        color: #122033;
+        background: #fff;
+        box-shadow: 0 30px 90px rgba(0, 0, 0, .28);
+        text-align: center;
+        animation: completionEnter .42s ease both;
+    }
+
+    .completion-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 7px;
+        background: linear-gradient(90deg, #18b7a4, #4361ee, #ffb84d, #ff6b5d);
+    }
+
+    .completion-confetti span {
+        position: absolute;
+        width: 9px;
+        height: 18px;
+        border-radius: 3px;
+        opacity: .9;
+        animation: confettiFloat 2.8s ease-in-out infinite;
+    }
+
+    .completion-confetti span:nth-child(1) { top: 42px; left: 42px; background: #18b7a4; animation-delay: .05s; }
+    .completion-confetti span:nth-child(2) { top: 78px; right: 58px; background: #4361ee; animation-delay: .28s; }
+    .completion-confetti span:nth-child(3) { bottom: 74px; left: 64px; background: #ffb84d; animation-delay: .18s; }
+    .completion-confetti span:nth-child(4) { bottom: 92px; right: 78px; background: #ff6b5d; animation-delay: .38s; }
+    .completion-confetti span:nth-child(5) { top: 132px; left: 24px; background: #8df0c7; animation-delay: .52s; }
+    .completion-confetti span:nth-child(6) { top: 142px; right: 22px; background: #a5b4fc; animation-delay: .66s; }
+
+    .completion-mark {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 92px;
+        height: 92px;
+        margin: 0 auto 18px;
+        border-radius: 50%;
+        background: #ddf8ea;
+        box-shadow: 0 0 0 12px rgba(24, 183, 164, .11);
+        animation: markPulse 1.35s ease-in-out infinite;
+    }
+
+    .completion-mark::after {
+        content: "";
+        width: 38px;
+        height: 20px;
+        border-left: 6px solid #08724f;
+        border-bottom: 6px solid #08724f;
+        transform: rotate(-45deg) translate(3px, -2px);
+        animation: checkDraw .42s ease .2s both;
+    }
+
+    .completion-kicker {
+        margin: 0 0 8px;
+        color: #4361ee;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .completion-title {
+        margin: 0;
+        color: #111827;
+        font-size: 28px;
+        font-weight: 950;
+        line-height: 1.18;
+    }
+
+    .completion-message {
+        max-width: 430px;
+        margin: 12px auto 0;
+        color: #536174;
+        font-size: 15px;
+        line-height: 1.65;
+        font-weight: 650;
+    }
+
+    .completion-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 10px;
+        margin: 22px 0;
+    }
+
+    .completion-summary div {
+        min-height: 72px;
+        padding: 13px;
+        border: 1px solid #e4ebf5;
+        border-radius: 8px;
+        background: #f8fbff;
+    }
+
+    .completion-summary strong {
+        display: block;
+        color: #111827;
+        font-size: 20px;
+        font-weight: 950;
+        line-height: 1;
+    }
+
+    .completion-summary span {
+        display: block;
+        margin-top: 8px;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .completion-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .completion-home,
+    .completion-soft {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 8px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .completion-home {
+        color: #fff;
+        border: 1px solid transparent;
+        background: #172033;
+    }
+
+    .completion-soft {
+        color: #233047;
+        border: 1px solid #d8e2ef;
+        background: #fff;
+    }
+
+    @@keyframes completionEnter {
+        from { opacity: 0; transform: translateY(18px) scale(.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @@keyframes markPulse {
+        0%, 100% { box-shadow: 0 0 0 12px rgba(24, 183, 164, .11); }
+        50% { box-shadow: 0 0 0 18px rgba(24, 183, 164, .06); }
+    }
+
+    @@keyframes checkDraw {
+        from { opacity: 0; transform: rotate(-45deg) translate(12px, -12px) scale(.8); }
+        to { opacity: 1; transform: rotate(-45deg) translate(3px, -2px) scale(1); }
+    }
+
+    @@keyframes confettiFloat {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-12px) rotate(18deg); }
+    }
+
+    @@media (max-width: 700px) {
+        .exam-hero,
+        .question-head,
+        .question-navigation {
+            grid-template-columns: 1fr;
+        }
+
+        .timer-pill,
+        .nav-btn,
+        .finish-btn {
+            width: 100%;
+        }
+
+        .question-dots {
+            justify-content: flex-start;
+        }
+
+        .completion-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="exam-shell">
+    <section class="exam-hero">
+        <div>
+            <h1 class="exam-title">@ViewBag.ankadi</h1>
+            <p class="exam-welcome">
+                @(ViewBag.kod != null ? "Hoş geldiniz" : $"Sayın {Session["adi"]}, hoş geldiniz")
+            </p>
+            <p class="exam-meta">
+                <span id="questionCounter">Soru 1 / @sorular.Count</span> ·
+                <span id="answeredCounter">@cevaplananSayisi / @sorular.Count cevaplandı</span>
+            </p>
+        </div>
+        <div class="timer-pill" id="kalanSure">Süre hazırlanıyor</div>
+    </section>
+
+    <section class="progress-panel">
+        <div class="progress-line">
+            <span>İlerleme</span>
+            <span id="progressText">0%</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </section>
+
+    @if (TempData["Mesaj"] != null)
+    {
+        <div class="alert alert-danger text-center">
+            @TempData["Mesaj"]
+        </div>
+    }
+
+    <div id="soruContainer" data-initial-index="@ilkCevapsizIndex">
+        @for (var index = 0; index < sorular.Count; index++)
+        {
+            var item = sorular[index];
+            var secili = seciliBul(item);
+            var soruCevaplari = cevaplar.Where(c => c.CevapGrupId == item.CevapGrupId).ToList();
+            var answered = secili != null;
+
+            <article class="question-card"
+                     data-index="@index"
+                     data-soru="@item.SoruId"
+                     data-answered="@(answered ? "true" : "false")"
+                     @(index == ilkCevapsizIndex ? "" : "hidden")>
+                <div class="question-head">
+                    <h2 class="question-title">
+                        <span class="question-number">@(index + 1).</span>
+                        @item.SoruAdi
+                    </h2>
+                </div>
+
+                <div class="answer-list">
+                    @if (!soruCevaplari.Any())
+                    {
+                        <div class="empty-options">Bu soru için cevap seçeneği bulunamadı.</div>
+                    }
+                    else
+                    {
+                        foreach (var item1 in soruCevaplari)
+                        {
+                            var isSelected = secili?.CevapId == item1.CevapId;
+                            <form method="post"
+                                  action="@Url.Action("AnketGirisCreate2", "Home")"
+                                  class="answer-form"
+                                  data-soru="@item.SoruId"
+                                  data-answer-id="@item1.CevapId"
+                                  data-answer-text="@item1.CevapAdi">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden" name="AnketId" value="@ViewBag.id" />
+                                <input type="hidden" name="SoruID" value="@item.SoruId" />
+                                <input type="hidden" name="SoruGrupId" value="@item.SoruGrupId" />
+                                <input type="hidden" name="CevapId" value="@item1.CevapId" />
+                                <input type="hidden" name="CevapGrupId" value="@item1.CevapGrupId" />
+                                <input type="hidden" name="CevapPuan" value="@item1.CevapPuan" />
+                                <input type="hidden" name="SoruPuan" value="@item.SoruPuan" />
+                                <input type="hidden" name="SoruGrupPuan" value="@(item.SoruGrup != null ? item.SoruGrup.SoruGrupPuan : 0)" />
+                                <input type="hidden" name="UserId" value="@(katilimKodu.HasValue ? 0 : (linkUserId ?? sessionUserId ?? 0))" />
+                                <input type="hidden" name="Isimsiz" value="@(katilimKodu ?? 0)" />
+                                <input type="hidden" name="user" value="@(linkUserId ?? sessionUserId ?? katilimKodu ?? 0)" />
+
+                                <button type="submit" class="answer-option @(isSelected ? "is-selected" : "")">
+                                    @item1.CevapAdi
+                                </button>
+                            </form>
+                        }
+                    }
+                </div>
+
+                <div class="selected-answer-label" data-selected-label>
+                    @if (answered)
+                    {
+                        <span>Seçiminiz: @(secili.Cevap != null ? secili.Cevap.CevapAdi : "")</span>
+                    }
+                </div>
+            </article>
+        }
+    </div>
+
+    <section class="question-navigation">
+        <button type="button" class="nav-btn" id="prevQuestion">Önceki</button>
+        <div class="question-dots" id="questionDots" aria-label="Soru seçimi">
+            @for (var index = 0; index < sorular.Count; index++)
+            {
+                var soru = sorular[index];
+                var answered = seciliBul(soru) != null;
+                <button type="button"
+                        class="step-dot @(index == ilkCevapsizIndex ? "is-active" : "") @(answered ? "is-answered" : "")"
+                        data-index="@index"
+                        aria-label="@(index + 1). soru">
+                    @(index + 1)
+                </button>
+            }
+        </div>
+        <button type="button" class="nav-btn" id="nextQuestion">Sonraki</button>
+    </section>
+
+    <div class="save-status" id="saveStatus"></div>
+
+    @if (Session["tc"] != null || ViewBag.kod != null)
+    {
+        <div class="mt-3 d-grid gap-2">
+            <button id="btnKaydet" type="button" class="finish-btn">
+                @bitirMetni
+            </button>
+            <a class="nav-btn" href="@Url.Action("KatilimPortal", "Home", new { kod = ViewBag.kod, user = ViewBag.user })">
+                Çıkış
+            </a>
+        </div>
+    }
+</div>
+
+<form id="completionTokenForm" hidden>
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="completion-overlay" id="completionOverlay" hidden>
+    <section class="completion-card" role="dialog" aria-modal="true" aria-labelledby="completionTitle">
+        <div class="completion-confetti" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="completion-mark" aria-hidden="true"></div>
+        <p class="completion-kicker">Evalio Studio</p>
+        <h2 class="completion-title" id="completionTitle">@tamamlandiBaslik</h2>
+        <p class="completion-message" id="completionMessage">
+            Cevaplarınız güvenle kaydedildi. Katılımınız için teşekkür ederiz.
+        </p>
+        @if (ViewBag.kod != null)
+        {
+            <p class="completion-message">
+                Sonucunuzu ve sertifikanızı daha sonra görmek için katılım kodunuzu saklayın.
+            </p>
+        }
+        <div class="completion-summary">
+            <div>
+                <strong id="completionAnswered">0/0</strong>
+                <span>Cevaplanan soru</span>
+            </div>
+            <div>
+                <strong id="completionStatus">Tamamlandı</strong>
+                <span>Katılım durumu</span>
+            </div>
+            @if (ViewBag.kod != null)
+            {
+                <div>
+                    <strong>@ViewBag.kod</strong>
+                    <span>Katılım kodu</span>
+                </div>
+            }
+        </div>
+        <div class="completion-actions">
+            <a class="completion-home" href="@Url.Action("KatilimPortal", "Home", new { kod = ViewBag.kod, user = ViewBag.user })">Katılım alanıma dön</a>
+            <button class="completion-soft" type="button" id="completionReview">Yanıtları gözden geçir</button>
+        </div>
+    </section>
+</div>
+
+<script>
+    const katilimTamamlaUrl = "@Url.Action("KatilimTamamla", "Home")";
+    const katilimTamamlaPayload = {
+        anketId: "@ViewBag.id",
+        kod: "@(ViewBag.kod ?? "")",
+        user: "@(ViewBag.user ?? "")"
+    };
+    const calismaTuru = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(calismaTuru));
+    const calismaTuruKucuk = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(calismaTuruKucuk));
+    const tamamlandiBaslik = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(tamamlandiBaslik));
+
+    function tamamlaKatilim() {
+        const formData = new FormData();
+        const token = document.querySelector("#completionTokenForm input[name='__RequestVerificationToken']")?.value;
+        if (token) {
+            formData.append("__RequestVerificationToken", token);
+        }
+
+        formData.append("anketId", katilimTamamlaPayload.anketId);
+        formData.append("kod", katilimTamamlaPayload.kod);
+        formData.append("user", katilimTamamlaPayload.user);
+
+        return fetch(katilimTamamlaUrl, { method: "POST", body: formData })
+            .then(response => response.json())
+            .catch(() => ({ success: false }));
+    }
+
+    window.sinavKilitli = false;
+    function kilitleSinav(message) {
+        window.sinavKilitli = true;
+        document.querySelectorAll(".answer-option, .step-dot, #prevQuestion, #nextQuestion, #btnKaydet").forEach(element => {
+            element.disabled = true;
+        });
+
+        const saveStatus = document.getElementById("saveStatus");
+        if (saveStatus) {
+            saveStatus.textContent = message || `Süreniz dolduğu için ${calismaTuruKucuk} kapatıldı.`;
+        }
+    }
+
+    (function () {
+        const container = document.getElementById("soruContainer");
+        const cards = Array.from(document.querySelectorAll(".question-card"));
+        const dots = Array.from(document.querySelectorAll(".step-dot"));
+        const prevButton = document.getElementById("prevQuestion");
+        const nextButton = document.getElementById("nextQuestion");
+        const questionCounter = document.getElementById("questionCounter");
+        const answeredCounter = document.getElementById("answeredCounter");
+        const progressBar = document.getElementById("progressBar");
+        const progressText = document.getElementById("progressText");
+        const saveStatus = document.getElementById("saveStatus");
+        let currentIndex = Number(container?.dataset.initialIndex || 0);
+
+        function answeredCount() {
+            return cards.filter(card => card.dataset.answered === "true").length;
+        }
+
+        function updateProgress() {
+            const total = cards.length || 1;
+            const answered = answeredCount();
+            const percent = Math.round((answered / total) * 100);
+            answeredCounter.textContent = `${answered} / ${cards.length} cevaplandı`;
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = `${percent}%`;
+            dots.forEach((dot, index) => {
+                dot.classList.toggle("is-answered", cards[index]?.dataset.answered === "true");
+                dot.classList.toggle("is-active", index === currentIndex);
+            });
+        }
+
+        function showQuestion(index) {
+            if (!cards.length) return;
+            currentIndex = Math.max(0, Math.min(index, cards.length - 1));
+
+            cards.forEach((card, cardIndex) => {
+                card.hidden = cardIndex !== currentIndex;
+            });
+
+            questionCounter.textContent = `Soru ${currentIndex + 1} / ${cards.length}`;
+            prevButton.disabled = currentIndex === 0;
+            nextButton.disabled = currentIndex === cards.length - 1;
+            updateProgress();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function setCardSaving(card, saving) {
+            card.querySelectorAll(".answer-option").forEach(button => {
+                button.disabled = saving;
+            });
+            card.classList.toggle("is-saving", saving);
+        }
+
+        document.addEventListener("submit", function (event) {
+            if (!event.target.matches(".answer-form")) return;
+
+            event.preventDefault();
+            if (window.sinavKilitli) {
+                alert("Süreniz dolduğu için cevap gönderemezsiniz.");
+                return;
+            }
+
+            const form = event.target;
+            const card = form.closest(".question-card");
+            const selectedButton = form.querySelector(".answer-option");
+            const selectedText = form.dataset.answerText || selectedButton.innerText.trim();
+
+            setCardSaving(card, true);
+            saveStatus.textContent = "Cevabınız kaydediliyor...";
+
+            fetch(form.action, { method: "POST", body: new FormData(form) })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        const error = new Error(data.message || "Cevap kaydedilemedi.");
+                        error.expired = data.expired === true;
+                        throw error;
+                    }
+
+                    card.dataset.answered = "true";
+                    card.querySelectorAll(".answer-option").forEach(button => button.classList.remove("is-selected"));
+                    selectedButton.classList.add("is-selected");
+
+                    const selectedLabel = card.querySelector("[data-selected-label]");
+                    if (selectedLabel) {
+                        selectedLabel.innerHTML = `<span>Seçiminiz: ${selectedText}</span>`;
+                    }
+
+                    updateProgress();
+                    saveStatus.textContent = "Cevabınız kaydedildi.";
+
+                    if (currentIndex < cards.length - 1) {
+                        setTimeout(() => showQuestion(currentIndex + 1), 360);
+                    } else {
+                        saveStatus.textContent = `Son soruya kadar geldiniz. Hazırsanız ${calismaTuru} çalışmasını tamamlayabilirsiniz.`;
+                    }
+                })
+                .catch(error => {
+                    if (error.expired || (error.message || "").includes("Süreniz")) {
+                        kilitleSinav(error.message);
+                        gosterTesekkurMesaji({
+                            title: "Süre tamamlandı",
+                            message: "Süreniz dolduğu için cevap gönderimi kapatıldı. Mevcut cevaplarınız kaydedildi.",
+                            status: "Süre doldu",
+                            allowReview: false
+                        });
+                        return;
+                    }
+
+                    alert(error.message || "Cevap kaydedilemedi.");
+                    saveStatus.textContent = "";
+                })
+                .finally(() => {
+                    setCardSaving(card, false);
+                });
+        });
+
+        prevButton.addEventListener("click", () => showQuestion(currentIndex - 1));
+        nextButton.addEventListener("click", () => showQuestion(currentIndex + 1));
+        dots.forEach(dot => {
+            dot.addEventListener("click", () => showQuestion(Number(dot.dataset.index || 0)));
+        });
+
+        document.getElementById("btnKaydet")?.addEventListener("click", function () {
+            if (window.sinavKilitli) {
+                gosterTesekkurMesaji({
+                    title: "Süre tamamlandı",
+                    message: `Süreniz dolduğu için ${calismaTuruKucuk} kapatıldı. Katılım alanınızdan sonucu kontrol edebilirsiniz.`,
+                    status: "Süre doldu",
+                    allowReview: false
+                });
+                return;
+            }
+
+            if (answeredCount() < cards.length) {
+                const onay = confirm("Bazı sorular boş bırakılmış. Yine de bitirmek istiyor musunuz?");
+                if (!onay) return;
+            }
+
+            tamamlaKatilim().finally(() => {
+                gosterTesekkurMesaji({
+                    title: tamamlandiBaslik,
+                    message: "Cevaplarınız güvenle kaydedildi. Katılımınız için teşekkür ederiz.",
+                    status: "Tamamlandı",
+                    allowReview: true
+                });
+            });
+        });
+
+        showQuestion(currentIndex);
+    })();
+
+    (function () {
+        const timerElement = document.getElementById("kalanSure");
+        let kalanSureSaniye = parseInt("@(ViewBag.KalanSure != null ? ViewBag.KalanSure.TotalSeconds : 0)") || 0;
+        const sureSinirsiz = "@(ViewBag.sureSinirsiz == true ? "true" : "false")" === "true";
+
+        if (kalanSureSaniye <= 0) {
+            if (sureSinirsiz) {
+                timerElement.textContent = "Süre sınırsız";
+            } else {
+                timerElement.textContent = "Süre doldu";
+                kilitleSinav(`Süreniz dolduğu için ${calismaTuruKucuk} kapatıldı.`);
+                gosterTesekkurMesaji({
+                    title: "Süre tamamlandı",
+                    message: "Süreniz dolduğu için cevap gönderimi kapatıldı. Mevcut cevaplarınız kaydedildi.",
+                    status: "Süre doldu",
+                    allowReview: false
+                });
+            }
+            return;
+        }
+
+        function guncelleKalanSure() {
+            if (kalanSureSaniye >= 0) {
+                const saat = Math.floor(kalanSureSaniye / 3600);
+                const dakika = Math.floor((kalanSureSaniye % 3600) / 60);
+                const saniye = kalanSureSaniye % 60;
+
+                timerElement.textContent = `${saat} saat ${dakika} dakika ${saniye} saniye`;
+                kalanSureSaniye--;
+            } else {
+                clearInterval(sayacInterval);
+                kilitleSinav(`Süreniz dolduğu için ${calismaTuruKucuk} kapatıldı.`);
+                tamamlaKatilim().finally(() => {
+                    gosterTesekkurMesaji({
+                        title: "Süre tamamlandı",
+                        message: "Süre dolduğu için mevcut cevaplarınız kaydedildi. Katılımınız için teşekkür ederiz.",
+                        status: "Süre doldu",
+                        allowReview: false
+                    });
+                });
+            }
+        }
+
+        guncelleKalanSure();
+        const sayacInterval = setInterval(guncelleKalanSure, 1000);
+    })();
+
+    function gosterTesekkurMesaji(options) {
+        const overlay = document.getElementById("completionOverlay");
+        const title = document.getElementById("completionTitle");
+        const message = document.getElementById("completionMessage");
+        const answered = document.getElementById("completionAnswered");
+        const status = document.getElementById("completionStatus");
+        const review = document.getElementById("completionReview");
+        const cards = Array.from(document.querySelectorAll(".question-card"));
+        const answeredCount = cards.filter(card => card.dataset.answered === "true").length;
+        const config = typeof options === "string"
+            ? { title: tamamlandiBaslik, message: options, status: "Tamamlandı", allowReview: true }
+            : options;
+
+        title.textContent = config.title || tamamlandiBaslik;
+        message.textContent = config.message || "Cevaplarınız güvenle kaydedildi. Katılımınız için teşekkür ederiz.";
+        answered.textContent = `${answeredCount}/${cards.length}`;
+        status.textContent = config.status || "Tamamlandı";
+        review.hidden = config.allowReview === false;
+
+        overlay.hidden = false;
+        document.body.style.overflow = "hidden";
+
+        review.onclick = function () {
+            overlay.hidden = true;
+            document.body.style.overflow = "";
+        };
+    }
+</script>

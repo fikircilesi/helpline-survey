@@ -1,0 +1,993 @@
+@model survey.Models.Anket
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var isExam = Model.Sinav == true;
+    var showResults = Model.Sonuc == true;
+    var isPassive = Model.Pasif == true;
+    var typeText = isExam ? "Sınav" : "Anket";
+    var durationText = isExam
+        ? (Model.Zaman.HasValue && Model.Zaman.Value > 0 ? Model.Zaman.Value + " dk" : "Süre atanmadı")
+        : "Uygulanmaz";
+    var passScoreText = isExam && Model.SertifikaNotu.HasValue ? Model.SertifikaNotu.Value.ToString() : "Uygulanmaz";
+    var startValue = Convert.ToString(ViewBag.YayinBaslangicLocal);
+    var endValue = Convert.ToString(ViewBag.YayinBitisLocal);
+    var katilimYontemi = Convert.ToString(ViewBag.KatilimYontemi ?? "HerkeseAcik");
+    var katilimYontemiText = katilimYontemi == "Kayitli"
+        ? "Kayitli kisiler"
+        : katilimYontemi == "KisiyeOzel"
+            ? "Kisiye ozel"
+            : katilimYontemi == "BilgiFormu"
+                ? "Bilgi formu"
+                : "Herkese acik";
+    var publishText = string.IsNullOrWhiteSpace(startValue) && string.IsNullOrWhiteSpace(endValue)
+        ? "Hemen erişilebilir"
+        : "Planlı yayın";
+}
+
+<style>
+    .work-settings {
+        max-width: 1320px;
+        margin: 22px auto 36px;
+        padding: 0 18px;
+        color: #102033;
+    }
+
+    .work-settings * {
+        box-sizing: border-box;
+    }
+
+    .work-shell {
+        overflow: hidden;
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 18px 48px rgba(26, 43, 74, .08);
+    }
+
+    .work-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 26px 30px;
+        background: linear-gradient(135deg, rgba(24, 183, 164, .12), rgba(67, 97, 238, .10));
+        border-bottom: 1px solid #d8e3f2;
+    }
+
+    .work-kicker {
+        margin: 0 0 8px;
+        color: #3157ff;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+    }
+
+    .work-title {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.15;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .work-name {
+        margin: 10px 0 0;
+        color: #526179;
+        font-size: 15px;
+        line-height: 1.55;
+        font-weight: 650;
+        max-width: 780px;
+    }
+
+    .work-chip-row,
+    .work-action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .work-chip-row {
+        margin-top: 16px;
+    }
+
+    .work-chip {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 11px;
+        border-radius: 8px;
+        background: #edf3ff;
+        color: #183064;
+        font-size: 12px;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+    .work-chip.success {
+        background: #e9fbf6;
+        color: #08765d;
+    }
+
+    .work-chip.warn {
+        background: #fff7e8;
+        color: #946200;
+    }
+
+    .work-chip.danger {
+        background: #fff0f0;
+        color: #a32626;
+    }
+
+    .work-type-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .work-type-option {
+        position: relative;
+        min-height: 92px;
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 14px;
+        border: 1px solid #d6e1ef;
+        border-radius: 8px;
+        background: #fbfdff;
+        cursor: pointer;
+        transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .work-type-option input {
+        margin-top: 3px;
+        accent-color: #245cf0;
+    }
+
+    .work-type-option strong {
+        display: block;
+        color: #102033;
+        font-size: 14px;
+        font-weight: 900;
+    }
+
+    .work-type-option span span {
+        display: block;
+        margin-top: 5px;
+        color: #53627a;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 700;
+    }
+
+    .work-type-option:has(input:checked) {
+        border-color: #245cf0;
+        background: #f3f6ff;
+        box-shadow: 0 0 0 3px rgba(36, 92, 240, .10);
+    }
+
+    .work-type-option.status-active:has(input:checked) {
+        border-color: #16a085;
+        background: #effcf8;
+        box-shadow: 0 0 0 3px rgba(22, 160, 133, .12);
+    }
+
+    .work-type-option.status-passive:has(input:checked) {
+        border-color: #ef6b6b;
+        background: #fff4f4;
+        box-shadow: 0 0 0 3px rgba(239, 107, 107, .12);
+    }
+
+    [data-exam-only][hidden] {
+        display: none !important;
+    }
+
+    .work-action-row {
+        justify-content: flex-end;
+        min-width: 310px;
+    }
+
+    .work-btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 15px;
+        border: 1px solid #cddbf0;
+        border-radius: 8px;
+        background: #fff;
+        color: #102238;
+        font-weight: 850;
+        text-decoration: none;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .work-btn:hover,
+    .work-btn:focus {
+        color: #102238;
+        text-decoration: none;
+        border-color: #8fb0e8;
+        background: #f7fbff;
+    }
+
+    .work-btn.primary {
+        border-color: #2563eb;
+        background: #2563eb;
+        color: #fff;
+    }
+
+    .work-btn.primary:hover,
+    .work-btn.primary:focus {
+        color: #fff;
+        background: #1d4ed8;
+    }
+
+    .work-btn.ghost {
+        background: rgba(255,255,255,.72);
+    }
+
+    .work-body {
+        padding: 24px 30px 28px;
+    }
+
+    .work-validation,
+    .work-field-validation {
+        color: #9b1c1c;
+        font-weight: 750;
+    }
+
+    .work-validation {
+        margin-bottom: 16px;
+        padding: 13px 15px;
+        border: 1px solid #ffc4c4;
+        border-radius: 8px;
+        background: #fff0f0;
+    }
+
+    .work-flash {
+        margin-bottom: 16px;
+        padding: 13px 15px;
+        border: 1px solid #b8eadc;
+        border-radius: 8px;
+        background: #effcf7;
+        color: #076453;
+        font-weight: 850;
+    }
+
+    .work-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 18px;
+        align-items: start;
+    }
+
+    .work-section {
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .work-section + .work-section {
+        margin-top: 18px;
+    }
+
+    .work-section-head {
+        padding: 16px 18px;
+        border-bottom: 1px solid #e7edf7;
+        background: #f8fbff;
+    }
+
+    .work-section-head h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.3;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .work-section-head p {
+        margin: 6px 0 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.45;
+        font-weight: 650;
+    }
+
+    .work-section-body {
+        padding: 18px;
+    }
+
+    .work-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 15px 16px;
+    }
+
+    .work-grid.one {
+        grid-template-columns: 1fr;
+    }
+
+    .work-field.full {
+        grid-column: 1 / -1;
+    }
+
+    .work-label {
+        display: block;
+        margin: 0 0 7px;
+        color: #20314d;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+    }
+
+    .work-input,
+    .work-select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #cfdced;
+        border-radius: 8px;
+        background: #fff;
+        color: #102033;
+        padding: 9px 12px;
+        font-size: 14px;
+        font-weight: 650;
+        outline: none;
+        transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .work-input:focus,
+    .work-select:focus {
+        border-color: #4361ee;
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, .14);
+        background: #fbfdff;
+    }
+
+    .work-help {
+        display: block;
+        margin-top: 6px;
+        color: #6b778d;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 650;
+    }
+
+    .work-toggle-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .work-toggle {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 12px;
+        align-items: flex-start;
+        min-height: 70px;
+        padding: 13px;
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        background: #fbfdff;
+        cursor: pointer;
+    }
+
+    .work-toggle input {
+        width: 18px;
+        height: 18px;
+        margin-top: 3px;
+        accent-color: #18b7a4;
+    }
+
+    .work-toggle strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #172744;
+        font-size: 14px;
+        font-weight: 900;
+    }
+
+    .work-toggle span {
+        display: block;
+        color: #637087;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 650;
+    }
+
+    .work-side {
+        position: sticky;
+        top: 84px;
+    }
+
+    .work-summary {
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #ffffff, #f8fbff);
+        overflow: hidden;
+    }
+
+    .work-summary-head {
+        padding: 18px;
+        border-bottom: 1px solid #e7edf7;
+    }
+
+    .work-summary-head h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .work-summary-list {
+        padding: 6px 18px 18px;
+    }
+
+    .work-summary-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 42px;
+        border-bottom: 1px solid #e9eff8;
+        color: #667085;
+        font-size: 13px;
+        font-weight: 750;
+    }
+
+    .work-summary-item:last-child {
+        border-bottom: 0;
+    }
+
+    .work-summary-value {
+        color: #102033;
+        font-weight: 900;
+        text-align: right;
+    }
+
+    .work-signature-preview {
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 96px;
+        border: 1px dashed #b9c9e1;
+        border-radius: 8px;
+        background: #fbfdff;
+        padding: 12px;
+    }
+
+    .work-signature-preview img {
+        max-width: 100%;
+        max-height: 80px;
+        object-fit: contain;
+    }
+
+    .work-empty-signature {
+        color: #7a879b;
+        font-size: 13px;
+        font-weight: 750;
+        text-align: center;
+    }
+
+    .work-savebar {
+        margin-top: 18px;
+        padding: 14px 18px;
+        border-top: 1px solid #d8e3f2;
+        background: #fbfdff;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .work-savebar .work-action-row {
+        min-width: 0;
+    }
+
+    @@media (max-width: 1080px) {
+        .work-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .work-side {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .work-settings {
+            padding: 0 10px;
+            margin-top: 12px;
+        }
+
+        .work-head {
+            flex-direction: column;
+            padding: 22px 18px;
+        }
+
+        .work-title {
+            font-size: 28px;
+        }
+
+        .work-action-row {
+            width: 100%;
+            justify-content: flex-start;
+            min-width: 0;
+        }
+
+        .work-btn {
+            flex: 1 1 150px;
+        }
+
+        .work-body {
+            padding: 18px 14px 22px;
+        }
+
+        .work-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="work-settings">
+    @using (Html.BeginForm("AnketAdEdit", "Home", FormMethod.Post, new { enctype = "multipart/form-data", @class = "work-form" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(model => model.AnketId)
+        @Html.HiddenFor(model => model.Tanimsiz)
+
+        <div class="work-shell">
+            <div class="work-head">
+                <div>
+                    <p class="work-kicker">Evalio Studio</p>
+                    <h1 class="work-title">Çalışma Ayarları</h1>
+                    <p class="work-name">
+                        @(!string.IsNullOrWhiteSpace(Model.AnketAdi) ? Model.AnketAdi : "Yeni çalışma")
+                    </p>
+                    <div class="work-chip-row">
+                        <span id="typeChip" class="work-chip @(isExam ? "success" : "")"><i class="fa fa-pencil-square-o"></i><span data-type-chip-text>@typeText</span></span>
+                        <span class="work-chip @(showResults ? "success" : "warn")"><i class="fa fa-bar-chart"></i>@(showResults ? "Sonuç görünür" : "Sonuç gizli")</span>
+                        <span class="work-chip" data-exam-only><i class="fa fa-clock-o"></i>@durationText</span>
+                        <span id="statusChip" class="work-chip @(isPassive ? "danger" : "success")"><i class="fa fa-circle"></i><span data-status-chip-text>@(isPassive ? "Pasif" : "Aktif")</span></span>
+                    </div>
+                </div>
+
+                <div class="work-action-row">
+                    <a class="work-btn ghost" data-exam-only href="@Url.Action("DogruCevapEditor", "Home", new { id = Model.AnketId })">
+                        <i class="fa fa-check-circle"></i> Doğru Cevaplar
+                    </a>
+                    <a class="work-btn ghost" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi })">
+                        <i class="fa fa-list"></i> Kırılımlar
+                    </a>
+                    <a class="work-btn ghost" data-exam-only href="@Url.Action("SertifikaWizard", "Home", new { id = Model.AnketId })">
+                        <i class="fa fa-certificate"></i> Sertifika
+                    </a>
+                </div>
+            </div>
+
+            <div class="work-body">
+                @Html.ValidationSummary(true, "", new { @class = "work-validation" })
+                @if (TempData["AyarKayitMesaji"] != null)
+                {
+                    <div class="work-flash">
+                        <i class="fa fa-check-circle"></i> @TempData["AyarKayitMesaji"]
+                    </div>
+                }
+
+                <div class="work-layout">
+                    <div>
+                        <section class="work-section">
+                            <div class="work-section-head">
+                                <h2>Temel bilgiler</h2>
+                                <p>Katılımcıların göreceği çalışma adı ve düzenleyen bilgisi.</p>
+                            </div>
+                            <div class="work-section-body">
+                                <div class="work-grid">
+                                    <div class="work-field full">
+                                        <label class="work-label" for="AnketAdi">Çalışma adı</label>
+                                        @Html.TextBoxFor(model => model.AnketAdi, new { @class = "work-input", required = "required", maxlength = "120", autocomplete = "off" })
+                                        @Html.ValidationMessageFor(model => model.AnketAdi, "", new { @class = "work-field-validation" })
+                                    </div>
+
+                                    <div class="work-field">
+                                        <label class="work-label" for="EgitimVeren">Düzenleyen</label>
+                                        @Html.TextBoxFor(model => model.EgitimVeren, new { @class = "work-input", required = "required", maxlength = "80", autocomplete = "off" })
+                                        @Html.ValidationMessageFor(model => model.EgitimVeren, "", new { @class = "work-field-validation" })
+                                    </div>
+
+                                    <div class="work-field full">
+                                        <label class="work-label">Yayın durumu</label>
+                                        <div class="work-type-grid">
+                                            <label class="work-type-option status-active" for="PasifFalse">
+                                                <input name="Pasif" value="false" id="PasifFalse" type="radio" @(isPassive ? "" : "checked") />
+                                                <span>
+                                                    <strong>Aktif</strong>
+                                                    <span>Katılım linki ve QR erişimi yayın zamanı kurallarına göre çalışır.</span>
+                                                </span>
+                                            </label>
+                                            <label class="work-type-option status-passive" for="PasifTrue">
+                                                <input name="Pasif" value="true" id="PasifTrue" type="radio" @(isPassive ? "checked" : "") />
+                                                <span>
+                                                    <strong>Pasif</strong>
+                                                    <span>Katılımcılar bu çalışmaya giriş yapamaz; raporlar ve kayıtlar korunur.</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="work-field" data-exam-only>
+                                        <label class="work-label" for="SertifikaNotu">Geçme / belge notu</label>
+                                        @Html.TextBoxFor(model => model.SertifikaNotu, new { @class = "work-input", type = "number", min = "0", max = "100", required = "required", inputmode = "numeric" })
+                                        @Html.ValidationMessageFor(model => model.SertifikaNotu, "", new { @class = "work-field-validation" })
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="work-section">
+                            <div class="work-section-head">
+                                <h2>Çalışma türü ve sonuç</h2>
+                                <p>Anketlerde memnuniyet/geri bildirim puanı, sınavlarda doğru cevap ve geçme kuralları kullanılır.</p>
+                            </div>
+                            <div class="work-section-body">
+                                <div class="work-grid">
+                                    <div class="work-field full">
+                                        <label class="work-label">Çalışma türü</label>
+                                        <div class="work-type-grid">
+                                            <label class="work-type-option" for="SinavFalse">
+                                                <input name="Sinav" value="false" id="SinavFalse" type="radio" @(isExam ? "" : "checked") />
+                                                <span>
+                                                    <strong>Anket</strong>
+                                                    <span>Memnuniyet, geri bildirim ve puan ölçeğiyle raporlama için kullanılır.</span>
+                                                </span>
+                                            </label>
+                                            <label class="work-type-option" for="SinavTrue">
+                                                <input name="Sinav" value="true" id="SinavTrue" type="radio" @(isExam ? "checked" : "") />
+                                                <span>
+                                                    <strong>Sınav / eğitim</strong>
+                                                    <span>Süre, doğru cevap, geçme notu ve sertifika kurallarıyla çalışır.</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="work-field full">
+                                        <div class="work-toggle-list">
+                                            <label class="work-toggle" for="Sonuc">
+                                                <input name="Sonuc" value="true" id="Sonuc" type="checkbox" @(showResults ? "checked" : "") />
+                                                <input name="Sonuc" value="false" type="hidden" />
+                                                <span>
+                                                    <strong>Sonuçlar katılımcıya gösterilsin</strong>
+                                                    <span id="resultHelp">@(isExam ? "Katılımcı bitirdiğinde puanını ve uygun sertifika durumunu görebilir." : "Katılımcı bitirdiğinde anketinin kaydedildiğini ve uygun görülürse özet skorunu görebilir.")</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="work-field" data-exam-only>
+                                        <label class="work-label" for="Zaman">Sınav süresi</label>
+                                        @Html.TextBoxFor(model => model.Zaman, new { @class = "work-input", type = "number", min = "1", max = "999", inputmode = "numeric", placeholder = "Dakika" })
+                                        <span class="work-help">Dakika cinsinden girin. Sınav aktifse zorunludur.</span>
+                                        @Html.ValidationMessageFor(model => model.Zaman, "", new { @class = "work-field-validation" })
+                                    </div>
+
+                                    <div class="work-field" data-exam-only>
+                                        <label class="work-label" for="Link">Eğitim video kodu</label>
+                                        @Html.TextBoxFor(model => model.Link, new { @class = "work-input", maxlength = "450", placeholder = "YouTube linkinin son kodu" })
+                                        <span class="work-help">Video kullanılmayacaksa boş bırakabilirsiniz.</span>
+                                        @Html.ValidationMessageFor(model => model.Link, "", new { @class = "work-field-validation" })
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="work-section">
+                            <div class="work-section-head">
+                                <h2>Katılım yöntemi</h2>
+                                <p>Paylaşım linkine gelen kişinin anonim mi yoksa kayıtlı kullanıcı olarak mı takip edileceğini belirleyin.</p>
+                            </div>
+                            <div class="work-section-body">
+                                <div class="work-field full">
+                                    <label class="work-label">Link davranışı</label>
+                                    <div class="work-type-grid">
+                                        <label class="work-type-option" for="KatilimYontemiHerkeseAcik">
+                                            <input name="KatilimYontemi" value="HerkeseAcik" id="KatilimYontemiHerkeseAcik" type="radio" @(katilimYontemi == "HerkeseAcik" ? "checked" : "") />
+                                            <span>
+                                                <strong>Herkese açık</strong>
+                                                <span>Linke gelen herkes katılabilir. Kayıtlı kullanıcı oturumu varsa sonuç kendi hesabına yazılır; yoksa katılım kodu üretilir.</span>
+                                            </span>
+                                        </label>
+                                        <label class="work-type-option" for="KatilimYontemiKayitli">
+                                            <input name="KatilimYontemi" value="Kayitli" id="KatilimYontemiKayitli" type="radio" @(katilimYontemi == "Kayitli" ? "checked" : "") />
+                                            <span>
+                                                <strong>Kayıtlı kişilere özel</strong>
+                                                <span>Katılımcı sisteme giriş yapmadan çalışmaya başlayamaz. Departman, şube, şehir ve unvan hedefleri kontrol edilir.</span>
+                                            </span>
+                                        </label>
+                                        <label class="work-type-option" for="KatilimYontemiBilgiFormu">
+                                            <input name="KatilimYontemi" value="BilgiFormu" id="KatilimYontemiBilgiFormu" type="radio" @(katilimYontemi == "BilgiFormu" ? "checked" : "") />
+                                            <span>
+                                                <strong>Genel link + bilgi formu</strong>
+                                                <span>Kayıtlı olmayan katılımcılar için kodlu takip yapılır. İsim/e-posta formu sonraki adımda genişletilebilir.</span>
+                                            </span>
+                                        </label>
+                                        <label class="work-type-option" for="KatilimYontemiKisiyeOzel">
+                                            <input name="KatilimYontemi" value="KisiyeOzel" id="KatilimYontemiKisiyeOzel" type="radio" @(katilimYontemi == "KisiyeOzel" ? "checked" : "") />
+                                            <span>
+                                                <strong>Kişiye özel link / QR</strong>
+                                                <span>Katılım kayıtlı kullanıcıya bağlanır. Toplu kişisel link üretimi için sağlam temel hazırdır.</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="work-section">
+                            <div class="work-section-head">
+                                <h2>Yayın zamanı</h2>
+                                <p>Linkin ne zaman açılıp kapanacağını buradan yönetin.</p>
+                            </div>
+                            <div class="work-section-body">
+                                <div class="work-grid">
+                                    <div class="work-field">
+                                        <label class="work-label" for="YayinBaslangicTarihi">Katılım başlangıcı</label>
+                                        <input type="datetime-local" id="YayinBaslangicTarihi" name="YayinBaslangicTarihi" class="work-input" value="@startValue" />
+                                        <span class="work-help">Boş bırakılırsa link hemen kullanılabilir.</span>
+                                        @Html.ValidationMessage("YayinBaslangicTarihi", "", new { @class = "work-field-validation" })
+                                    </div>
+
+                                    <div class="work-field">
+                                        <label class="work-label" for="YayinBitisTarihi">Katılım bitişi</label>
+                                        <input type="datetime-local" id="YayinBitisTarihi" name="YayinBitisTarihi" class="work-input" value="@endValue" />
+                                        <span class="work-help">Boş bırakılırsa belirli bir yayın bitişi uygulanmaz.</span>
+                                        @Html.ValidationMessage("YayinBitisTarihi", "", new { @class = "work-field-validation" })
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="work-section">
+                            <div class="work-section-head">
+                                <h2>Katılımcı hedefi</h2>
+                                <p>İsterseniz çalışmayı belirli organizasyon alanlarıyla sınırlayın.</p>
+                            </div>
+                            <div class="work-section-body">
+                                <div class="work-grid">
+                                    <div class="work-field">
+                                        <label class="work-label" for="DepartmanId">Departman</label>
+                                        @Html.DropDownListFor(model => model.DepartmanId,
+                                            new SelectList(ViewBag.DepartmanList, "DepartmanId", "DepartmanAdi", Model.DepartmanId),
+                                            "Tüm departmanlar", new { @class = "work-select" })
+                                    </div>
+
+                                    <div class="work-field">
+                                        <label class="work-label" for="SehirId">Şehir</label>
+                                        @Html.DropDownListFor(model => model.SehirId,
+                                            new SelectList(ViewBag.SehirList, "SehirId", "SehiarAdi", Model.SehirId),
+                                            "Tüm şehirler", new { @class = "work-select" })
+                                    </div>
+
+                                    <div class="work-field">
+                                        <label class="work-label" for="SubeId">Şube</label>
+                                        @Html.DropDownListFor(model => model.SubeId,
+                                            new SelectList(ViewBag.SubeList, "SubeId", "SubeAdi", Model.SubeId),
+                                            "Tüm şubeler", new { @class = "work-select" })
+                                    </div>
+
+                                    <div class="work-field">
+                                        <label class="work-label" for="UnvanId">Unvan</label>
+                                        @Html.DropDownListFor(model => model.UnvanId,
+                                            new SelectList(ViewBag.UnvanList, "UnvanId", "UnvanAdi", Model.UnvanId),
+                                            "Tüm unvanlar", new { @class = "work-select" })
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <aside class="work-side">
+                        <div class="work-summary">
+                            <div class="work-summary-head">
+                                <h2>Özet</h2>
+                            </div>
+                            <div class="work-summary-list">
+                                <div class="work-summary-item">
+                                    <span>Çalışma tipi</span>
+                                    <span id="summaryType" class="work-summary-value">@typeText</span>
+                                </div>
+                                <div class="work-summary-item" data-exam-only>
+                                    <span>Geçme notu</span>
+                                    <span class="work-summary-value">@passScoreText</span>
+                                </div>
+                                <div class="work-summary-item" data-exam-only>
+                                    <span>Süre</span>
+                                    <span class="work-summary-value">@durationText</span>
+                                </div>
+                                <div class="work-summary-item">
+                                    <span>Yayın</span>
+                                    <span class="work-summary-value">@publishText</span>
+                                </div>
+                                <div class="work-summary-item">
+                                    <span>Durum</span>
+                                    <span id="summaryStatus" class="work-summary-value">@(isPassive ? "Pasif" : "Aktif")</span>
+                                </div>
+                                <div class="work-summary-item">
+                                    <span>Katılım</span>
+                                    <span id="summaryAccess" class="work-summary-value">@katilimYontemiText</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <section class="work-section" data-exam-only>
+                            <div class="work-section-head">
+                                <h2>Eğitici imzası</h2>
+                                <p>Sertifikada kullanılacak imza görseli.</p>
+                            </div>
+                            <div class="work-section-body">
+                                <label class="work-label" for="ImzaDosyasi">İmza dosyası</label>
+                                <input type="file" id="ImzaDosyasi" name="ImzaDosyasi" class="work-input" accept="image/*" />
+                                <span class="work-help">Boş bırakırsanız mevcut imza korunur.</span>
+                                @Html.ValidationMessage("ImzaDosyasi", "", new { @class = "work-field-validation" })
+
+                                <div class="work-signature-preview">
+                                    @if (!string.IsNullOrEmpty(Model.Imza))
+                                    {
+                                        <img src="@Url.Content(Model.Imza)" alt="Eğitici imzası" />
+                                    }
+                                    else
+                                    {
+                                        <span class="work-empty-signature">Henüz imza yüklenmedi.</span>
+                                    }
+                                </div>
+                            </div>
+                        </section>
+                    </aside>
+                </div>
+            </div>
+
+            <div class="work-savebar">
+                <a class="work-btn" href="@Url.Action("AnketAdIndex", "Home")">
+                    <i class="fa fa-arrow-left"></i> Listeye Dön
+                </a>
+
+                <div class="work-action-row">
+                    <a class="work-btn" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                        <i class="fa fa-th-large"></i> Panele Dön
+                    </a>
+                    <button type="submit" class="work-btn primary">
+                        <i class="fa fa-save"></i> Ayarları Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+    (function () {
+        const typeInputs = document.querySelectorAll('input[name="Sinav"]');
+        const examOnlyBlocks = document.querySelectorAll('[data-exam-only]');
+        const typeChip = document.getElementById('typeChip');
+        const typeChipText = typeChip ? typeChip.querySelector('[data-type-chip-text]') : null;
+        const summaryType = document.getElementById('summaryType');
+        const resultHelp = document.getElementById('resultHelp');
+        const passInput = document.getElementById('SertifikaNotu');
+        const timeInput = document.getElementById('Zaman');
+        const linkInput = document.getElementById('Link');
+        const statusInputs = document.querySelectorAll('input[name="Pasif"]');
+        const statusChip = document.getElementById('statusChip');
+        const statusChipText = statusChip ? statusChip.querySelector('[data-status-chip-text]') : null;
+        const summaryStatus = document.getElementById('summaryStatus');
+        const accessInputs = document.querySelectorAll('input[name="KatilimYontemi"]');
+        const summaryAccess = document.getElementById('summaryAccess');
+
+        function isExamSelected() {
+            const selected = document.querySelector('input[name="Sinav"]:checked');
+            return selected && selected.value === 'true';
+        }
+
+        function setDisabled(root, disabled) {
+            root.querySelectorAll('input, select, textarea, button').forEach(function (input) {
+                if (input.type !== 'hidden') {
+                    input.disabled = disabled;
+                }
+            });
+        }
+
+        function isPassiveSelected() {
+            const selected = document.querySelector('input[name="Pasif"]:checked');
+            return selected && selected.value === 'true';
+        }
+
+        function syncStatus() {
+            const isPassive = isPassiveSelected();
+            const text = isPassive ? 'Pasif' : 'Aktif';
+
+            if (statusChip) {
+                statusChip.classList.toggle('danger', isPassive);
+                statusChip.classList.toggle('success', !isPassive);
+            }
+
+            if (statusChipText) {
+                statusChipText.textContent = text;
+            }
+
+            if (summaryStatus) {
+                summaryStatus.textContent = text;
+            }
+        }
+
+        function syncAccess() {
+            if (!summaryAccess) return;
+
+            const selected = document.querySelector('input[name="KatilimYontemi"]:checked');
+            const value = selected ? selected.value : 'HerkeseAcik';
+            const labels = {
+                HerkeseAcik: 'Herkese acik',
+                Kayitli: 'Kayitli kisiler',
+                BilgiFormu: 'Bilgi formu',
+                KisiyeOzel: 'Kisiye ozel'
+            };
+
+            summaryAccess.textContent = labels[value] || labels.HerkeseAcik;
+        }
+
+        function syncWorkType() {
+            const isExam = isExamSelected();
+
+            examOnlyBlocks.forEach(function (block) {
+                block.hidden = !isExam;
+                setDisabled(block, !isExam);
+            });
+
+            if (passInput) {
+                passInput.required = isExam;
+            }
+
+            if (timeInput) {
+                timeInput.required = isExam;
+            }
+
+            if (typeChip) {
+                typeChip.classList.toggle('success', isExam);
+            }
+
+            if (typeChipText) {
+                typeChipText.textContent = isExam ? 'Sınav' : 'Anket';
+            }
+
+            if (summaryType) {
+                summaryType.textContent = isExam ? 'Sınav' : 'Anket';
+            }
+
+            if (resultHelp) {
+                resultHelp.textContent = isExam
+                    ? 'Katılımcı bitirdiğinde puanını ve uygun sertifika durumunu görebilir.'
+                    : 'Katılımcı bitirdiğinde anketinin kaydedildiğini ve uygun görülürse özet skorunu görebilir.';
+            }
+        }
+
+        typeInputs.forEach(function (input) {
+            input.addEventListener('change', syncWorkType);
+        });
+
+        statusInputs.forEach(function (input) {
+            input.addEventListener('change', syncStatus);
+        });
+
+        accessInputs.forEach(function (input) {
+            input.addEventListener('change', syncAccess);
+        });
+
+        syncWorkType();
+        syncStatus();
+        syncAccess();
+    })();
+</script>

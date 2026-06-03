@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Evalio by Aslana | Anket, Sınav ve Sertifika Platformu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0, minimal-ui" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="~/files/assets/images/favicon.ico" type="image/x-icon" />
+
+    <!-- Fonts (tek satır yeterli) -->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600&display=swap" rel="stylesheet" />
+
+    <!-- Core CSS (kritik olanlar) -->
+    <link rel="stylesheet" href="~/files/bower_components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/files/assets/icon/feather/css/feather.css" />
+    <link rel="stylesheet" href="~/files/assets/icon/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="~/files/assets/css/style.css" />
+    <link rel="stylesheet" href="~/files/assets/css/component.css" />
+
+    <!-- Kaldırılanlar / varsayılan kapalı:
+         - jquery.mCustomScrollbar.css
+         - c3.css, nvd3.css, nestable.css, sweetalert.css (gerekli sayfada section ile)
+         - icofont, ionicons, typicons, material-design (hepsi yerine feather+fa yeterli)
+    -->
+    <!-- Performans: ağır içeriklere görünürlük bazlı render -->
+    <style>
+        /* Native scroll kullan, custom scrollbar kapalı */
+        html, body {
+            overscroll-behavior-y: none;
+        }
+        /* Büyük içerikli containerlarda boyama gecikmesini azaltır */
+        .page-wrapper {
+            content-visibility: auto;
+            contain-intrinsic-size: 1000px 800px;
+        }
+        /* Header/Sidebar fix’lerinde GPU tepkisini yumuşatır */
+        .pcoded-navbar, .pcoded-header {
+            will-change: transform;
+        }
+        /* Preloader'ı istersen tamamen kapat */
+        .theme-loader {
+            display: none !important;
+        }
+
+        .navbar-logo .brand-logo {
+            width: 214px;
+            max-width: calc(100% - 68px);
+            height: 48px;
+            object-fit: contain;
+        }
+    </style>
+
+    @RenderSection("HeadExtra", required: false)
+</head>
+
+@{
+    var profileName = Convert.ToString(Session["adi"]) ?? string.Empty;
+    var profileImage = Convert.ToString(Session["resim"]);
+    profileImage = string.IsNullOrWhiteSpace(profileImage)
+        ? "avatar.png"
+        : System.IO.Path.GetFileName(profileImage);
+    var profileImageUrl = Url.Content("~/Content/Personel/" + profileImage);
+    var fallbackProfileImageUrl = Url.Content("~/Content/Personel/avatar.png");
+}
+
+<body>
+    <div id="pcoded" class="pcoded">
+        <div class="pcoded-overlay-box"></div>
+        <div class="pcoded-container navbar-wrapper">
+
+            <!-- HEADER -->
+            <nav class="navbar header-navbar pcoded-header">
+                <div class="navbar-wrapper">
+                    <div class="navbar-logo">
+                        <a class="mobile-menu" id="mobile-collapse" href="#!">
+                            <i class="feather icon-menu"></i>
+                        </a>
+                        <a href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                            <img class="img-fluid brand-logo" src="~/Content/img/evalio-logo.svg" alt="Evalio by Aslana" />
+                        </a>
+                        <a class="mobile-options">
+                            <i class="feather icon-more-horizontal"></i>
+                        </a>
+                    </div>
+
+                    <div class="navbar-container">
+                        <ul class="nav-left">
+                            <li>
+                                <a href="#!" onclick="toggleFullScreen()" class="waves-effect waves-light">
+                                    <i class="full-screen feather icon-maximize"></i>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="nav-right">
+                            <li class="user-profile header-notification">
+                                <div class="dropdown-primary dropdown">
+                                    <div class="dropdown-toggle" data-bs-toggle="dropdown">
+                                        <img class="img-radius" src="@profileImageUrl" alt="User" onerror="this.onerror=null;this.src='@fallbackProfileImageUrl';" />
+                                        <span>@profileName</span>
+                                        <i class="feather icon-chevron-down"></i>
+                                    </div>
+                                    <ul class="show-notification profile-notification dropdown-menu"
+                                        data-dropdown-in="fadeIn" data-dropdown-out="fadeOut">
+                                        <li>
+                                            <a href="@Url.Action("Index", "Ayar", new { id = Session["id"] })">
+                                                <i class="feather icon-settings"></i> Ayarlar
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="@Url.Action("UserEdit", "Home", new { id = Session["id"] })">
+                                                <i class="feather icon-user"></i> Hesabım
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="@Url.Action("Hakkinda", "Home", new { id = Session["id"] })">
+                                                <i class="ti-key"></i> Program Hakkında
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="@Url.Action("GirisCikis", "Home", new { id = Session["id"] })">
+                                                <i class="feather icon-log-out"></i> Çıkış
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+            </nav>
+            <!-- /HEADER -->
+
+            <div class="pcoded-main-container">
+                <div class="pcoded-wrapper">
+
+                    <!-- SIDEBAR (hafifletildi) -->
+                    <nav class="pcoded-navbar">
+                        <div class="pcoded-inner-navbar main-menu">
+                            <div class="pcoded-navigatio-lavel">Menü</div>
+                            <ul class="pcoded-item pcoded-left-item">
+                                <li>
+                                    <a href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                                        <span class="pcoded-micon"><i class="feather icon-home"></i></span>
+                                        <span class="pcoded-mtext">Gösterge Paneli</span>
+                                    </a>
+                                </li>
+                                <li class="pcoded-hasmenu">
+                                    <a href="javascript:void(0)">
+                                        <span class="pcoded-micon"><i class="feather icon-package"></i></span>
+                                        <span class="pcoded-mtext">Anket İşlemleri</span>
+                                    </a>
+                                    <ul class="pcoded-submenu">
+                                        <li>
+                                            <a title="Sihirbaz ile sınav, anket veya işe alım değerlendirmesi oluştur" href="@Url.Action("AssessmentWizard", "Home", new { id = Session["id"] })">
+                                                <span class="pcoded-mtext">Yeni Sihirbaz</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a title="Anket Yönetim İşlemleri" href="@Url.Action("AnketAdIndex", "Home", new { id = Session["id"] })">
+                                                <span class="pcoded-mtext">Anket Yönetimi</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="pcoded-hasmenu">
+                                    <a href="javascript:void(0)">
+                                        <span class="pcoded-micon"><i class="feather icon-credit-card"></i></span>
+                                        <span class="pcoded-mtext">Raporlar</span>
+                                    </a>
+                                    <ul class="pcoded-submenu">
+                                        <li>
+                                            <a title="Raporlar" href="@Url.Action("AnketIndex", "Home", new { id = Session["id"] })">
+                                                <span class="pcoded-mtext">Anket Raporları</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                        @* <div id="styleSelector"></div> *@
+                    </nav>
+                    <!-- /SIDEBAR -->
+                    <!-- CONTENT -->
+                    <div class="pcoded-content">
+                        <div class="pcoded-inner-content">
+                            <div class="main-body">
+                                <div class="page-wrapper">
+                                    @RenderBody()
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /CONTENT -->
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- JS -->
+    <!-- 1. jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- 2. Tema eklentileri: script.js bunlari hazir bekliyor -->
+    <script src="~/files/bower_components/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+    <script src="~/files/assets/js/jquery.mCustomScrollbar.concat.min.js"></script>
+
+    <!-- 3. Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 4. DataTables -->
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+
+    <!-- 5. Tema JS -->
+    <script src="~/files/assets/js/pcoded.min.js"></script>
+    <script src="~/files/assets/js/vartical-layout.min.js"></script>
+    <script src="~/files/assets/js/script.js" asp-append-version="true"></script>
+
+    <!-- Sayfa bazlı scriptler -->
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

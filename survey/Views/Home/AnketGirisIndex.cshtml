@@ -1,0 +1,139 @@
+@model IEnumerable<survey.Models.Anket>
+
+@{
+    if (Session["tc"] != null || ViewBag.kod != null)
+    {
+        Layout = "~/Views/Shared/_AnketLayout.cshtml";
+    }
+    else
+    {
+        Layout = "~/Views/Shared/_Layout.cshtml";
+    }
+}
+
+@if (TempData["Mesaj"] != null)
+{
+    <div class="alert alert-danger text-center">
+        @TempData["Mesaj"]
+    </div>
+}
+
+<div class="container my-4">
+
+    @if (ViewBag.adi != null)
+    {
+        <div class="card shadow-sm mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title">👋 Hoş Geldiniz</h5>
+                <p class="card-text">
+                    <strong>@ViewBag.adi</strong>, sisteme giriş yaptınız.
+                </p>
+            </div>
+        </div>
+    }
+
+    <!-- Sertifika Dropdown -->
+    @if (ViewBag.sertifika != null)
+    {
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body text-center">
+                <div class="dropdown">
+                    <button class="btn btn-success dropdown-toggle w-100" type="button" id="sertifikaDropdown"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        📜 Sertifikalarımı Görüntüle
+                    </button>
+                    <ul class="dropdown-menu w-100 text-center" aria-labelledby="sertifikaDropdown">
+
+                        @foreach (var item in ViewBag.sertifika)
+                        {
+                            <li>
+                                <a class="dropdown-item"
+                                   target="_blank"
+                                   href="@Url.Action("Anketsertifika", "Home",
+                           new { id = ViewBag.id, ank = item.AnketId, kod = ViewBag.kod, user = ViewBag.id, ankadi = item.AnketAdi })">
+                                    @item.AnketAdi
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
+    <!-- Anket Listesi -->
+    <h4 class="text-center mb-3">📚 Anket & Online Eğiti</h4>
+
+    <div class="list-group shadow-sm">
+
+        @foreach (var item in Model)
+        {
+            <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+                <div>
+                    <h6 class="mb-1 fw-bold">@item.AnketAdi</h6>
+                    @if (item.Sinav == true)
+                    {
+                        <span class="badge bg-primary">Sınav</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Anket</span>
+                    }
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    @if (Session["id"] == null)
+                    {
+                        if (item.Sinav == true)
+                        {
+                            <a class="btn btn-primary btn-sm"
+                               href="@Url.Action("AnketGirisCreate1", "Home", new { id = item.AnketId, kod = ViewBag.kod, user = 1 })">
+                                Başla
+                            </a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-primary btn-sm"
+                               href="@Url.Action("AnketGirisCreate", "Home", new { id = item.AnketId, kod = ViewBag.kod, user = 1 })">
+                                Katıl
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        if (item.Sinav == true)
+                        {
+                            <a class="btn btn-primary btn-sm"
+                               href="@Url.Action("AnketGirisCreate1", "Home", new { id = item.AnketId, kod = ViewBag.kod, user = Session["id"] })">
+                                Başla
+                            </a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-primary btn-sm"
+                               href="@Url.Action("AnketGirisCreate", "Home", new { id = item.AnketId, kod = ViewBag.kod, user = Session["id"] })">
+                                Katıl
+                            </a>
+                        }
+                    }
+
+                    @if (item.Sonuc == true)
+                    {
+                        <a class="btn btn-success btn-sm"
+                           target="_blank"
+                           href="@Url.Action("AnketUserIndex", "Home", new { id = ViewBag.id, ank = item.AnketId })">
+                            Sonuçlar
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Session["tc"] != null || ViewBag.kod != null)
+    {
+        <div class="text-center mt-4">
+            <a class="btn btn-danger w-100" href="@Url.Action("AnketGiris", "Home")">Çıkış</a>
+        </div>
+    }
+</div>

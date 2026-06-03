@@ -1,0 +1,2075 @@
+@{
+    ViewBag.Title = "Sınav ve Anket Sihirbazı";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section HeadExtra {
+    <style>
+        :root {
+            --wiz-bg: #f5f7fb;
+            --wiz-panel: #ffffff;
+            --wiz-ink: #172033;
+            --wiz-muted: #697386;
+            --wiz-line: #dfe5ef;
+            --wiz-blue: #1d67e8;
+            --wiz-teal: #00a9a5;
+            --wiz-rose: #d93662;
+            --wiz-amber: #c98909;
+            --wiz-green: #16845b;
+            --wiz-violet: #6f42c1;
+        }
+
+        .wizard-shell {
+            min-height: calc(100vh - 120px);
+            margin: -10px -10px 0;
+            padding: 20px 22px 36px;
+            background:
+                linear-gradient(90deg, rgba(29, 103, 232, .06), rgba(0, 169, 165, .06)),
+                var(--wiz-bg);
+            color: var(--wiz-ink);
+        }
+
+        .wizard-topbar {
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) auto;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .wizard-title h2 {
+            margin: 0 0 4px;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .wizard-title p {
+            margin: 0;
+            color: var(--wiz-muted);
+            font-size: 13px;
+        }
+
+        .wizard-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .wiz-btn {
+            border: 1px solid var(--wiz-line);
+            border-radius: 6px;
+            padding: 9px 13px;
+            background: #fff;
+            color: var(--wiz-ink);
+            font-weight: 600;
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+        }
+
+        .wiz-btn:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .wiz-btn:hover {
+            transform: translateY(-1px);
+            border-color: #aebbd0;
+            box-shadow: 0 8px 22px rgba(30, 42, 62, .10);
+        }
+
+        .wiz-btn.primary {
+            background: var(--wiz-blue);
+            color: #fff;
+            border-color: var(--wiz-blue);
+        }
+
+        .wiz-btn.teal {
+            background: var(--wiz-teal);
+            color: #fff;
+            border-color: var(--wiz-teal);
+        }
+
+        .wizard-steps {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .wizard-step {
+            border: 1px solid var(--wiz-line);
+            border-radius: 6px;
+            background: #fff;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+        }
+
+        .wizard-step strong {
+            display: block;
+            font-size: 12px;
+            color: var(--wiz-muted);
+            font-weight: 700;
+        }
+
+        .wizard-step span {
+            display: block;
+            margin-top: 3px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .wizard-step.active {
+            border-color: var(--wiz-blue);
+            box-shadow: inset 0 3px 0 var(--wiz-blue), 0 10px 24px rgba(29, 103, 232, .10);
+        }
+
+        .wizard-config {
+            display: grid;
+            grid-template-columns: minmax(260px, 1.4fr) minmax(220px, .9fr) repeat(3, minmax(120px, .45fr));
+            gap: 10px;
+            margin-bottom: 14px;
+            padding: 12px;
+            border: 1px solid var(--wiz-line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .86);
+            box-shadow: 0 12px 30px rgba(30, 42, 62, .05);
+        }
+
+        .wiz-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--wiz-muted);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .wiz-field input,
+        .wiz-field select,
+        .wiz-field textarea {
+            width: 100%;
+            min-height: 38px;
+            border: 1px solid var(--wiz-line);
+            border-radius: 6px;
+            background: #fff;
+            padding: 8px 10px;
+            color: var(--wiz-ink);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .wiz-field input:focus,
+        .wiz-field select:focus,
+        .wiz-field textarea:focus {
+            border-color: var(--wiz-blue);
+            box-shadow: 0 0 0 3px rgba(29, 103, 232, .12);
+        }
+
+        .segmented {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            padding: 3px;
+            border: 1px solid var(--wiz-line);
+            border-radius: 7px;
+            background: #f6f8fc;
+        }
+
+        .segment {
+            border: 0;
+            border-radius: 5px;
+            padding: 8px 7px;
+            background: transparent;
+            color: var(--wiz-muted);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .segment.active {
+            background: #fff;
+            color: var(--wiz-blue);
+            box-shadow: 0 3px 10px rgba(30, 42, 62, .10);
+        }
+
+        .wizard-grid {
+            display: grid;
+            grid-template-columns: 290px minmax(420px, 1fr) 360px;
+            gap: 14px;
+            align-items: start;
+        }
+
+        .wizard-panel {
+            border: 1px solid var(--wiz-line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .94);
+            box-shadow: 0 14px 30px rgba(30, 42, 62, .06);
+            overflow: hidden;
+        }
+
+        .wizard-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--wiz-line);
+            background: #fff;
+        }
+
+        .wizard-panel-header h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .wizard-panel-header small {
+            color: var(--wiz-muted);
+            font-weight: 600;
+        }
+
+        .wizard-panel-body {
+            padding: 14px;
+        }
+
+        .tool-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .tool-card {
+            display: grid;
+            grid-template-columns: 34px 1fr;
+            gap: 10px;
+            align-items: center;
+            min-height: 54px;
+            padding: 10px;
+            border: 1px dashed #bac7da;
+            border-radius: 7px;
+            background: #fbfcff;
+            cursor: grab;
+            transition: transform .16s ease, border-color .16s ease, background .16s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateX(3px);
+            border-color: var(--wiz-blue);
+            background: #f2f7ff;
+        }
+
+        .tool-card:active {
+            cursor: grabbing;
+        }
+
+        .tool-icon {
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .tool-card strong {
+            display: block;
+            font-size: 13px;
+        }
+
+        .tool-card span {
+            display: block;
+            margin-top: 2px;
+            font-size: 11px;
+            color: var(--wiz-muted);
+        }
+
+        .import-box {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--wiz-line);
+        }
+
+        .import-box textarea {
+            min-height: 126px;
+            resize: vertical;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+        }
+
+        .import-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .ai-generate-box {
+            margin-top: 14px;
+            padding: 14px;
+            border: 1px solid #cfe2ff;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f3f8ff, #fbf7ff);
+        }
+
+        .ai-generate-box h4 {
+            margin: 0 0 8px;
+            color: var(--wiz-ink);
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .ai-generate-box p {
+            margin: 0 0 12px;
+            color: var(--wiz-muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .ai-generate-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .ai-generate-grid .wide {
+            grid-column: 1 / -1;
+        }
+
+        .builder-stage {
+            min-height: 640px;
+            padding: 14px;
+            background:
+                linear-gradient(#eef3fb 1px, transparent 1px),
+                linear-gradient(90deg, #eef3fb 1px, transparent 1px),
+                #f9fbff;
+            background-size: 24px 24px;
+        }
+
+        .builder-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .metric-pill {
+            border: 1px solid var(--wiz-line);
+            border-radius: 999px;
+            padding: 6px 10px;
+            background: #fff;
+            color: var(--wiz-muted);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .drop-zone {
+            min-height: 560px;
+            border: 2px dashed #c8d3e4;
+            border-radius: 8px;
+            padding: 12px;
+            background: rgba(255, 255, 255, .70);
+            transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--wiz-teal);
+            background: rgba(0, 169, 165, .08);
+            box-shadow: inset 0 0 0 2px rgba(0, 169, 165, .14);
+        }
+
+        .drop-empty {
+            display: grid;
+            place-items: center;
+            min-height: 360px;
+            text-align: center;
+            color: var(--wiz-muted);
+        }
+
+        .drop-empty strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--wiz-ink);
+            font-size: 16px;
+        }
+
+        .question-card {
+            position: relative;
+            border: 1px solid var(--wiz-line);
+            border-radius: 8px;
+            background: #fff;
+            margin-bottom: 10px;
+            box-shadow: 0 9px 20px rgba(30, 42, 62, .06);
+            overflow: hidden;
+        }
+
+        .question-card.dragging {
+            opacity: .52;
+            transform: scale(.995);
+        }
+
+        .question-head {
+            display: grid;
+            grid-template-columns: 30px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--wiz-line);
+            background: #fbfcff;
+        }
+
+        .drag-handle {
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            background: #eef3fb;
+            color: var(--wiz-muted);
+            cursor: grab;
+            font-weight: 900;
+        }
+
+        .question-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--wiz-muted);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .question-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .icon-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--wiz-line);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--wiz-muted);
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            color: var(--wiz-blue);
+            border-color: var(--wiz-blue);
+        }
+
+        .question-body {
+            display: grid;
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .question-row {
+            display: grid;
+            grid-template-columns: minmax(240px, 1fr) minmax(160px, 220px) 90px;
+            gap: 10px;
+        }
+
+        .answer-list {
+            display: grid;
+            gap: 6px;
+        }
+
+        .answer-row {
+            display: grid;
+            grid-template-columns: 24px minmax(160px, 1fr) 34px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .answer-row.survey-score {
+            grid-template-columns: minmax(160px, 1fr) 86px 34px;
+        }
+
+        .answer-row input[type="radio"],
+        .answer-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            min-height: 18px;
+        }
+
+        .answer-row input[type="text"] {
+            min-height: 34px;
+        }
+
+        .answer-score-input {
+            min-height: 34px;
+            text-align: center;
+            font-weight: 800;
+        }
+
+        .preview-stack {
+            display: grid;
+            gap: 12px;
+        }
+
+        .preview-device {
+            border: 1px solid #cfd8e8;
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .preview-bar {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--wiz-line);
+            background: #172033;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .preview-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--wiz-teal);
+        }
+
+        .preview-body {
+            padding: 12px;
+            min-height: 220px;
+            background: #f7f9fd;
+        }
+
+        .preview-question {
+            border: 1px solid var(--wiz-line);
+            border-radius: 7px;
+            background: #fff;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .preview-question strong {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 13px;
+        }
+
+        .preview-option {
+            display: block;
+            margin: 5px 0;
+            padding: 6px 8px;
+            border-radius: 5px;
+            background: #edf2fb;
+            color: #38455c;
+            font-size: 12px;
+        }
+
+        .settings-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .switch-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 10px;
+            border: 1px solid var(--wiz-line);
+            border-radius: 7px;
+            background: #fff;
+        }
+
+        .switch-row span {
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        .switch-row small {
+            display: block;
+            color: var(--wiz-muted);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .wiz-switch {
+            position: relative;
+            width: 46px;
+            height: 24px;
+        }
+
+        .wiz-switch input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .wiz-switch i {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            background: #cfd8e8;
+            cursor: pointer;
+            transition: background .16s ease;
+        }
+
+        .wiz-switch i::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform .16s ease;
+            box-shadow: 0 2px 5px rgba(30, 42, 62, .2);
+        }
+
+        .wiz-switch input:checked + i {
+            background: var(--wiz-blue);
+        }
+
+        .wiz-switch input:checked + i::after {
+            transform: translateX(22px);
+        }
+
+        .certificate-preview {
+            position: relative;
+            min-height: 178px;
+            padding: 16px;
+            border: 1px solid #c6b36a;
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(201, 137, 9, .16), rgba(255, 255, 255, .1)),
+                #fffaf0;
+            overflow: hidden;
+        }
+
+        .certificate-preview::before {
+            content: "";
+            position: absolute;
+            inset: 10px;
+            border: 1px solid rgba(201, 137, 9, .35);
+            border-radius: 6px;
+            pointer-events: none;
+        }
+
+        .certificate-preview h4 {
+            margin: 0 0 10px;
+            color: #7c5a05;
+            font-size: 18px;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .certificate-preview p {
+            position: relative;
+            margin: 7px 0;
+            color: #4d3b0c;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .toast-line {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 9999;
+            min-width: 260px;
+            max-width: 380px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #172033;
+            color: #fff;
+            box-shadow: 0 18px 42px rgba(23, 32, 51, .22);
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .18s ease, transform .18s ease;
+        }
+
+        .toast-line.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .ghost-preview {
+            border: 2px dashed var(--wiz-blue);
+            border-radius: 8px;
+            height: 76px;
+            margin-bottom: 10px;
+            background: rgba(29, 103, 232, .08);
+        }
+
+        .target-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .target-chip {
+            border: 1px solid var(--wiz-line);
+            border-radius: 999px;
+            background: #fff;
+            padding: 7px 10px;
+            color: var(--wiz-muted);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .target-chip.active {
+            background: #eaf2ff;
+            border-color: var(--wiz-blue);
+            color: var(--wiz-blue);
+        }
+
+        @@media (max-width: 1500px) {
+            .wizard-grid {
+                grid-template-columns: 270px minmax(420px, 1fr);
+            }
+
+            .preview-column {
+                grid-column: 1 / -1;
+            }
+
+            .preview-stack {
+                grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+            }
+        }
+
+        @@media (max-width: 980px) {
+            .wizard-topbar,
+            .wizard-config,
+            .wizard-grid,
+            .preview-stack {
+                grid-template-columns: 1fr;
+            }
+
+            .wizard-steps {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .question-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+}
+
+<div class="wizard-token" aria-hidden="true" style="display:none">@Html.AntiForgeryToken()</div>
+<div class="wizard-shell" id="assessmentWizard">
+    <div class="wizard-topbar">
+        <div class="wizard-title">
+            <h2>Yeni Sınav / Anket Sihirbazı</h2>
+            <p>İK, eğitim ve kalite ekipleri soru bankasından sürükleyerek dakikalar içinde değerlendirme hazırlayabilir.</p>
+        </div>
+        <div class="wizard-actions">
+            <button type="button" class="wiz-btn" id="loadDraftBtn"><i class="feather icon-rotate-ccw"></i> Taslağı Yükle</button>
+            <button type="button" class="wiz-btn" id="saveDraftBtn"><i class="feather icon-save"></i> Taslak Kaydet</button>
+            <button type="button" class="wiz-btn teal" id="exportDraftBtn"><i class="feather icon-download"></i> JSON Al</button>
+            <button type="button" class="wiz-btn primary" id="publishPreviewBtn"><i class="feather icon-send"></i> Yayına Hazırla</button>
+        </div>
+    </div>
+
+    <div class="wizard-steps" aria-label="Sihirbaz adımları">
+        <button type="button" class="wizard-step active" data-step="type"><strong>01</strong><span>Değerlendirme Türü</span></button>
+        <button type="button" class="wizard-step" data-step="questions"><strong>02</strong><span>Sorular ve Akış</span></button>
+        <button type="button" class="wizard-step" data-step="audience"><strong>03</strong><span>Hedef Kitle</span></button>
+        <button type="button" class="wizard-step" data-step="certificate"><strong>04</strong><span>Sertifika</span></button>
+        <button type="button" class="wizard-step" data-step="preview"><strong>05</strong><span>Önizleme</span></button>
+    </div>
+
+    <div class="wizard-config" id="typeSection">
+        <div class="wiz-field">
+            <label for="assessmentTitle">Başlık</label>
+            <input id="assessmentTitle" type="text" maxlength="120" />
+        </div>
+        <div class="wiz-field">
+            <label>Tür</label>
+            <div class="segmented" id="modeTabs">
+                <button type="button" class="segment active" data-mode="exam">Sınav</button>
+                <button type="button" class="segment" data-mode="survey">Anket</button>
+                <button type="button" class="segment" data-mode="hiring">İşe Alım</button>
+                <button type="button" class="segment" data-mode="training">Eğitim</button>
+            </div>
+        </div>
+        <div class="wiz-field">
+            <label for="durationInput">Süre</label>
+            <input id="durationInput" type="number" min="0" max="240" />
+        </div>
+        <div class="wiz-field">
+            <label for="passScoreInput">Geçme Notu</label>
+            <input id="passScoreInput" type="number" min="0" max="100" />
+        </div>
+        <div class="wiz-field">
+            <label for="ownerInput">Sahip</label>
+            <input id="ownerInput" type="text" maxlength="80" />
+        </div>
+    </div>
+
+    <div class="wizard-grid">
+        <section class="wizard-panel" aria-labelledby="toolboxTitle">
+            <div class="wizard-panel-header">
+                <h3 id="toolboxTitle">Soru Araç Kutusu</h3>
+                <small>Sürükle bırak</small>
+            </div>
+            <div class="wizard-panel-body">
+                <div class="tool-list" id="toolList"></div>
+
+                <div class="import-box">
+                    <div class="wiz-field">
+                        <label for="bulkImport">Excel / Word'den Yapıştır</label>
+                        <textarea id="bulkImport" placeholder="Her satır: Soru;A;B;C;D;Doğru Cevap&#10;Örn: KVKK nedir?;Kanun;Rapor;Form;Mail;A"></textarea>
+                    </div>
+                    <div class="import-actions">
+                        <button type="button" class="wiz-btn" id="sampleImportBtn">Örnek Doldur</button>
+                        <button type="button" class="wiz-btn primary" id="parseImportBtn">Soruları Al</button>
+                    </div>
+                </div>
+
+                <div class="ai-generate-box">
+                    <h4>AI ile Soru Üret</h4>
+                    <p>Konu, prosedür veya eğitim özetini yaz; cevap anahtarıyla birlikte soruları akışa ekleyelim.</p>
+                    <div class="ai-generate-grid">
+                        <div class="wiz-field wide">
+                            <label for="aiTopicInput">Konu / Kaynak Metin</label>
+                            <textarea id="aiTopicInput" rows="4" placeholder="Örn: Gıda güvenliği, alerjen kontrolü, KKN, hijyen kuralları..."></textarea>
+                        </div>
+                        <div class="wiz-field">
+                            <label for="aiCountInput">Soru Sayısı</label>
+                            <input id="aiCountInput" type="number" min="1" max="25" value="5" />
+                        </div>
+                        <div class="wiz-field">
+                            <label for="aiDifficultyInput">Seviye</label>
+                            <select id="aiDifficultyInput">
+                                <option value="orta">Orta</option>
+                                <option value="kolay">Kolay</option>
+                                <option value="zor">Zor</option>
+                            </select>
+                        </div>
+                        <div class="wiz-field">
+                            <label for="aiQuestionTypeInput">Tip</label>
+                            <select id="aiQuestionTypeInput">
+                                <option value="multiple">Çoktan seçmeli</option>
+                                <option value="truefalse">Doğru / Yanlış</option>
+                                <option value="mixed">Karma</option>
+                            </select>
+                        </div>
+                        <button type="button" class="wiz-btn primary" id="generateAiBtn">AI ile Üret</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="wizard-panel" id="questionsSection" aria-labelledby="builderTitle">
+            <div class="wizard-panel-header">
+                <div>
+                    <h3 id="builderTitle">Akış Tasarım Alanı</h3>
+                    <small>Soldan sürükle, burada sırala, cevap anahtarını işaretle</small>
+                </div>
+                <button type="button" class="wiz-btn" id="addMultipleBtn"><i class="feather icon-plus"></i> Soru Ekle</button>
+            </div>
+            <div class="builder-stage">
+                <div class="builder-meta">
+                    <span class="metric-pill" id="questionCountPill">0 soru</span>
+                    <span class="metric-pill" id="scorePill">0 puan</span>
+                    <span class="metric-pill" id="estimatedPill">0 dk tahmini</span>
+                </div>
+                <div class="drop-zone" id="questionCanvas"></div>
+            </div>
+        </section>
+
+        <aside class="preview-column wizard-panel" id="previewSection" aria-labelledby="previewTitle">
+            <div class="wizard-panel-header">
+                <h3 id="previewTitle">Canlı Önizleme</h3>
+                <small>Aday / çalışan gözüyle</small>
+            </div>
+            <div class="wizard-panel-body preview-stack">
+                <div class="preview-device">
+                    <div class="preview-bar"><span class="preview-dot"></span><span id="previewBarTitle">Önizleme</span></div>
+                    <div class="preview-body" id="livePreview"></div>
+                </div>
+
+                <div class="settings-grid" id="audienceSection">
+                    <div class="switch-row">
+                        <div><span>Soruları Karıştır</span><small>Sınav güvenliği için soru sırası değişir.</small></div>
+                        <label class="wiz-switch"><input type="checkbox" id="randomQuestionsSwitch" checked /><i></i></label>
+                    </div>
+                    <div class="switch-row">
+                        <div><span>Cevapları Karıştır</span><small>Çoktan seçmeli cevaplar her kullanıcıda değişir.</small></div>
+                        <label class="wiz-switch"><input type="checkbox" id="randomAnswersSwitch" /><i></i></label>
+                    </div>
+                    <div class="switch-row" id="certificateSection">
+                        <div><span>Sertifika Ver</span><small>Geçen kullanıcı için PDF sertifika üretilecek.</small></div>
+                        <label class="wiz-switch"><input type="checkbox" id="certificateSwitch" checked /><i></i></label>
+                    </div>
+                    <div class="wiz-field">
+                        <label>Hedef Kitle</label>
+                        <div class="target-chips" id="audienceChips">
+                            <button type="button" class="target-chip active" data-audience="all">Herkes</button>
+                            <button type="button" class="target-chip" data-audience="department">Departman</button>
+                            <button type="button" class="target-chip" data-audience="branch">Şube</button>
+                            <button type="button" class="target-chip" data-audience="candidate">Aday Listesi</button>
+                            <button type="button" class="target-chip" data-audience="title">Unvan</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="certificate-preview" id="certificatePreview">
+                    <h4>Sertifika Önizleme</h4>
+                    <p><strong id="certificatePerson">Katılımcı Adı</strong></p>
+                    <p id="certificateTitle">Bu eğitimi başarıyla tamamlamıştır.</p>
+                    <p id="certificateMeta">Geçme notu: 70 - Eğitmen: İnsan Kaynakları</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<div class="toast-line" id="wizardToast"></div>
+
+@section Scripts {
+    <script>
+        (function () {
+            "use strict";
+
+            const storageKey = "survey.assessmentWizard.v1";
+            const publishUrl = "@Url.Action("AssessmentWizardPublish", "Home")";
+            const generateAiUrl = "@Url.Action("AssessmentWizardGenerateAi", "Home")";
+            const typeCatalog = {
+                multiple: { label: "Çoktan Seçmeli", hint: "Tek doğru cevap", icon: "A", color: "var(--wiz-blue)" },
+                truefalse: { label: "Doğru / Yanlış", hint: "Hızlı sınav sorusu", icon: "D", color: "var(--wiz-green)" },
+                rating: { label: "Puanlama", hint: "1-5 ölçekli anket", icon: "5", color: "var(--wiz-amber)" },
+                text: { label: "Açık Uçlu", hint: "Yorum veya aday cevabı", icon: "T", color: "var(--wiz-rose)" },
+                info: { label: "Bilgi Bloğu", hint: "Açıklama / bölüm başlığı", icon: "i", color: "var(--wiz-violet)" }
+            };
+
+            const modeSamples = {
+                exam: {
+                    title: "Bilgi Güvenliği Farkındalık Sınavı",
+                    owner: "İnsan Kaynakları",
+                    duration: 35,
+                    passScore: 70,
+                    certificate: true,
+                    question: {
+                        type: "multiple",
+                        group: "Bilgi Güvenliği",
+                        title: "Güçlü parola için en doğru yaklaşım hangisidir?",
+                        answers: ["Kişisel bilgi kullanmak", "Uzun ve benzersiz parola kullanmak", "Aynı parolayı tüm sistemlerde kullanmak", "Parolayı ekip arkadaşına iletmek"],
+                        correctIndex: 1
+                    }
+                },
+                survey: {
+                    title: "Müşteri Memnuniyet Anketi",
+                    owner: "Kalite Ekibi",
+                    duration: 0,
+                    passScore: 0,
+                    certificate: false,
+                    question: {
+                        type: "multiple",
+                        group: "Memnuniyet",
+                        title: "Ürünlerimizin genel kalitesini nasıl değerlendirirsiniz?",
+                        answers: ["Çok memnunum", "Memnunum", "Orta düzeyde", "Memnun değilim", "Fikrim yok"],
+                        scores: [5, 4, 3, 1, 0]
+                    }
+                },
+                hiring: {
+                    title: "Aday Yetkinlik Değerlendirmesi",
+                    owner: "İnsan Kaynakları",
+                    duration: 30,
+                    passScore: 70,
+                    certificate: false,
+                    question: {
+                        type: "multiple",
+                        group: "Aday Yetkinliği",
+                        title: "Adayın ekip çalışmasına uygunluğunu en iyi gösteren davranış hangisidir?",
+                        answers: ["Görevleri tek başına ve bilgi paylaşmadan yürütmek", "Ekip hedefini anlayıp düzenli iletişim kurmak", "Sadece kendi bölümünün sonucuna odaklanmak", "Geri bildirim almaktan kaçınmak"],
+                        correctIndex: 1
+                    }
+                },
+                training: {
+                    title: "İş Sağlığı ve Güvenliği Eğitim Sonu Değerlendirmesi",
+                    owner: "Eğitim Birimi",
+                    duration: 25,
+                    passScore: 70,
+                    certificate: true,
+                    question: {
+                        type: "truefalse",
+                        group: "Eğitim Kontrolü",
+                        title: "Ramak kala olaylar üst amire bildirilmelidir.",
+                        answers: ["Doğru", "Yanlış"],
+                        correctIndex: 0
+                    }
+                }
+            };
+
+            const state = {
+                mode: "exam",
+                title: modeSamples.exam.title,
+                owner: modeSamples.exam.owner,
+                duration: modeSamples.exam.duration,
+                passScore: modeSamples.exam.passScore,
+                randomQuestions: true,
+                randomAnswers: false,
+                certificate: modeSamples.exam.certificate,
+                audience: ["all"],
+                questions: [createModeSampleQuestion("exam")]
+            };
+
+            const refs = {
+                toolList: document.getElementById("toolList"),
+                canvas: document.getElementById("questionCanvas"),
+                title: document.getElementById("assessmentTitle"),
+                owner: document.getElementById("ownerInput"),
+                duration: document.getElementById("durationInput"),
+                passScore: document.getElementById("passScoreInput"),
+                modeTabs: document.getElementById("modeTabs"),
+                preview: document.getElementById("livePreview"),
+                previewBarTitle: document.getElementById("previewBarTitle"),
+                questionCountPill: document.getElementById("questionCountPill"),
+                scorePill: document.getElementById("scorePill"),
+                estimatedPill: document.getElementById("estimatedPill"),
+                randomQuestions: document.getElementById("randomQuestionsSwitch"),
+                randomAnswers: document.getElementById("randomAnswersSwitch"),
+                certificate: document.getElementById("certificateSwitch"),
+                certificatePreview: document.getElementById("certificatePreview"),
+                certificateTitle: document.getElementById("certificateTitle"),
+                certificateMeta: document.getElementById("certificateMeta"),
+                audienceChips: document.getElementById("audienceChips"),
+                toast: document.getElementById("wizardToast"),
+                bulkImport: document.getElementById("bulkImport"),
+                aiTopic: document.getElementById("aiTopicInput"),
+                aiCount: document.getElementById("aiCountInput"),
+                aiDifficulty: document.getElementById("aiDifficultyInput"),
+                aiQuestionType: document.getElementById("aiQuestionTypeInput"),
+                aiGenerate: document.getElementById("generateAiBtn")
+            };
+
+            function normalizeScoreText(value) {
+                return String(value || "")
+                    .toLocaleLowerCase("tr-TR")
+                    .replace(/ı/g, "i")
+                    .replace(/ç/g, "c")
+                    .replace(/ğ/g, "g")
+                    .replace(/ö/g, "o")
+                    .replace(/ş/g, "s")
+                    .replace(/ü/g, "u");
+            }
+
+            function normalizeTopicIntentText(value) {
+                return normalizeScoreText(value)
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/ı/g, "i")
+                    .replace(/ş/g, "s")
+                    .replace(/ğ/g, "g")
+                    .replace(/ü/g, "u")
+                    .replace(/ö/g, "o")
+                    .replace(/ç/g, "c");
+            }
+
+            function clampSurveyScore(value) {
+                const number = Number(value);
+                if (!Number.isFinite(number)) return 0;
+                return Math.max(0, Math.min(5, Math.round(number * 10) / 10));
+            }
+
+            function surveyScoreForAnswer(text, index, count, explicitScore) {
+                if (explicitScore !== undefined && explicitScore !== null && explicitScore !== "") {
+                    return clampSurveyScore(explicitScore);
+                }
+
+                const normalized = normalizeScoreText(text);
+                const numeric = normalized.trim().match(/^([0-5])([.,][0-9])?$/);
+                if (numeric) return clampSurveyScore(normalized.replace(",", "."));
+
+                const unknownWords = ["bilmiyorum", "fikrim yok", "kararsiz", "emin degil", "cevap yok", "bilgi yok"];
+                const negativeWords = ["hayir", "yetersiz", "bayat", "pahali", "zor", "kotu", "memnun degil", "kuramadim", "olumsuz", "hic"];
+                const mediumWords = ["bazen", "orta", "kismen", "kararsizim", "normal", "idare", "fena degil"];
+                const positiveWords = ["evet", "her zaman", "cok", "kolay", "uygun", "cesitli", "memnun", "taze", "iyi", "basarili", "yeterli"];
+
+                if (unknownWords.some(word => normalized.includes(word))) return 0;
+                if (negativeWords.some(word => normalized.includes(word))) return 1;
+                if (mediumWords.some(word => normalized.includes(word))) return 3;
+                if (positiveWords.some(word => normalized.includes(word))) return 5;
+
+                const fallback = [5, 4, 3, 2, 1, 0];
+                return fallback[Math.min(index, fallback.length - 1)];
+            }
+
+            function isSurveyMode() {
+                return state.mode === "survey";
+            }
+
+            function normalizeModeValue(mode) {
+                return ["exam", "survey", "hiring", "training"].includes(mode) ? mode : "exam";
+            }
+
+            function inferModeFromTopic(topic) {
+                const normalized = normalizeTopicIntentText(topic);
+                if (/\b(anket|memnuniyet|geri bildirim|geribildirim|nabiz|algi)\b/i.test(normalized)) return "survey";
+                if (/\b(ise alim|mulakat|aday|yetkinlik degerlendirme)\b/i.test(normalized)) return "hiring";
+                if (/\b(sinav|test|quiz|olcme)\b/i.test(normalized)) return "exam";
+                if (/\b(egitim|oryantasyon|sertifika|egitim sonu)\b/i.test(normalized)) return "training";
+                return "";
+            }
+
+            function convertQuestionsForMode(previousMode, nextMode) {
+                if (previousMode === nextMode) return;
+
+                const becomingSurvey = nextMode === "survey";
+                state.questions.forEach(question => {
+                    if (!Array.isArray(question.answers)) question.answers = [];
+
+                    if (question.type !== "text" && question.type !== "info" && Number(question.points || 0) <= 0) {
+                        question.points = 10;
+                    }
+
+                    if (becomingSurvey) {
+                        question.answers.forEach((answer, index) => {
+                            answer.correct = false;
+                            answer.score = surveyScoreForAnswer(answer.text, index, question.answers.length, null);
+                        });
+                        return;
+                    }
+
+                    if (question.type !== "text" && question.type !== "info" && !question.answers.some(answer => answer.correct)) {
+                        if (question.answers[0]) question.answers[0].correct = true;
+                    }
+                });
+            }
+
+            function switchAssessmentMode(nextMode, options) {
+                const normalizedMode = normalizeModeValue(nextMode);
+                const previousMode = state.mode;
+                const preserveContent = options?.preserveContent === true;
+                const replaceQuestions = options?.replaceQuestions === true;
+
+                state.mode = normalizedMode;
+                applyModePreset(normalizedMode, replaceQuestions, { preserveContent: preserveContent });
+                convertQuestionsForMode(previousMode, normalizedMode);
+            }
+
+            function ensureModeScoring() {
+                state.questions.forEach(question => {
+                    if (!Array.isArray(question.answers)) question.answers = [];
+
+                    if (isSurveyMode()) {
+                        question.answers.forEach((answer, index) => {
+                            answer.score = surveyScoreForAnswer(answer.text, index, question.answers.length, answer.score);
+                        });
+                        return;
+                    }
+
+                    if (question.type !== "text" && question.type !== "info" && !question.answers.some(answer => answer.correct)) {
+                        if (question.answers[0]) question.answers[0].correct = true;
+                    }
+                });
+            }
+
+            function createQuestion(type, title, answers, correctIndex, group) {
+                const catalog = typeCatalog[type] || typeCatalog.multiple;
+                const safeAnswers = answers && answers.length ? answers : defaultAnswers(type);
+                return {
+                    id: "q_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
+                    type: type,
+                    group: group || "",
+                    title: title || catalog.label + " soru",
+                    points: type === "info" || type === "text" ? 0 : 10,
+                    required: type !== "info",
+                    answers: safeAnswers.map((text, index) => ({
+                        id: "a_" + Math.random().toString(36).slice(2, 8),
+                        text: text,
+                        correct: index === (correctIndex || 0),
+                        score: surveyScoreForAnswer(text, index, safeAnswers.length)
+                    }))
+                };
+            }
+
+            function createModeSampleQuestion(mode) {
+                const sample = modeSamples[mode] || modeSamples.exam;
+                const questionSample = sample.question;
+                const question = createQuestion(
+                    questionSample.type,
+                    questionSample.title,
+                    questionSample.answers,
+                    questionSample.correctIndex || 0,
+                    questionSample.group || sample.title
+                );
+
+                question.isModeSample = true;
+                if (Array.isArray(questionSample.scores)) {
+                    question.answers.forEach((answer, index) => {
+                        answer.correct = false;
+                        answer.score = questionSample.scores[index] ?? surveyScoreForAnswer(answer.text, index, question.answers.length);
+                    });
+                }
+
+                return question;
+            }
+
+            function applyModePreset(mode, replaceQuestions, options) {
+                const sample = modeSamples[mode] || modeSamples.exam;
+                const preserveContent = options?.preserveContent === true;
+
+                if (!preserveContent) {
+                    state.title = sample.title;
+                    state.owner = sample.owner;
+                    state.duration = sample.duration;
+                    state.passScore = sample.passScore;
+                    state.certificate = sample.certificate;
+                } else if (mode === "survey") {
+                    state.duration = 0;
+                    state.passScore = 0;
+                    state.certificate = false;
+                } else {
+                    if (Number(state.duration || 0) <= 0) state.duration = sample.duration;
+                    if (Number(state.passScore || 0) <= 0) state.passScore = sample.passScore;
+                    if (mode === "training") state.certificate = true;
+                }
+
+                if (replaceQuestions) {
+                    state.questions = [createModeSampleQuestion(mode)];
+                }
+            }
+
+            function canReplaceWithModeSample() {
+                return !state.questions.length || state.questions.every(question => question.isModeSample === true);
+            }
+
+            function requestedAiQuestionCount(topic) {
+                const typedCount = Number(refs.aiCount.value || 5);
+                let requested = Number.isFinite(typedCount) ? typedCount : 5;
+                const normalized = String(topic || "").toLocaleLowerCase("tr-TR");
+                const matches = normalized.matchAll(/(\d{1,2})\s*(?:adet\s*)?(?:soru|soruluk|sorusu)/gi);
+                for (const match of matches) {
+                    const value = Number(match[1]);
+                    if (Number.isFinite(value)) {
+                        requested = Math.max(requested, value);
+                    }
+                }
+
+                return Math.max(1, Math.min(25, Math.round(requested)));
+            }
+
+            function defaultAnswers(type) {
+                if (type === "truefalse") return ["Doğru", "Yanlış"];
+                if (type === "rating") return ["1", "2", "3", "4", "5"];
+                if (type === "text") return ["Serbest metin cevabı"];
+                if (type === "info") return ["Bu bölüm aday veya çalışan için açıklama gösterir."];
+                return ["A seçeneği", "B seçeneği", "C seçeneği", "D seçeneği"];
+            }
+
+            function escapeHtml(value) {
+                return String(value || "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+            }
+
+            function showToast(message) {
+                refs.toast.textContent = message;
+                refs.toast.classList.add("show");
+                window.clearTimeout(showToast.timer);
+                showToast.timer = window.setTimeout(() => refs.toast.classList.remove("show"), 2600);
+            }
+
+            function renderTools() {
+                refs.toolList.innerHTML = Object.keys(typeCatalog).map(type => {
+                    const item = typeCatalog[type];
+                    return `
+                        <div class="tool-card" draggable="true" data-new-type="${type}">
+                            <div class="tool-icon" style="background:${item.color}">${item.icon}</div>
+                            <div>
+                                <strong>${item.label}</strong>
+                                <span>${item.hint}</span>
+                            </div>
+                        </div>`;
+                }).join("");
+            }
+
+            function renderFormValues() {
+                refs.title.value = state.title;
+                refs.owner.value = state.owner;
+                refs.duration.value = state.duration;
+                refs.passScore.value = state.passScore;
+                refs.randomQuestions.checked = state.randomQuestions;
+                refs.randomAnswers.checked = state.randomAnswers;
+                refs.certificate.checked = state.certificate;
+
+                refs.modeTabs.querySelectorAll(".segment").forEach(button => {
+                    button.classList.toggle("active", button.dataset.mode === state.mode);
+                });
+
+                refs.audienceChips.querySelectorAll(".target-chip").forEach(chip => {
+                    chip.classList.toggle("active", state.audience.includes(chip.dataset.audience));
+                });
+            }
+
+            function renderCanvas() {
+                if (!state.questions.length) {
+                    refs.canvas.innerHTML = `
+                        <div class="drop-empty">
+                            <div>
+                                <strong>Soruları buraya sürükle</strong>
+                                <span>Soldaki araç kutusundan soru tipi seç veya Excel metnini içeri al.</span>
+                            </div>
+                        </div>`;
+                    return;
+                }
+
+                refs.canvas.innerHTML = state.questions.map((question, index) => renderQuestionCard(question, index)).join("");
+            }
+
+            function renderQuestionCard(question, index) {
+                const catalog = typeCatalog[question.type] || typeCatalog.multiple;
+                const answerHtml = renderAnswers(question);
+                const pointsLabel = isSurveyMode() ? "Ağırlık" : "Puan";
+                return `
+                    <article class="question-card" draggable="true" data-question-id="${question.id}">
+                        <div class="question-head">
+                            <div class="drag-handle" title="Sürükle">::</div>
+                            <div>
+                                <div class="question-type"><span style="color:${catalog.color}">${catalog.icon}</span>${index + 1}. ${catalog.label}</div>
+                            </div>
+                            <div class="question-actions">
+                                <button type="button" class="icon-btn" title="Kopyala" data-action="clone" data-id="${question.id}"><i class="feather icon-copy"></i></button>
+                                <button type="button" class="icon-btn" title="Sil" data-action="delete" data-id="${question.id}"><i class="feather icon-trash-2"></i></button>
+                            </div>
+                        </div>
+                        <div class="question-body">
+                            <div class="question-row">
+                                <div class="wiz-field">
+                                    <label>Soru Metni</label>
+                                    <textarea data-action="title" data-id="${question.id}" rows="2">${escapeHtml(question.title)}</textarea>
+                                </div>
+                                <div class="wiz-field">
+                                    <label>Soru Grubu</label>
+                                    <input type="text" maxlength="120" value="${escapeHtml(question.group || state.title)}" data-action="group" data-id="${question.id}" />
+                                </div>
+                                <div class="wiz-field">
+                                    <label>${pointsLabel}</label>
+                                    <input type="number" min="0" max="100" value="${question.points}" data-action="points" data-id="${question.id}" />
+                                </div>
+                            </div>
+                            ${answerHtml}
+                            <div>
+                                <button type="button" class="wiz-btn" data-action="add-answer" data-id="${question.id}"><i class="feather icon-plus"></i> Cevap Ekle</button>
+                            </div>
+                        </div>
+                    </article>`;
+            }
+
+            function renderAnswers(question) {
+                if (question.type === "text") {
+                    return `<div class="wiz-field"><label>Aday Cevap Alanı</label><textarea rows="2" disabled>Katılımcı burada metin cevabı yazacak.</textarea></div>`;
+                }
+
+                if (question.type === "info") {
+                    return `<div class="wiz-field"><label>Bilgi Bloğu</label><input type="text" value="${escapeHtml(question.answers[0]?.text || "")}" data-action="answer" data-id="${question.id}" data-answer-index="0" /></div>`;
+                }
+
+                if (isSurveyMode()) {
+                    return `
+                    <div class="answer-list">
+                        ${question.answers.map((answer, answerIndex) => `
+                            <div class="answer-row survey-score">
+                                <input type="text" value="${escapeHtml(answer.text)}" data-action="answer" data-id="${question.id}" data-answer-index="${answerIndex}" />
+                                <input class="answer-score-input" type="number" min="0" max="5" step="0.5" value="${answer.score ?? surveyScoreForAnswer(answer.text, answerIndex, question.answers.length)}" title="0-5 cevap puanı" data-action="answer-score" data-id="${question.id}" data-answer-index="${answerIndex}" />
+                                <button type="button" class="icon-btn" title="CevabÄ± sil" data-action="delete-answer" data-id="${question.id}" data-answer-index="${answerIndex}"><i class="feather icon-x"></i></button>
+                            </div>`).join("")}
+                    </div>`;
+                }
+
+                return `
+                    <div class="answer-list">
+                        ${question.answers.map((answer, answerIndex) => `
+                            <div class="answer-row">
+                                <input type="${question.type === "multiple" || question.type === "truefalse" ? "radio" : "checkbox"}"
+                                       name="correct_${question.id}"
+                                       ${answer.correct ? "checked" : ""}
+                                       data-action="correct"
+                                       data-id="${question.id}"
+                                       data-answer-index="${answerIndex}" />
+                                <input type="text" value="${escapeHtml(answer.text)}" data-action="answer" data-id="${question.id}" data-answer-index="${answerIndex}" />
+                                <button type="button" class="icon-btn" title="Cevabı sil" data-action="delete-answer" data-id="${question.id}" data-answer-index="${answerIndex}"><i class="feather icon-x"></i></button>
+                            </div>`).join("")}
+                    </div>`;
+            }
+
+            function renderPreview() {
+                const totalPoints = state.questions.reduce((sum, question) => sum + Number(question.points || 0), 0);
+                const estimated = Math.max(1, Math.ceil(state.questions.length * 1.4));
+                refs.questionCountPill.textContent = state.questions.length + " soru";
+                refs.scorePill.textContent = isSurveyMode() ? "0-5 cevap puanı" : "100 puan";
+                refs.estimatedPill.textContent = estimated + " dk tahmini";
+                refs.previewBarTitle.textContent = modeLabel(state.mode) + " Önizleme";
+
+                const questions = state.questions.slice(0, 4);
+                refs.preview.innerHTML = `
+                    <div class="preview-question">
+                        <strong>${escapeHtml(state.title)}</strong>
+                        <span class="preview-option">Süre: ${state.duration || 0} dk</span>
+                        <span class="preview-option">Geçme notu: ${state.passScore || 0}</span>
+                    </div>
+                    ${questions.map((question, index) => `
+                        <div class="preview-question">
+                            <strong>${index + 1}. ${escapeHtml(question.title)}</strong>
+                            ${question.answers.slice(0, 5).map((answer, answerIndex) => {
+                                const scoreText = isSurveyMode()
+                                    ? ` (${surveyScoreForAnswer(answer.text, answerIndex, question.answers.length, answer.score)} puan)`
+                                    : "";
+                                return `<span class="preview-option">${escapeHtml(answer.text)}${scoreText}</span>`;
+                            }).join("")}
+                        </div>`).join("")}
+                    ${state.questions.length > 4 ? `<span class="preview-option">${state.questions.length - 4} soru daha...</span>` : ""}`;
+
+                refs.certificatePreview.style.display = state.certificate ? "block" : "none";
+                refs.certificateTitle.textContent = `${state.title} başarıyla tamamlanmıştır.`;
+                refs.certificateMeta.textContent = `Geçme notu: ${state.passScore || 0} - Yetkili: ${state.owner || "İK"}`;
+            }
+
+            function modeLabel(mode) {
+                return {
+                    exam: "Sınav",
+                    survey: "Anket",
+                    hiring: "İşe Alım",
+                    training: "Eğitim"
+                }[mode] || "Değerlendirme";
+            }
+
+            function renderAll() {
+                ensureModeScoring();
+                renderFormValues();
+                renderCanvas();
+                renderPreview();
+            }
+
+            function addQuestion(type) {
+                state.questions.push(createQuestion(type || "multiple"));
+                renderAll();
+                showToast("Soru tasarım alanına eklendi.");
+            }
+
+            function getQuestion(id) {
+                return state.questions.find(question => question.id === id);
+            }
+
+            function normalizeImportText(value) {
+                return String(value || "")
+                    .replace(/\r/g, "\n")
+                    .replace(/\u00a0/g, " ")
+                    .replace(/[–—]/g, "-")
+                    .replace(/[ \t]+/g, " ")
+                    .replace(/\n{3,}/g, "\n\n")
+                    .trim();
+            }
+
+            function parseAnswerSegments(line) {
+                const segments = [];
+                const answerRegex = /(^|\s)([A-E])[\.\)]\s*/gi;
+                const matches = [];
+                let match;
+                while ((match = answerRegex.exec(line)) !== null) {
+                    matches.push({
+                        index: match.index + match[1].length,
+                        label: match[2].toUpperCase(),
+                        valueStart: answerRegex.lastIndex
+                    });
+                }
+
+                matches.forEach((item, index) => {
+                    const next = matches[index + 1];
+                    const text = line.slice(item.valueStart, next ? next.index : line.length).trim();
+                    if (text) {
+                        segments.push({ label: item.label, text: text });
+                    }
+                });
+
+                return segments;
+            }
+
+            function stripQuestionPrefix(line) {
+                return line.replace(/^\s*\d+\s*[\.\)]\s*/, "").trim();
+            }
+
+            function parseStructuredImport(rawText) {
+                const text = normalizeImportText(rawText);
+                if (!text) return [];
+
+                const normalizedLines = text
+                    .split("\n")
+                    .map(line => line.trim())
+                    .filter(Boolean);
+
+                const questions = [];
+                let current = null;
+                let lastAnswer = null;
+                let stopped = false;
+
+                function pushCurrent() {
+                    if (!current) return;
+                    const answers = current.answers
+                        .sort((a, b) => a.label.localeCompare(b.label))
+                        .map(answer => answer.text.trim())
+                        .filter(Boolean);
+
+                    if (current.title && answers.length) {
+                        questions.push({
+                            title: current.title.trim(),
+                            answers: answers,
+                            correctIndex: current.correctIndex ?? -1
+                        });
+                    }
+                }
+
+                normalizedLines.forEach(line => {
+                    if (stopped) return;
+                    if (/^GEÇER\s+NOT|^GECER\s+NOT|^FAKAT\b|\*?\s*SADECE\b/i.test(line)) {
+                        stopped = true;
+                        pushCurrent();
+                        current = null;
+                        return;
+                    }
+
+                    const questionMatch = line.match(/^\s*(\d+)\s*[\.\)]\s*(.+)$/);
+                    if (questionMatch) {
+                        pushCurrent();
+                        const rest = questionMatch[2].trim();
+                        const firstAnswerIndex = rest.search(/(^|\s)[A-E][\.\)]\s*/i);
+                        current = {
+                            title: firstAnswerIndex >= 0 ? rest.slice(0, firstAnswerIndex).trim() : rest,
+                            answers: [],
+                            correctIndex: null
+                        };
+                        lastAnswer = null;
+
+                        if (firstAnswerIndex >= 0) {
+                            parseAnswerSegments(rest.slice(firstAnswerIndex)).forEach(answer => {
+                                current.answers.push(answer);
+                                lastAnswer = answer;
+                            });
+                        }
+                        return;
+                    }
+
+                    if (!current) return;
+
+                    const answers = parseAnswerSegments(line);
+                    if (answers.length) {
+                        answers.forEach(answer => {
+                            current.answers.push(answer);
+                            lastAnswer = answer;
+                        });
+                        return;
+                    }
+
+                    const correctMatch = line.match(/^(DOĞRU|DOGRU|CEVAP|YANIT)\s*(CEVAP)?\s*[:\-]\s*([A-E])/i);
+                    if (correctMatch) {
+                        const label = correctMatch[3].toUpperCase();
+                        const foundIndex = current.answers.findIndex(answer => answer.label === label);
+                        current.correctIndex = foundIndex >= 0 ? foundIndex : 0;
+                        return;
+                    }
+
+                    if (lastAnswer) {
+                        lastAnswer.text = `${lastAnswer.text} ${line}`.trim();
+                    } else {
+                        current.title = `${current.title} ${stripQuestionPrefix(line)}`.trim();
+                    }
+                });
+
+                pushCurrent();
+                return questions;
+            }
+
+            function parseDelimitedImport(rawText) {
+                return normalizeImportText(rawText)
+                    .split(/\n+/)
+                    .map(line => line.trim())
+                    .filter(Boolean)
+                    .map(line => {
+                        const parts = line.split(/\t|;/).map(part => part.trim()).filter(Boolean);
+                        if (parts.length < 2) return null;
+                        const title = stripQuestionPrefix(parts[0]);
+                        const last = (parts[parts.length - 1] || "").toUpperCase();
+                        const hasAnswerKey = /^[A-E]$/.test(last);
+                        const answers = hasAnswerKey ? parts.slice(1, -1) : parts.slice(1);
+                        const correctIndex = hasAnswerKey ? Math.max(0, "ABCDE".indexOf(last)) : -1;
+                        return title && answers.length ? { title, answers, correctIndex } : null;
+                    })
+                    .filter(Boolean);
+            }
+
+            function parseImport() {
+                const rawText = refs.bulkImport.value;
+                const imported = parseStructuredImport(rawText);
+                const fallback = imported.length ? imported : parseDelimitedImport(rawText);
+
+                if (!fallback.length) {
+                    showToast("Soru ve cevaplar algılanamadı. 1. Soru, A. Cevap formatını kontrol edin.");
+                    return;
+                }
+
+                fallback.forEach(item => {
+                    state.questions.push(createQuestion("multiple", item.title, item.answers, item.correctIndex));
+                });
+
+                refs.bulkImport.value = "";
+                renderAll();
+                showToast(fallback.length + " soru içeri alındı.");
+            }
+
+            function appendGeneratedQuestion(item) {
+                const type = typeCatalog[item?.type] ? item.type : "multiple";
+                const answers = Array.isArray(item?.answers)
+                    ? item.answers
+                        .filter(answer => answer && String(answer.text || "").trim())
+                        .slice(0, 8)
+                        .map((answer, index) => ({
+                            text: String(answer.text || "").trim(),
+                            correct: !isSurveyMode() && Boolean(answer.correct),
+                            score: surveyScoreForAnswer(answer.text, index, item.answers.length, answer.score)
+                        }))
+                    : defaultAnswers(type).map((text, index) => ({ text, correct: !isSurveyMode() && index === 0, score: surveyScoreForAnswer(text, index, 4) }));
+
+                if (!answers.length) {
+                    defaultAnswers(type).forEach((text, index) => answers.push({ text, correct: !isSurveyMode() && index === 0, score: surveyScoreForAnswer(text, index, 4) }));
+                }
+
+                if (!isSurveyMode() && (type === "multiple" || type === "truefalse") && !answers.some(answer => answer.correct)) {
+                    answers[0].correct = true;
+                }
+
+                const question = createQuestion(
+                    type,
+                    String(item?.title || "").trim() || "AI sorusu",
+                    answers.map(answer => answer.text),
+                    Math.max(0, answers.findIndex(answer => answer.correct)),
+                    String(item?.group || "").trim()
+                );
+
+                question.points = Number(item?.points || 10);
+                question.required = item?.required !== false;
+                question.answers = answers.map(answer => ({
+                    id: "a_" + Math.random().toString(36).slice(2, 8),
+                    text: answer.text,
+                    correct: answer.correct,
+                    score: answer.score
+                }));
+                state.questions.push(question);
+            }
+
+            async function generateAiQuestions() {
+                const topic = refs.aiTopic.value.trim();
+                if (topic.length < 3) {
+                    showToast("AI ile üretmek için konu veya kaynak metin girin.");
+                    return;
+                }
+
+                if (!isLikelyAssessmentTopic(topic)) {
+                    showToast("AI üretimi sadece eğitim, sınav, anket veya kurumsal değerlendirme konuları için kullanılabilir.");
+                    return;
+                }
+
+                const token = document.querySelector("input[name='__RequestVerificationToken']")?.value || "";
+                const requestedCount = requestedAiQuestionCount(topic);
+                refs.aiCount.value = requestedCount;
+                const inferredMode = inferModeFromTopic(topic);
+                if (inferredMode && inferredMode !== state.mode) {
+                    switchAssessmentMode(inferredMode, {
+                        preserveContent: !canReplaceWithModeSample(),
+                        replaceQuestions: false
+                    });
+                    renderAll();
+                }
+                const body = new URLSearchParams();
+                body.set("__RequestVerificationToken", token);
+                body.set("topic", topic);
+                body.set("mode", state.mode);
+                body.set("count", String(requestedCount));
+                body.set("difficulty", refs.aiDifficulty.value || "orta");
+                body.set("questionType", refs.aiQuestionType.value || "multiple");
+
+                refs.aiGenerate.disabled = true;
+                refs.aiGenerate.textContent = "Üretiliyor";
+
+                try {
+                    const response = await fetch(generateAiUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                        body: body.toString()
+                    });
+                    const result = await response.json();
+                    if (!result.success) {
+                        showToast(result.message || "AI soru üretemedi.");
+                        return;
+                    }
+
+                    const generated = Array.isArray(result.questions) ? result.questions : [];
+                    const responseMode = normalizeModeValue(result.mode || state.mode);
+                    if (responseMode !== state.mode) {
+                        switchAssessmentMode(responseMode, {
+                            preserveContent: !canReplaceWithModeSample(),
+                            replaceQuestions: false
+                        });
+                    }
+                    const replacingSamples = generated.length && canReplaceWithModeSample();
+                    if (replacingSamples) {
+                        state.questions = [];
+                    }
+
+                    generated.slice(0, requestedCount).forEach(appendGeneratedQuestion);
+                    if (generated.length && (replacingSamples || !state.title || state.title === "Bilgi Güvenliği Farkındalık Değerlendirmesi")) {
+                        state.title = result.title || state.title;
+                    }
+                    renderAll();
+                    showToast(generated.length >= requestedCount
+                        ? requestedCount + " AI sorusu akışa eklendi."
+                        : generated.length + "/" + requestedCount + " AI sorusu üretildi. Konuyu biraz daha netleştirip tekrar deneyebilirsin.");
+                } catch (error) {
+                    showToast("AI servisine ulaşılamadı. Ayarları kontrol edin.");
+                } finally {
+                    refs.aiGenerate.disabled = false;
+                    refs.aiGenerate.textContent = "AI ile Üret";
+                }
+            }
+
+            function isLikelyAssessmentTopic(topic) {
+                const normalized = topic.toLocaleLowerCase("tr-TR").replaceAll("ı", "i");
+                const blocked = /\b(naber+|napiyon|selam+|merhaba+|lo+o+|şaka|saka|espri|sohbet|hikaye|şiir|siir|film|maç|mac|bahis|iddia|whatsapp|instagram|tiktok|oyun)\b/i;
+                if (blocked.test(normalized)) return false;
+
+                const keywords = [
+                    "egitim", "eğitim", "sinav", "sınav", "anket", "degerlendirme", "değerlendirme",
+                    "test", "quiz", "oryantasyon", "farkindalik", "farkındalık", "prosedur", "prosedür",
+                    "talimat", "politika", "süreç", "surec", "kalite", "güvenlik", "guvenlik",
+                    "isg", "hijyen", "gida", "gıda", "haccp", "kkn", "alerjen", "helal", "brcgs",
+                    "iso", "kvkk", "gdpr", "siber", "yangın", "yangin", "ilk yardım", "ilk yardim",
+                    "insan kaynakları", "insan kaynaklari", "işe alım", "ise alim", "yetkinlik",
+                    "liderlik", "operasyon", "üretim", "uretim", "bakım", "bakim", "denetim",
+                    "sertifika", "uyum", "risk", "pest", "temizlik"
+                ];
+
+                if (keywords.some(keyword => normalized.includes(keyword))) return true;
+                const words = normalized.match(/[\p{L}\p{N}]+/gu) || [];
+                if (topic.length >= 20 && words.length >= 4) return true;
+                return /^[A-ZÇĞİÖŞÜ0-9 .-]{3,18}$/.test(topic.trim());
+            }
+
+            function validateWizardBeforePublish() {
+                const isSurvey = state.mode === "survey";
+                const errors = [];
+
+                if (!String(state.title || "").trim()) errors.push("Başlık zorunlu.");
+                if (!String(state.owner || "").trim()) errors.push("Sahip / düzenleyen zorunlu.");
+                if (!isSurvey && Number(state.duration || 0) <= 0) errors.push("Sınav süresi dakika cinsinden zorunlu.");
+                if (!isSurvey && (Number(state.passScore || 0) <= 0 || Number(state.passScore || 0) > 100)) errors.push("Geçme notu 1 ile 100 arasında olmalı.");
+                if (!state.questions.length) errors.push("Yayına almak için en az bir soru ekleyin.");
+
+                state.questions.forEach((question, index) => {
+                    const prefix = (index + 1) + ". soru: ";
+                    if (!String(question.title || "").trim()) errors.push(prefix + "soru metni zorunlu.");
+                    if (question.type !== "text" && question.type !== "info") {
+                        const answers = (question.answers || []).filter(answer => String(answer.text || "").trim());
+                        if (isSurvey) {
+                            answers.forEach(answer => {
+                                const score = Number(answer.score);
+                                if (!Number.isFinite(score) || score < 0 || score > 5) {
+                                    errors.push(prefix + "anket cevap puanlari 0 ile 5 arasinda olmali.");
+                                }
+                            });
+                        }
+                        if (Number(question.points || 0) <= 0) errors.push(prefix + "puan 0'dan büyük olmalı.");
+                        if (answers.length < 2) errors.push(prefix + "en az iki cevap seçeneği olmalı.");
+                        if (!isSurvey && !answers.some(answer => answer.correct)) errors.push(prefix + "doğru cevap seçilmeli.");
+                    }
+                });
+
+                if (errors.length) {
+                    showToast(errors[0]);
+                    return false;
+                }
+
+                return true;
+            }
+
+            async function publishAssessment() {
+                if (!validateWizardBeforePublish()) {
+                    return;
+                }
+
+                const missingCorrect = state.mode !== "survey" && state.questions.some(question =>
+                    question.type !== "text" &&
+                    question.type !== "info" &&
+                    !question.answers.some(answer => answer.correct));
+                if (missingCorrect) {
+                    showToast("Yayına almadan önce her sınav sorusunda doğru cevabı işaretleyin.");
+                    return;
+                }
+
+                const button = document.getElementById("publishPreviewBtn");
+                const token = document.querySelector("input[name='__RequestVerificationToken']")?.value || "";
+                const body = new URLSearchParams();
+                body.set("__RequestVerificationToken", token);
+                body.set("payload", JSON.stringify(state));
+
+                button.disabled = true;
+                button.innerHTML = '<i class="feather icon-loader"></i> Kaydediliyor';
+
+                try {
+                    const response = await fetch(publishUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                        body: body.toString()
+                    });
+                    const result = await response.json();
+                    if (!result.success) {
+                        showToast(result.message || "Değerlendirme kaydedilemedi.");
+                        return;
+                    }
+
+                    localStorage.removeItem(storageKey);
+                    showToast("Değerlendirme yayına alındı. Yönetim ekranına gidiliyor.");
+                    window.setTimeout(() => {
+                        window.location.href = result.redirectUrl;
+                    }, 900);
+                } catch (error) {
+                    showToast("Sunucuya ulaşılamadı. Lütfen tekrar deneyin.");
+                } finally {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="feather icon-send"></i> Yayına Hazırla';
+                }
+            }
+            function wireEvents() {
+                refs.toolList.addEventListener("dragstart", event => {
+                    const card = event.target.closest("[data-new-type]");
+                    if (!card) return;
+                    event.dataTransfer.setData("text/plain", "new:" + card.dataset.newType);
+                });
+
+                refs.canvas.addEventListener("dragover", event => {
+                    event.preventDefault();
+                    refs.canvas.classList.add("drag-over");
+                });
+
+                refs.canvas.addEventListener("dragleave", event => {
+                    if (!refs.canvas.contains(event.relatedTarget)) {
+                        refs.canvas.classList.remove("drag-over");
+                    }
+                });
+
+                refs.canvas.addEventListener("drop", event => {
+                    event.preventDefault();
+                    refs.canvas.classList.remove("drag-over");
+                    const payload = event.dataTransfer.getData("text/plain");
+                    if (payload.startsWith("new:")) {
+                        addQuestion(payload.replace("new:", ""));
+                        return;
+                    }
+
+                    if (payload.startsWith("move:")) {
+                        const movingId = payload.replace("move:", "");
+                        const overCard = event.target.closest(".question-card");
+                        const targetId = overCard ? overCard.dataset.questionId : null;
+                        reorderQuestion(movingId, targetId);
+                    }
+                });
+
+                refs.canvas.addEventListener("dragstart", event => {
+                    const card = event.target.closest(".question-card");
+                    if (!card) return;
+                    card.classList.add("dragging");
+                    event.dataTransfer.setData("text/plain", "move:" + card.dataset.questionId);
+                });
+
+                refs.canvas.addEventListener("dragend", event => {
+                    const card = event.target.closest(".question-card");
+                    if (card) card.classList.remove("dragging");
+                });
+
+                refs.canvas.addEventListener("input", event => {
+                    const action = event.target.dataset.action;
+                    const id = event.target.dataset.id;
+                    const question = getQuestion(id);
+                    if (!question) return;
+
+                    question.isModeSample = false;
+                    if (action === "title") question.title = event.target.value;
+                    if (action === "group") question.group = event.target.value;
+                    if (action === "points") question.points = Number(event.target.value || 0);
+                    if (action === "answer") {
+                        const index = Number(event.target.dataset.answerIndex);
+                        if (question.answers[index]) question.answers[index].text = event.target.value;
+                    }
+                    if (action === "answer-score") {
+                        const index = Number(event.target.dataset.answerIndex);
+                        if (question.answers[index]) question.answers[index].score = clampSurveyScore(event.target.value);
+                    }
+                    renderPreview();
+                });
+
+                refs.canvas.addEventListener("change", event => {
+                    if (event.target.dataset.action !== "correct") return;
+                    if (isSurveyMode()) return;
+                    const question = getQuestion(event.target.dataset.id);
+                    if (!question) return;
+                    question.isModeSample = false;
+                    const index = Number(event.target.dataset.answerIndex);
+                    question.answers.forEach((answer, answerIndex) => {
+                        answer.correct = answerIndex === index;
+                    });
+                    renderPreview();
+                });
+
+                refs.canvas.addEventListener("click", event => {
+                    const button = event.target.closest("button[data-action]");
+                    if (!button) return;
+                    const action = button.dataset.action;
+                    const id = button.dataset.id;
+                    const question = getQuestion(id);
+
+                    if (action === "delete") {
+                        state.questions = state.questions.filter(item => item.id !== id);
+                    }
+
+                    if (action === "clone" && question) {
+                        const clone = JSON.parse(JSON.stringify(question));
+                        clone.id = "q_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+                        clone.isModeSample = false;
+                        state.questions.splice(state.questions.indexOf(question) + 1, 0, clone);
+                    }
+
+                    if (action === "add-answer" && question) {
+                        question.isModeSample = false;
+                        question.answers.push({
+                            id: "a_" + Math.random().toString(36).slice(2, 8),
+                            text: "Yeni cevap",
+                            correct: false,
+                            score: surveyScoreForAnswer("Yeni cevap", question.answers.length, question.answers.length + 1)
+                        });
+                    }
+
+                    if (action === "delete-answer" && question) {
+                        question.isModeSample = false;
+                        const index = Number(button.dataset.answerIndex);
+                        if (question.answers.length > 1) question.answers.splice(index, 1);
+                    }
+
+                    renderAll();
+                });
+
+                refs.modeTabs.addEventListener("click", event => {
+                    const button = event.target.closest("[data-mode]");
+                    if (!button) return;
+                    const nextMode = button.dataset.mode;
+                    const shouldReplaceQuestions = canReplaceWithModeSample() && (nextMode !== state.mode || !state.questions.length);
+                    if (nextMode === state.mode && !shouldReplaceQuestions) return;
+                    switchAssessmentMode(nextMode, {
+                        preserveContent: !shouldReplaceQuestions,
+                        replaceQuestions: shouldReplaceQuestions
+                    });
+                    renderAll();
+                });
+
+                refs.audienceChips.addEventListener("click", event => {
+                    const chip = event.target.closest("[data-audience]");
+                    if (!chip) return;
+                    const value = chip.dataset.audience;
+                    if (value === "all") {
+                        state.audience = ["all"];
+                    } else {
+                        state.audience = state.audience.filter(item => item !== "all");
+                        if (state.audience.includes(value)) {
+                            state.audience = state.audience.filter(item => item !== value);
+                        } else {
+                            state.audience.push(value);
+                        }
+                        if (!state.audience.length) state.audience = ["all"];
+                    }
+                    renderAll();
+                });
+
+                refs.title.addEventListener("input", event => { state.title = event.target.value; renderPreview(); });
+                refs.owner.addEventListener("input", event => { state.owner = event.target.value; renderPreview(); });
+                refs.duration.addEventListener("input", event => { state.duration = Number(event.target.value || 0); renderPreview(); });
+                refs.passScore.addEventListener("input", event => { state.passScore = Number(event.target.value || 0); renderPreview(); });
+                refs.randomQuestions.addEventListener("change", event => { state.randomQuestions = event.target.checked; });
+                refs.randomAnswers.addEventListener("change", event => { state.randomAnswers = event.target.checked; });
+                refs.certificate.addEventListener("change", event => { state.certificate = event.target.checked; renderPreview(); });
+
+                document.getElementById("addMultipleBtn").addEventListener("click", () => addQuestion("multiple"));
+                document.getElementById("parseImportBtn").addEventListener("click", parseImport);
+                document.getElementById("generateAiBtn").addEventListener("click", generateAiQuestions);
+                document.getElementById("sampleImportBtn").addEventListener("click", () => {
+                    refs.bulkImport.value = [
+                        "İş sağlığı eğitiminde ramak kala nedir?;Kaza olmadan atlatılan olay;Mola saati;Yıllık izin;E-posta;A",
+                        "Adayın ekip çalışmasına yaklaşımı nasıl ölçülür?;Teknik test;Yetkinlik sorusu;Maaş bilgisi;Adres;B",
+                        "Kimlik avı saldırılarında ilk yapılacak işlem nedir?;Bağlantıyı açmak;E-postayı bildirmek;Yanıtlamak;Silmeden arşivlemek;B"
+                    ].join("\\n");
+                });
+
+                document.getElementById("saveDraftBtn").addEventListener("click", () => {
+                    localStorage.setItem(storageKey, JSON.stringify(state));
+                    showToast("Taslak bu tarayıcıya kaydedildi.");
+                });
+
+                document.getElementById("loadDraftBtn").addEventListener("click", () => {
+                    const raw = localStorage.getItem(storageKey);
+                    if (!raw) {
+                        showToast("Kayıtlı taslak bulunamadı.");
+                        return;
+                    }
+                    Object.assign(state, JSON.parse(raw));
+                    renderAll();
+                    showToast("Taslak yüklendi.");
+                });
+
+                document.getElementById("exportDraftBtn").addEventListener("click", () => {
+                    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = "degerlendirme-taslagi.json";
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+                });
+
+                document.getElementById("publishPreviewBtn").addEventListener("click", publishAssessment);
+
+                document.querySelectorAll(".wizard-step").forEach(step => {
+                    step.addEventListener("click", () => {
+                        document.querySelectorAll(".wizard-step").forEach(item => item.classList.remove("active"));
+                        step.classList.add("active");
+                        const target = document.getElementById(step.dataset.step + "Section") || refs.canvas;
+                        target.scrollIntoView({ behavior: "smooth", block: "start" });
+                    });
+                });
+            }
+
+            function reorderQuestion(movingId, targetId) {
+                if (!targetId || movingId === targetId) return;
+                const movingIndex = state.questions.findIndex(question => question.id === movingId);
+                const targetIndex = state.questions.findIndex(question => question.id === targetId);
+                if (movingIndex < 0 || targetIndex < 0) return;
+                const [moving] = state.questions.splice(movingIndex, 1);
+                state.questions.splice(targetIndex, 0, moving);
+                renderAll();
+            }
+
+            renderTools();
+            wireEvents();
+            renderAll();
+        })();
+    </script>
+}

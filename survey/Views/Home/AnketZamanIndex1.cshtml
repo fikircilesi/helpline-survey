@@ -1,0 +1,187 @@
+@model IEnumerable<survey.Models.Izledim>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var anketAdi = (ViewBag.anketAdi as string) ?? Model.FirstOrDefault()?.Anket?.AnketAdi ?? "Calisma";
+    int? zaman = ViewBag.zaman == null ? null : (int?)Convert.ToInt32(ViewBag.zaman);
+}
+
+<style>
+    .time-detail {
+        background: #fff;
+        border: 1px solid #e3eaf4;
+        border-radius: 8px;
+        box-shadow: 0 18px 44px rgba(15, 23, 42, .07);
+        overflow: hidden;
+    }
+
+    .time-detail-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f4fbff, #f8f7ff);
+        border-bottom: 1px solid #e3eaf4;
+    }
+
+    .time-detail-head h2 {
+        margin: 0;
+        color: #111827;
+        font-size: 24px;
+        font-weight: 900;
+    }
+
+    .time-detail-head p {
+        margin: 6px 0 0;
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .time-detail-body {
+        padding: 22px 24px 26px;
+    }
+
+    .time-note {
+        margin-bottom: 16px;
+        padding: 13px 15px;
+        border: 1px solid #c7e8f8;
+        border-radius: 8px;
+        color: #0b4b77;
+        background: #eef9ff;
+        font-weight: 800;
+    }
+
+    .time-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .time-table th,
+    .time-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #edf2f7;
+        color: #1f2937;
+        vertical-align: middle;
+    }
+
+    .time-table th {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        background: #f8fafc;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #3651d4;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .status-chip.live {
+        background: #e9fbf3;
+        color: #08724f;
+    }
+
+    .status-chip.done {
+        background: #fff0f0;
+        color: #c53030;
+    }
+
+    .time-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid #c7d7ea;
+        border-radius: 8px;
+        color: #163b64;
+        background: #fff;
+        font-weight: 900;
+    }
+
+    .time-action.danger {
+        border-color: #ffd0d5;
+        color: #b4232f;
+        background: #fff7f8;
+    }
+
+    .empty-time-state {
+        padding: 34px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        color: #64748b;
+        background: #f8fafc;
+        text-align: center;
+        font-weight: 800;
+    }
+</style>
+
+<div class="time-detail">
+    <div class="time-detail-head">
+        <div>
+            <h2>@anketAdi</h2>
+            <p>Sinav suresi: @(zaman.HasValue && zaman.Value > 0 ? zaman + " dakika" : "Sinirsiz")</p>
+        </div>
+        <a class="time-action" href="@Url.Action("AnketZamanIndex", "Home")">Geri</a>
+    </div>
+
+    <div class="time-detail-body">
+        <div class="time-note">
+            Sure sifirlama bu katilimcinin zaman kaydini siler. Kisi ayni calismaya yeniden girdiginde sure bastan baslar.
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="empty-time-state">Bu calisma icin sure kaydi bulunamadi.</div>
+        }
+        else
+        {
+            <table class="time-table">
+                <thead>
+                    <tr>
+                        <th>Katilimci</th>
+                        <th>TC / Kod</th>
+                        <th>Baslangic</th>
+                        <th>Bitis</th>
+                        <th>Durum</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var kullaniciAdi = item.User?.UserAdi ?? ("Katilimci #" + (item.UseId?.ToString() ?? item.IzleId.ToString()));
+                        var kullaniciTc = item.User?.UserTc ?? (item.UseId?.ToString() ?? "-");
+                        var devamEdiyor = item.BitisZaman.HasValue && DateTime.Now < item.BitisZaman.Value;
+                        var sinirsiz = !item.BitisZaman.HasValue;
+                        var durumClass = sinirsiz ? "" : (devamEdiyor ? "live" : "done");
+                        var durumText = sinirsiz ? "Sure sinirsiz" : (devamEdiyor ? "Devam ediyor" : "Sure doldu");
+                        <tr>
+                            <td><strong>@kullaniciAdi</strong></td>
+                            <td>@kullaniciTc</td>
+                            <td>@(item.IzTarih.HasValue ? item.IzTarih.Value.ToString("dd.MM.yyyy HH:mm") : "-")</td>
+                            <td>@(item.BitisZaman.HasValue ? item.BitisZaman.Value.ToString("dd.MM.yyyy HH:mm") : "-")</td>
+                            <td><span class="status-chip @durumClass">@durumText</span></td>
+                            <td>
+                                <a class="time-action danger"
+                                   href="@Url.Action("AnketZamanDelete", "Home", new { id = item.IzleId, adi = kullaniciAdi, ank = anketAdi, ankid = item.AnketId })">
+                                    Sureyi sifirla
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

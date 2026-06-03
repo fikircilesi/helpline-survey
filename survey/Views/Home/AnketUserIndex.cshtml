@@ -1,0 +1,200 @@
+@model IEnumerable<survey.Models.Havuz>
+@{
+    Layout = "~/Views/Shared/_AnketLayout.cshtml";
+
+}
+
+<script src="~/Scripts/jquery-3.7.1.js"></script>
+<script src="~/Scripts/chart.js"></script>
+<div class="col-lg-12" style="overflow: auto">
+
+    <table class="table" border="1">
+        <tr>
+            <th colspan="2"><h2 class="text-uppercase">@ViewBag.adi</h2></th>
+        </tr>
+        <tr>
+            <td>
+                <table class="table-bordered" border="1">
+                    <tr>
+                        <td colspan="2" style="color:navy">Adı Soyadı</td>
+                        <td colspan="2"><h5 class="text-uppercase">@ViewBag.adisoyadi</h5></td>
+                    </tr>
+                    <tr>
+                        <td style="color:navy">Yaka</td>
+                        <td>@ViewBag.yaka</td>
+                        <td style="color:navy">Yöneticisi</td>
+                        <td>@ViewBag.yonetici</td>
+                    </tr>
+
+                    <tr>
+                        <td style="color:navy">Ünvan</td>
+                        <td>@ViewBag.unvan</td>
+                        <td style="color:navy">Departman</td>
+                        <td>@ViewBag.departman</td>
+
+                    </tr>
+                    <tr>
+                        <td style="color:navy">İşe Başlama Tarihi</td>
+                        <td>@ViewBag.giris</td>
+                        <td style="color:navy">Değerlendirme Tarihi</td>
+                        <td>@ViewBag.kayit</td>
+
+                    </tr>
+                    <tr>
+                        <td style="color:navy">Eğitim</td>
+                        <td>@ViewBag.egitim</td>
+                        <td style="color:navy">Cinsiyet</td>
+                        <td>@ViewBag.cinsiyet</td>
+
+                    </tr>
+                    <tr>
+                        <td style="color:navy">Sorulan Soru</td>
+                        <td>@ViewBag.soru</td>
+                        <td style="color:navy">Cevaplanan Soru</td>
+                        <td>@ViewBag.soru1</td>
+
+                    </tr>
+                    <tr>
+                        <td style="color:navy">Şehir</td>
+                        <td>@ViewBag.sehir</td>
+                        <td style="color:navy">Şube</td>
+                        <td>@ViewBag.sube</td>
+
+                    </tr>
+
+                </table>
+            </td>
+            <td align="right">
+                <table border="1">
+                    <tr>
+                        <td align="center">
+                            <h3 align="center">PUAN</h3>
+                            <h3 style="color:red">@String.Format("{0:n2}", ViewBag.puan)</h3>
+
+                            @if (ViewBag.sinav != true && ViewBag.puan >= 0 && ViewBag.puan <= 20)
+                            {
+                                <h3>HİÇ MEMNUN DEĞİL</h3>
+                            }
+                            @if (ViewBag.sinav != true && ViewBag.puan >= 21 && ViewBag.puan <= 40)
+                            {
+                                <h3>MEMNUN DEĞİL</h3>
+                            }
+                            @if (ViewBag.sinav != true && ViewBag.puan >= 41 && ViewBag.puan <= 60)
+                            {
+                                <h3>KISMEN MEMNUN</h3>
+                            }
+                            @if (ViewBag.sinav != true && ViewBag.puan >= 61 && ViewBag.puan <= 80)
+                            {
+                                <h3>MEMNUN</h3>
+                            }
+                            @if (ViewBag.sinav != true && ViewBag.puan >= 81 && ViewBag.puan <= 100)
+                            {
+                                <h3>ÇOK MEMNUN</h3>
+                            }
+                        </td>
+                        <td>
+                            <canvas id="myChart" style="width:300px; height:160px"></canvas>
+                        </td>
+
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</div>
+    <div class="col-lg-12" style="overflow: auto">
+
+        <table class="table">
+            <tr>
+                <td><b style="color:darkblue">SORU</b></td>
+                <td><b style="color:darkblue">VERİLEN CEVAP</b></td>
+                @if (ViewBag.sinav != true)
+                {
+                    <td><b style="color:darkblue">PUAN</b></td>
+                }
+                else
+                {
+                    <td><b style="color:darkblue">CEVAP</b></td>
+                }
+            </tr>
+
+            @foreach (var item in Model.OrderBy(x => x.Soru.SoruSira))
+            {
+                <tr>
+
+                    <td style="font-size: xx-small">@Html.Raw(item.Soru.SoruAdi)</td>
+                    <td style="font-size: xx-small">@Html.DisplayFor(modelItem => item.Cevap.CevapAdi)</td>
+                    <td>
+                        @if (ViewBag.sinav != true)
+                        {
+                            @Html.DisplayFor(modelItem => item.Cevap.CevapPuan)
+                        }
+                        else
+                        {
+
+
+                            if (item.Cevap.CevapPuan < 5)
+                            {
+                                <h6 style="color:red">Yanlış</h6>
+                            }
+                            else
+                            {
+                                <h6 style="color:green">Doğru</h6>
+
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+    <script>
+
+                            const ctx = document.getElementById('myChart');
+                            new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: ['Puan',],
+                                    datasets: [{
+                                    label: 'Genel',
+                                    data: [@(String.Format("{0:n2}", ViewBag.puan).Trim().Replace(',', '.'))],
+                                    backgroundColor: [
+                                    'rgba(0,123,255)',   // Mavi tonu
+                                    'rgba(232,62,140)',  // pembe tonu
+                                    'rgba(220,53,69)',   // Sarı tonu
+                                    'rgba(241,194,50)',  // Sarı tonu
+                                    'rgba(253,126,20)',  // turuncu tonu
+                                    'rgba(220,53,69)',   // Kırmızı
+                                    'rgba(40,167,69)',   // Yeşil tonu
+                                    'rgba(23,162,184)',  // Mavi tonu
+                                    'rgba(52,58,64)',    // Gri tonu
+                                    'rgba(22,83,126)',   // Mavi tonu
+                                    'rgba(116,71,0)',    // Kahve tonu
+                                    'rgba(111,66,193)',  // Mor tonu
+                                    'rgba(213,166,189)', // pembe tonu
+                                    'rgba(215,72,62)',   // Kırmızı
+                                    'rgba(246,178,107)', // turuncu tonu
+                                    'rgba(32,201,151)',  // açık yeşil tonu
+                                    'rgba(127,96,0)',    // Kahve tonu
+                                    'rgba(102,16,242)',  // Mor tonu
+
+                                    ],
+                                    borderWidth: 1
+                                    }]
+                                    },
+                                    options: {
+                                    indexAxis: 'x', // Y eksenini kullanarak yatay gösterim belirliyoruz
+                                    scales: {
+                                    y: {
+                                    beginAtZero: true
+                                    }
+                                    }
+                                    }
+                            });
+
+
+    </script>
+
+
+
+

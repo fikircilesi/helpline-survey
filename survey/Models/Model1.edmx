@@ -1,0 +1,1811 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="SurveyModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="Anket">
+          <Key>
+            <PropertyRef Name="AnketId" />
+          </Key>
+          <Property Name="AnketId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="AnketAdi" Type="nvarchar" MaxLength="250" />
+          <Property Name="Pasif" Type="bit" />
+          <Property Name="Tanimsiz" Type="bit" />
+          <Property Name="Sinav" Type="bit" />
+          <Property Name="Link" Type="nvarchar" MaxLength="500" />
+          <Property Name="Zaman" Type="int" />
+          <Property Name="Sonuc" Type="bit" />
+          <Property Name="EgitimVeren" Type="nvarchar" MaxLength="250" />
+          <Property Name="Imza" Type="nvarchar" MaxLength="250" />
+          <Property Name="DepartmanId" Type="int" />
+          <Property Name="SehirId" Type="int" />
+          <Property Name="SubeId" Type="int" />
+          <Property Name="UnvanId" Type="int" />
+          <Property Name="SertifikaNotu" Type="int" />
+        </EntityType>
+        <EntityType Name="AnketGrup">
+          <Key>
+            <PropertyRef Name="AnketGupId" />
+          </Key>
+          <Property Name="AnketGupId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="AnketId" Type="int" />
+          <Property Name="SoruGrupId" Type="int" />
+        </EntityType>
+        <EntityType Name="Bolge">
+          <Key>
+            <PropertyRef Name="BolgeId" />
+          </Key>
+          <Property Name="BolgeId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="BolgeAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="Bolum">
+          <Key>
+            <PropertyRef Name="BolumId" />
+          </Key>
+          <Property Name="BolumId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="BolumAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="Cevap">
+          <Key>
+            <PropertyRef Name="CevapId" />
+          </Key>
+          <Property Name="CevapId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="CevapAdi" Type="nvarchar" MaxLength="250" />
+          <Property Name="CevapGrupId" Type="int" />
+          <Property Name="CevapPuan" Type="float" />
+          <Property Name="Dogru" Type="bit" />
+        </EntityType>
+        <EntityType Name="CevapGrup">
+          <Key>
+            <PropertyRef Name="CevapGrupId" />
+          </Key>
+          <Property Name="CevapGrupId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="CevapGrupAdi" Type="nvarchar" MaxLength="250" />
+        </EntityType>
+        <EntityType Name="Cinsiyet">
+          <Key>
+            <PropertyRef Name="CinsiyetId" />
+          </Key>
+          <Property Name="CinsiyetId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="CinsiyetAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="Departman">
+          <Key>
+            <PropertyRef Name="DepartmanId" />
+          </Key>
+          <Property Name="DepartmanId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="DepartmanAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="Egitim">
+          <Key>
+            <PropertyRef Name="EgitimId" />
+          </Key>
+          <Property Name="EgitimId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="EgitimAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="Havuz">
+          <Key>
+            <PropertyRef Name="HavuzId" />
+          </Key>
+          <Property Name="HavuzId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="AnketId" Type="int" />
+          <Property Name="SoruID" Type="int" />
+          <Property Name="SoruGrupId" Type="int" />
+          <Property Name="CevapId" Type="int" />
+          <Property Name="CevapGrupId" Type="int" />
+          <Property Name="UserId" Type="int" />
+          <Property Name="CevapPuan" Type="float" />
+          <Property Name="SoruPuan" Type="float" />
+          <Property Name="SoruGrupPuan" Type="float" />
+          <Property Name="KayitTar" Type="datetime" />
+          <Property Name="Isimsiz" Type="int" />
+        </EntityType>
+        <EntityType Name="Izledim">
+          <Key>
+            <PropertyRef Name="IzleId" />
+          </Key>
+          <Property Name="IzleId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UseId" Type="int" />
+          <Property Name="AnketId" Type="int" />
+          <Property Name="Izledi" Type="bit" />
+          <Property Name="IzTarih" Type="datetime" />
+          <Property Name="BitisZaman" Type="datetime" />
+        </EntityType>
+        <EntityType Name="LisansKyn">
+          <Key>
+            <PropertyRef Name="LisansId" />
+          </Key>
+          <Property Name="LisansId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="VnTc1" Type="nvarchar" MaxLength="50" />
+          <Property Name="KayitTarih" Type="datetime" />
+          <Property Name="SirketAdi" Type="nvarchar" MaxLength="50" />
+          <Property Name="ModulSayi" Type="int" />
+          <Property Name="IpAdress" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="Personel">
+          <Key>
+            <PropertyRef Name="PersonelId" />
+          </Key>
+          <Property Name="PersonelId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PersonelAdi" Type="nvarchar" MaxLength="50" />
+          <Property Name="Tc" Type="nvarchar" MaxLength="50" />
+          <Property Name="Unvani" Type="int" />
+          <Property Name="Mail" Type="nvarchar" MaxLength="50" />
+          <Property Name="Resim" Type="nvarchar" MaxLength="50" />
+          <Property Name="Telefon" Type="nvarchar" MaxLength="50" />
+          <Property Name="Adres" Type="text" />
+          <Property Name="KullaniciAdi" Type="nvarchar" MaxLength="50" />
+          <Property Name="Sifre" Type="nvarchar" MaxLength="50" />
+          <Property Name="Pasif" Type="bit" />
+          <Property Name="KayitTarihi" Type="datetime" />
+          <Property Name="Admin" Type="bit" />
+        </EntityType>
+        <EntityType Name="Sehir">
+          <Key>
+            <PropertyRef Name="SehirId" />
+          </Key>
+          <Property Name="SehirId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SehiarAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="smtpayar">
+          <Key>
+            <PropertyRef Name="MailId" />
+          </Key>
+          <Property Name="MailId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Sunucu" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="UserName" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Password" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Gonderen" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Portu" Type="int" Nullable="false" />
+          <Property Name="Ssli" Type="bit" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Soru">
+          <Key>
+            <PropertyRef Name="SoruId" />
+          </Key>
+          <Property Name="SoruId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SoruAdi" Type="nvarchar" MaxLength="250" />
+          <Property Name="SoruSira" Type="int" />
+          <Property Name="SoruGrupId" Type="int" />
+          <Property Name="CevapGrupId" Type="int" />
+          <Property Name="SoruPuan" Type="float" />
+        </EntityType>
+        <EntityType Name="SoruGrup">
+          <Key>
+            <PropertyRef Name="SoruGrupId" />
+          </Key>
+          <Property Name="SoruGrupId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SoruGrupAdi" Type="nvarchar" MaxLength="250" />
+          <Property Name="SoruGrupSira" Type="int" />
+          <Property Name="SoruGrupPuan" Type="float" />
+        </EntityType>
+        <EntityType Name="Sube">
+          <Key>
+            <PropertyRef Name="SubeId" />
+          </Key>
+          <Property Name="SubeId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SubeAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="truefalse">
+          <Key>
+            <PropertyRef Name="TrueFalseId" />
+          </Key>
+          <Property Name="TrueFalseId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TrueFalsemi" Type="nvarchar" MaxLength="10" />
+        </EntityType>
+        <EntityType Name="Unvan">
+          <Key>
+            <PropertyRef Name="UnvanId" />
+          </Key>
+          <Property Name="UnvanId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UnvanAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="User">
+          <Key>
+            <PropertyRef Name="UserId" />
+          </Key>
+          <Property Name="UserId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserAdi" Type="nvarchar" MaxLength="50" />
+          <Property Name="UserTc" Type="nvarchar" MaxLength="50" />
+          <Property Name="UserUnvan" Type="int" />
+          <Property Name="UserCinsiyet" Type="int" />
+          <Property Name="UserDogumTar" Type="date" />
+          <Property Name="UserEgitim" Type="int" />
+          <Property Name="UserYoneticisi" Type="int" />
+          <Property Name="UserBolumu" Type="int" />
+          <Property Name="UserSube" Type="int" />
+          <Property Name="UserYaka" Type="int" />
+          <Property Name="UserBolge" Type="int" />
+          <Property Name="UserSehir" Type="int" />
+          <Property Name="UserDepartman" Type="int" />
+          <Property Name="UserMail" Type="nvarchar" MaxLength="50" />
+          <Property Name="UserResim" Type="nvarchar" MaxLength="50" />
+          <Property Name="UserTelefon" Type="nvarchar" MaxLength="50" />
+          <Property Name="UserAdres" Type="text" />
+          <Property Name="UserIseGirisTarihi" Type="date" />
+          <Property Name="Pasif" Type="bit" />
+          <Property Name="KayitTarihi" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Yaka">
+          <Key>
+            <PropertyRef Name="YakaId" />
+          </Key>
+          <Property Name="YakaId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="YakaAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="Yonetici">
+          <Key>
+            <PropertyRef Name="YoneticiId" />
+          </Key>
+          <Property Name="YoneticiId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="YoneticiAdi" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <Association Name="FK_Anket_Anket2">
+          <End Role="Anket" Type="Self.Anket" Multiplicity="1" />
+          <End Role="Anket1" Type="Self.Anket" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="Anket">
+              <PropertyRef Name="AnketId" />
+            </Principal>
+            <Dependent Role="Anket1">
+              <PropertyRef Name="AnketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Anket_Departman">
+          <End Role="Departman" Type="Self.Departman" Multiplicity="0..1" />
+          <End Role="Anket" Type="Self.Anket" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Departman">
+              <PropertyRef Name="DepartmanId" />
+            </Principal>
+            <Dependent Role="Anket">
+              <PropertyRef Name="DepartmanId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Anket_Sehir">
+          <End Role="Sehir" Type="Self.Sehir" Multiplicity="0..1" />
+          <End Role="Anket" Type="Self.Anket" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Sehir">
+              <PropertyRef Name="SehirId" />
+            </Principal>
+            <Dependent Role="Anket">
+              <PropertyRef Name="SehirId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Anket_Sube">
+          <End Role="Sube" Type="Self.Sube" Multiplicity="0..1" />
+          <End Role="Anket" Type="Self.Anket" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Sube">
+              <PropertyRef Name="SubeId" />
+            </Principal>
+            <Dependent Role="Anket">
+              <PropertyRef Name="SubeId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Anket_Unvan">
+          <End Role="Unvan" Type="Self.Unvan" Multiplicity="0..1" />
+          <End Role="Anket" Type="Self.Anket" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Unvan">
+              <PropertyRef Name="UnvanId" />
+            </Principal>
+            <Dependent Role="Anket">
+              <PropertyRef Name="UnvanId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AnketGrup_Anket">
+          <End Role="Anket" Type="Self.Anket" Multiplicity="0..1" />
+          <End Role="AnketGrup" Type="Self.AnketGrup" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Anket">
+              <PropertyRef Name="AnketId" />
+            </Principal>
+            <Dependent Role="AnketGrup">
+              <PropertyRef Name="AnketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AnketGrup_SoruGrup">
+          <End Role="SoruGrup" Type="Self.SoruGrup" Multiplicity="0..1" />
+          <End Role="AnketGrup" Type="Self.AnketGrup" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="SoruGrup">
+              <PropertyRef Name="SoruGrupId" />
+            </Principal>
+            <Dependent Role="AnketGrup">
+              <PropertyRef Name="SoruGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Cevap_CevapGrup">
+          <End Role="CevapGrup" Type="Self.CevapGrup" Multiplicity="0..1" />
+          <End Role="Cevap" Type="Self.Cevap" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CevapGrup">
+              <PropertyRef Name="CevapGrupId" />
+            </Principal>
+            <Dependent Role="Cevap">
+              <PropertyRef Name="CevapGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_Anket">
+          <End Role="Anket" Type="Self.Anket" Multiplicity="0..1" />
+          <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Anket">
+              <PropertyRef Name="AnketId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="AnketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_Cevap">
+          <End Role="Cevap" Type="Self.Cevap" Multiplicity="0..1" />
+          <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Cevap">
+              <PropertyRef Name="CevapId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="CevapId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_CevapGrup">
+          <End Role="CevapGrup" Type="Self.CevapGrup" Multiplicity="0..1" />
+          <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CevapGrup">
+              <PropertyRef Name="CevapGrupId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="CevapGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_Soru">
+          <End Role="Soru" Type="Self.Soru" Multiplicity="0..1" />
+          <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Soru">
+              <PropertyRef Name="SoruId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="SoruID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_SoruGrup">
+          <End Role="SoruGrup" Type="Self.SoruGrup" Multiplicity="0..1" />
+          <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="SoruGrup">
+              <PropertyRef Name="SoruGrupId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="SoruGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_User1">
+          <End Role="User" Type="Self.User" Multiplicity="0..1" />
+          <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="UserId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Izledim_Anket">
+          <End Role="Anket" Type="Self.Anket" Multiplicity="0..1" />
+          <End Role="Izledim" Type="Self.Izledim" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Anket">
+              <PropertyRef Name="AnketId" />
+            </Principal>
+            <Dependent Role="Izledim">
+              <PropertyRef Name="AnketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Izledim_User">
+          <End Role="User" Type="Self.User" Multiplicity="0..1" />
+          <End Role="Izledim" Type="Self.Izledim" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserId" />
+            </Principal>
+            <Dependent Role="Izledim">
+              <PropertyRef Name="UseId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Personel_Unvan">
+          <End Role="Unvan" Type="Self.Unvan" Multiplicity="0..1" />
+          <End Role="Personel" Type="Self.Personel" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Unvan">
+              <PropertyRef Name="UnvanId" />
+            </Principal>
+            <Dependent Role="Personel">
+              <PropertyRef Name="Unvani" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Soru_CevapGrup">
+          <End Role="CevapGrup" Type="Self.CevapGrup" Multiplicity="0..1" />
+          <End Role="Soru" Type="Self.Soru" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CevapGrup">
+              <PropertyRef Name="CevapGrupId" />
+            </Principal>
+            <Dependent Role="Soru">
+              <PropertyRef Name="CevapGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Soru_SoruGrup">
+          <End Role="SoruGrup" Type="Self.SoruGrup" Multiplicity="0..1" />
+          <End Role="Soru" Type="Self.Soru" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="SoruGrup">
+              <PropertyRef Name="SoruGrupId" />
+            </Principal>
+            <Dependent Role="Soru">
+              <PropertyRef Name="SoruGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Bolge">
+          <End Role="Bolge" Type="Self.Bolge" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Bolge">
+              <PropertyRef Name="BolgeId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserBolge" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Bolum">
+          <End Role="Bolum" Type="Self.Bolum" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Bolum">
+              <PropertyRef Name="BolumId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserBolumu" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Cinsiyet">
+          <End Role="Cinsiyet" Type="Self.Cinsiyet" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Cinsiyet">
+              <PropertyRef Name="CinsiyetId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserCinsiyet" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Departman">
+          <End Role="Departman" Type="Self.Departman" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Departman">
+              <PropertyRef Name="DepartmanId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserDepartman" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Egitim">
+          <End Role="Egitim" Type="Self.Egitim" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Egitim">
+              <PropertyRef Name="EgitimId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserEgitim" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Sehir">
+          <End Role="Sehir" Type="Self.Sehir" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Sehir">
+              <PropertyRef Name="SehirId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserSehir" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Sube">
+          <End Role="Sube" Type="Self.Sube" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Sube">
+              <PropertyRef Name="SubeId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserSube" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Unvan">
+          <End Role="Unvan" Type="Self.Unvan" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Unvan">
+              <PropertyRef Name="UnvanId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserUnvan" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Yaka">
+          <End Role="Yaka" Type="Self.Yaka" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Yaka">
+              <PropertyRef Name="YakaId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserYaka" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Yonetici">
+          <End Role="Yonetici" Type="Self.Yonetici" Multiplicity="0..1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Yonetici">
+              <PropertyRef Name="YoneticiId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserYoneticisi" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="SurveyModelStoreContainer">
+          <EntitySet Name="Anket" EntityType="Self.Anket" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AnketGrup" EntityType="Self.AnketGrup" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Bolge" EntityType="Self.Bolge" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Bolum" EntityType="Self.Bolum" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Cevap" EntityType="Self.Cevap" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="CevapGrup" EntityType="Self.CevapGrup" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Cinsiyet" EntityType="Self.Cinsiyet" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Departman" EntityType="Self.Departman" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Egitim" EntityType="Self.Egitim" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Havuz" EntityType="Self.Havuz" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Izledim" EntityType="Self.Izledim" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="LisansKyn" EntityType="Self.LisansKyn" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Personel" EntityType="Self.Personel" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Sehir" EntityType="Self.Sehir" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="smtpayar" EntityType="Self.smtpayar" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Soru" EntityType="Self.Soru" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="SoruGrup" EntityType="Self.SoruGrup" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Sube" EntityType="Self.Sube" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="truefalse" EntityType="Self.truefalse" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Unvan" EntityType="Self.Unvan" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="User" EntityType="Self.User" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Yaka" EntityType="Self.Yaka" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Yonetici" EntityType="Self.Yonetici" Schema="dbo" store:Type="Tables" />
+          <AssociationSet Name="FK_Anket_Anket2" Association="Self.FK_Anket_Anket2">
+            <End Role="Anket" EntitySet="Anket" />
+            <End Role="Anket1" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Anket_Departman" Association="Self.FK_Anket_Departman">
+            <End Role="Departman" EntitySet="Departman" />
+            <End Role="Anket" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Anket_Sehir" Association="Self.FK_Anket_Sehir">
+            <End Role="Sehir" EntitySet="Sehir" />
+            <End Role="Anket" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Anket_Sube" Association="Self.FK_Anket_Sube">
+            <End Role="Sube" EntitySet="Sube" />
+            <End Role="Anket" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Anket_Unvan" Association="Self.FK_Anket_Unvan">
+            <End Role="Unvan" EntitySet="Unvan" />
+            <End Role="Anket" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AnketGrup_Anket" Association="Self.FK_AnketGrup_Anket">
+            <End Role="Anket" EntitySet="Anket" />
+            <End Role="AnketGrup" EntitySet="AnketGrup" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AnketGrup_SoruGrup" Association="Self.FK_AnketGrup_SoruGrup">
+            <End Role="SoruGrup" EntitySet="SoruGrup" />
+            <End Role="AnketGrup" EntitySet="AnketGrup" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Cevap_CevapGrup" Association="Self.FK_Cevap_CevapGrup">
+            <End Role="CevapGrup" EntitySet="CevapGrup" />
+            <End Role="Cevap" EntitySet="Cevap" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_Anket" Association="Self.FK_Havuz_Anket">
+            <End Role="Anket" EntitySet="Anket" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_Cevap" Association="Self.FK_Havuz_Cevap">
+            <End Role="Cevap" EntitySet="Cevap" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_CevapGrup" Association="Self.FK_Havuz_CevapGrup">
+            <End Role="CevapGrup" EntitySet="CevapGrup" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_Soru" Association="Self.FK_Havuz_Soru">
+            <End Role="Soru" EntitySet="Soru" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_SoruGrup" Association="Self.FK_Havuz_SoruGrup">
+            <End Role="SoruGrup" EntitySet="SoruGrup" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_User1" Association="Self.FK_Havuz_User1">
+            <End Role="User" EntitySet="User" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Izledim_Anket" Association="Self.FK_Izledim_Anket">
+            <End Role="Anket" EntitySet="Anket" />
+            <End Role="Izledim" EntitySet="Izledim" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Izledim_User" Association="Self.FK_Izledim_User">
+            <End Role="User" EntitySet="User" />
+            <End Role="Izledim" EntitySet="Izledim" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Personel_Unvan" Association="Self.FK_Personel_Unvan">
+            <End Role="Unvan" EntitySet="Unvan" />
+            <End Role="Personel" EntitySet="Personel" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Soru_CevapGrup" Association="Self.FK_Soru_CevapGrup">
+            <End Role="CevapGrup" EntitySet="CevapGrup" />
+            <End Role="Soru" EntitySet="Soru" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Soru_SoruGrup" Association="Self.FK_Soru_SoruGrup">
+            <End Role="SoruGrup" EntitySet="SoruGrup" />
+            <End Role="Soru" EntitySet="Soru" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Bolge" Association="Self.FK_User_Bolge">
+            <End Role="Bolge" EntitySet="Bolge" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Bolum" Association="Self.FK_User_Bolum">
+            <End Role="Bolum" EntitySet="Bolum" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Cinsiyet" Association="Self.FK_User_Cinsiyet">
+            <End Role="Cinsiyet" EntitySet="Cinsiyet" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Departman" Association="Self.FK_User_Departman">
+            <End Role="Departman" EntitySet="Departman" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Egitim" Association="Self.FK_User_Egitim">
+            <End Role="Egitim" EntitySet="Egitim" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Sehir" Association="Self.FK_User_Sehir">
+            <End Role="Sehir" EntitySet="Sehir" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Sube" Association="Self.FK_User_Sube">
+            <End Role="Sube" EntitySet="Sube" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Unvan" Association="Self.FK_User_Unvan">
+            <End Role="Unvan" EntitySet="Unvan" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Yaka" Association="Self.FK_User_Yaka">
+            <End Role="Yaka" EntitySet="Yaka" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Yonetici" Association="Self.FK_User_Yonetici">
+            <End Role="Yonetici" EntitySet="Yonetici" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="SurveyModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="SurveyEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="Bolge" EntityType="SurveyModel.Bolge" />
+          <EntitySet Name="Bolum" EntityType="SurveyModel.Bolum" />
+          <EntitySet Name="CevapGrup" EntityType="SurveyModel.CevapGrup" />
+          <EntitySet Name="Cinsiyet" EntityType="SurveyModel.Cinsiyet" />
+          <EntitySet Name="Departman" EntityType="SurveyModel.Departman" />
+          <EntitySet Name="Egitim" EntityType="SurveyModel.Egitim" />
+          <EntitySet Name="LisansKyn" EntityType="SurveyModel.LisansKyn" />
+          <EntitySet Name="Personel" EntityType="SurveyModel.Personel" />
+          <EntitySet Name="Sehir" EntityType="SurveyModel.Sehir" />
+          <EntitySet Name="smtpayar" EntityType="SurveyModel.smtpayar" />
+          <EntitySet Name="Sube" EntityType="SurveyModel.Sube" />
+          <EntitySet Name="truefalse" EntityType="SurveyModel.truefalse" />
+          <EntitySet Name="Unvan" EntityType="SurveyModel.Unvan" />
+          <EntitySet Name="User" EntityType="SurveyModel.User" />
+          <EntitySet Name="Yaka" EntityType="SurveyModel.Yaka" />
+          <EntitySet Name="Yonetici" EntityType="SurveyModel.Yonetici" />
+          <AssociationSet Name="FK_User_Bolge" Association="SurveyModel.FK_User_Bolge">
+            <End Role="Bolge" EntitySet="Bolge" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Bolum" Association="SurveyModel.FK_User_Bolum">
+            <End Role="Bolum" EntitySet="Bolum" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Cinsiyet" Association="SurveyModel.FK_User_Cinsiyet">
+            <End Role="Cinsiyet" EntitySet="Cinsiyet" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Departman" Association="SurveyModel.FK_User_Departman">
+            <End Role="Departman" EntitySet="Departman" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Egitim" Association="SurveyModel.FK_User_Egitim">
+            <End Role="Egitim" EntitySet="Egitim" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Personel_Unvan" Association="SurveyModel.FK_Personel_Unvan">
+            <End Role="Unvan" EntitySet="Unvan" />
+            <End Role="Personel" EntitySet="Personel" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Sehir" Association="SurveyModel.FK_User_Sehir">
+            <End Role="Sehir" EntitySet="Sehir" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Sube" Association="SurveyModel.FK_User_Sube">
+            <End Role="Sube" EntitySet="Sube" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Unvan" Association="SurveyModel.FK_User_Unvan">
+            <End Role="Unvan" EntitySet="Unvan" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Yaka" Association="SurveyModel.FK_User_Yaka">
+            <End Role="Yaka" EntitySet="Yaka" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <AssociationSet Name="FK_User_Yonetici" Association="SurveyModel.FK_User_Yonetici">
+            <End Role="Yonetici" EntitySet="Yonetici" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
+          <EntitySet Name="Havuz" EntityType="SurveyModel.Havuz" />
+          <AssociationSet Name="FK_Havuz_CevapGrup" Association="SurveyModel.FK_Havuz_CevapGrup">
+            <End Role="CevapGrup" EntitySet="CevapGrup" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_User1" Association="SurveyModel.FK_Havuz_User1">
+            <End Role="User" EntitySet="User" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <EntitySet Name="AnketGrup" EntityType="SurveyModel.AnketGrup" />
+          <EntitySet Name="SoruGrup" EntityType="SurveyModel.SoruGrup" />
+          <AssociationSet Name="FK_AnketGrup_SoruGrup" Association="SurveyModel.FK_AnketGrup_SoruGrup">
+            <End Role="SoruGrup" EntitySet="SoruGrup" />
+            <End Role="AnketGrup" EntitySet="AnketGrup" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_SoruGrup" Association="SurveyModel.FK_Havuz_SoruGrup">
+            <End Role="SoruGrup" EntitySet="SoruGrup" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <EntitySet Name="Cevap" EntityType="SurveyModel.Cevap" />
+          <AssociationSet Name="FK_Cevap_CevapGrup" Association="SurveyModel.FK_Cevap_CevapGrup">
+            <End Role="CevapGrup" EntitySet="CevapGrup" />
+            <End Role="Cevap" EntitySet="Cevap" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_Cevap" Association="SurveyModel.FK_Havuz_Cevap">
+            <End Role="Cevap" EntitySet="Cevap" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <EntitySet Name="Soru" EntityType="SurveyModel.Soru" />
+          <AssociationSet Name="FK_Soru_CevapGrup" Association="SurveyModel.FK_Soru_CevapGrup">
+            <End Role="CevapGrup" EntitySet="CevapGrup" />
+            <End Role="Soru" EntitySet="Soru" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_Soru" Association="SurveyModel.FK_Havuz_Soru">
+            <End Role="Soru" EntitySet="Soru" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Soru_SoruGrup" Association="SurveyModel.FK_Soru_SoruGrup">
+            <End Role="SoruGrup" EntitySet="SoruGrup" />
+            <End Role="Soru" EntitySet="Soru" />
+          </AssociationSet>
+          <EntitySet Name="Anket" EntityType="SurveyModel.Anket" />
+          <AssociationSet Name="FK_Anket_Anket2" Association="SurveyModel.FK_Anket_Anket2">
+            <End Role="Anket" EntitySet="Anket" />
+            <End Role="Anket1" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Anket_Departman" Association="SurveyModel.FK_Anket_Departman">
+            <End Role="Departman" EntitySet="Departman" />
+            <End Role="Anket" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Anket_Sehir" Association="SurveyModel.FK_Anket_Sehir">
+            <End Role="Sehir" EntitySet="Sehir" />
+            <End Role="Anket" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Anket_Sube" Association="SurveyModel.FK_Anket_Sube">
+            <End Role="Sube" EntitySet="Sube" />
+            <End Role="Anket" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Anket_Unvan" Association="SurveyModel.FK_Anket_Unvan">
+            <End Role="Unvan" EntitySet="Unvan" />
+            <End Role="Anket" EntitySet="Anket" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AnketGrup_Anket" Association="SurveyModel.FK_AnketGrup_Anket">
+            <End Role="Anket" EntitySet="Anket" />
+            <End Role="AnketGrup" EntitySet="AnketGrup" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Havuz_Anket" Association="SurveyModel.FK_Havuz_Anket">
+            <End Role="Anket" EntitySet="Anket" />
+            <End Role="Havuz" EntitySet="Havuz" />
+          </AssociationSet>
+          <EntitySet Name="Izledim" EntityType="SurveyModel.Izledim" />
+          <AssociationSet Name="FK_Izledim_Anket" Association="SurveyModel.FK_Izledim_Anket">
+            <End Role="Anket" EntitySet="Anket" />
+            <End Role="Izledim" EntitySet="Izledim" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Izledim_User" Association="SurveyModel.FK_Izledim_User">
+            <End Role="User" EntitySet="User" />
+            <End Role="Izledim" EntitySet="Izledim" />
+          </AssociationSet>
+          </EntityContainer>
+        <EntityType Name="Bolge">
+          <Key>
+            <PropertyRef Name="BolgeId" />
+          </Key>
+          <Property Name="BolgeId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="BolgeAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Bolge" FromRole="Bolge" ToRole="User" />
+        </EntityType>
+        <EntityType Name="Bolum">
+          <Key>
+            <PropertyRef Name="BolumId" />
+          </Key>
+          <Property Name="BolumId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="BolumAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Bolum" FromRole="Bolum" ToRole="User" />
+        </EntityType>
+        <EntityType Name="CevapGrup">
+          <Key>
+            <PropertyRef Name="CevapGrupId" />
+          </Key>
+          <Property Name="CevapGrupId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="CevapGrupAdi" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="Havuz" Relationship="SurveyModel.FK_Havuz_CevapGrup" FromRole="CevapGrup" ToRole="Havuz" />
+          <NavigationProperty Name="Cevap" Relationship="SurveyModel.FK_Cevap_CevapGrup" FromRole="CevapGrup" ToRole="Cevap" />
+          <NavigationProperty Name="Soru" Relationship="SurveyModel.FK_Soru_CevapGrup" FromRole="CevapGrup" ToRole="Soru" />
+        </EntityType>
+        <EntityType Name="Cinsiyet">
+          <Key>
+            <PropertyRef Name="CinsiyetId" />
+          </Key>
+          <Property Name="CinsiyetId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="CinsiyetAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Cinsiyet" FromRole="Cinsiyet" ToRole="User" />
+        </EntityType>
+        <EntityType Name="Departman">
+          <Key>
+            <PropertyRef Name="DepartmanId" />
+          </Key>
+          <Property Name="DepartmanId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="DepartmanAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Departman" FromRole="Departman" ToRole="User" />
+          <NavigationProperty Name="Anket" Relationship="SurveyModel.FK_Anket_Departman" FromRole="Departman" ToRole="Anket" />
+        </EntityType>
+        <EntityType Name="Egitim">
+          <Key>
+            <PropertyRef Name="EgitimId" />
+          </Key>
+          <Property Name="EgitimId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="EgitimAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Egitim" FromRole="Egitim" ToRole="User" />
+        </EntityType>
+        <EntityType Name="LisansKyn">
+          <Key>
+            <PropertyRef Name="LisansId" />
+          </Key>
+          <Property Name="LisansId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="VnTc1" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="KayitTarih" Type="DateTime" Precision="3" />
+          <Property Name="SirketAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ModulSayi" Type="Int32" />
+          <Property Name="IpAdress" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="Personel">
+          <Key>
+            <PropertyRef Name="PersonelId" />
+          </Key>
+          <Property Name="PersonelId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PersonelAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Tc" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Unvani" Type="Int32" />
+          <Property Name="Mail" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Resim" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Telefon" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Adres" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="KullaniciAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Sifre" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Pasif" Type="Boolean" />
+          <Property Name="KayitTarihi" Type="DateTime" Precision="3" />
+          <Property Name="Admin" Type="Boolean" />
+          <NavigationProperty Name="Unvan" Relationship="SurveyModel.FK_Personel_Unvan" FromRole="Personel" ToRole="Unvan" />
+        </EntityType>
+        <EntityType Name="Sehir">
+          <Key>
+            <PropertyRef Name="SehirId" />
+          </Key>
+          <Property Name="SehirId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SehiarAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Sehir" FromRole="Sehir" ToRole="User" />
+          <NavigationProperty Name="Anket" Relationship="SurveyModel.FK_Anket_Sehir" FromRole="Sehir" ToRole="Anket" />
+        </EntityType>
+        <EntityType Name="smtpayar">
+          <Key>
+            <PropertyRef Name="MailId" />
+          </Key>
+          <Property Name="MailId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Sunucu" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UserName" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Password" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Gonderen" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Portu" Type="Int32" Nullable="false" />
+          <Property Name="Ssli" Type="Boolean" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Sube">
+          <Key>
+            <PropertyRef Name="SubeId" />
+          </Key>
+          <Property Name="SubeId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SubeAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Sube" FromRole="Sube" ToRole="User" />
+          <NavigationProperty Name="Anket" Relationship="SurveyModel.FK_Anket_Sube" FromRole="Sube" ToRole="Anket" />
+        </EntityType>
+        <EntityType Name="truefalse">
+          <Key>
+            <PropertyRef Name="TrueFalseId" />
+          </Key>
+          <Property Name="TrueFalseId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="TrueFalsemi" Type="String" MaxLength="10" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="Unvan">
+          <Key>
+            <PropertyRef Name="UnvanId" />
+          </Key>
+          <Property Name="UnvanId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UnvanAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="Personel" Relationship="SurveyModel.FK_Personel_Unvan" FromRole="Unvan" ToRole="Personel" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Unvan" FromRole="Unvan" ToRole="User" />
+          <NavigationProperty Name="Anket" Relationship="SurveyModel.FK_Anket_Unvan" FromRole="Unvan" ToRole="Anket" />
+        </EntityType>
+        <EntityType Name="User">
+          <Key>
+            <PropertyRef Name="UserId" />
+          </Key>
+          <Property Name="UserId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UserTc" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UserUnvan" Type="Int32" />
+          <Property Name="UserCinsiyet" Type="Int32" />
+          <Property Name="UserDogumTar" Type="DateTime" Precision="0" />
+          <Property Name="UserEgitim" Type="Int32" />
+          <Property Name="UserYoneticisi" Type="Int32" />
+          <Property Name="UserBolumu" Type="Int32" />
+          <Property Name="UserSube" Type="Int32" />
+          <Property Name="UserYaka" Type="Int32" />
+          <Property Name="UserBolge" Type="Int32" />
+          <Property Name="UserSehir" Type="Int32" />
+          <Property Name="UserDepartman" Type="Int32" />
+          <Property Name="UserMail" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UserResim" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UserTelefon" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UserAdres" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="UserIseGirisTarihi" Type="DateTime" Precision="0" />
+          <Property Name="Pasif" Type="Boolean" />
+          <Property Name="KayitTarihi" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Bolge" Relationship="SurveyModel.FK_User_Bolge" FromRole="User" ToRole="Bolge" />
+          <NavigationProperty Name="Bolum" Relationship="SurveyModel.FK_User_Bolum" FromRole="User" ToRole="Bolum" />
+          <NavigationProperty Name="Cinsiyet" Relationship="SurveyModel.FK_User_Cinsiyet" FromRole="User" ToRole="Cinsiyet" />
+          <NavigationProperty Name="Departman" Relationship="SurveyModel.FK_User_Departman" FromRole="User" ToRole="Departman" />
+          <NavigationProperty Name="Egitim" Relationship="SurveyModel.FK_User_Egitim" FromRole="User" ToRole="Egitim" />
+          <NavigationProperty Name="Sehir" Relationship="SurveyModel.FK_User_Sehir" FromRole="User" ToRole="Sehir" />
+          <NavigationProperty Name="Sube" Relationship="SurveyModel.FK_User_Sube" FromRole="User" ToRole="Sube" />
+          <NavigationProperty Name="Unvan" Relationship="SurveyModel.FK_User_Unvan" FromRole="User" ToRole="Unvan" />
+          <NavigationProperty Name="Yaka" Relationship="SurveyModel.FK_User_Yaka" FromRole="User" ToRole="Yaka" />
+          <NavigationProperty Name="Yonetici" Relationship="SurveyModel.FK_User_Yonetici" FromRole="User" ToRole="Yonetici" />
+          <NavigationProperty Name="Havuz" Relationship="SurveyModel.FK_Havuz_User1" FromRole="User" ToRole="Havuz" />
+          <NavigationProperty Name="Izledim" Relationship="SurveyModel.FK_Izledim_User" FromRole="User" ToRole="Izledim" />
+        </EntityType>
+        <EntityType Name="Yaka">
+          <Key>
+            <PropertyRef Name="YakaId" />
+          </Key>
+          <Property Name="YakaId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="YakaAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Yaka" FromRole="Yaka" ToRole="User" />
+        </EntityType>
+        <EntityType Name="Yonetici">
+          <Key>
+            <PropertyRef Name="YoneticiId" />
+          </Key>
+          <Property Name="YoneticiId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="YoneticiAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_User_Yonetici" FromRole="Yonetici" ToRole="User" />
+        </EntityType>
+        <Association Name="FK_User_Bolge">
+          <End Type="SurveyModel.Bolge" Role="Bolge" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Bolge">
+              <PropertyRef Name="BolgeId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserBolge" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Bolum">
+          <End Type="SurveyModel.Bolum" Role="Bolum" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Bolum">
+              <PropertyRef Name="BolumId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserBolumu" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Cinsiyet">
+          <End Type="SurveyModel.Cinsiyet" Role="Cinsiyet" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Cinsiyet">
+              <PropertyRef Name="CinsiyetId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserCinsiyet" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Departman">
+          <End Type="SurveyModel.Departman" Role="Departman" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Departman">
+              <PropertyRef Name="DepartmanId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserDepartman" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Egitim">
+          <End Type="SurveyModel.Egitim" Role="Egitim" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Egitim">
+              <PropertyRef Name="EgitimId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserEgitim" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Personel_Unvan">
+          <End Type="SurveyModel.Unvan" Role="Unvan" Multiplicity="0..1" />
+          <End Type="SurveyModel.Personel" Role="Personel" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Unvan">
+              <PropertyRef Name="UnvanId" />
+            </Principal>
+            <Dependent Role="Personel">
+              <PropertyRef Name="Unvani" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Sehir">
+          <End Type="SurveyModel.Sehir" Role="Sehir" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Sehir">
+              <PropertyRef Name="SehirId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserSehir" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Sube">
+          <End Type="SurveyModel.Sube" Role="Sube" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Sube">
+              <PropertyRef Name="SubeId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserSube" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Unvan">
+          <End Type="SurveyModel.Unvan" Role="Unvan" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Unvan">
+              <PropertyRef Name="UnvanId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserUnvan" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Yaka">
+          <End Type="SurveyModel.Yaka" Role="Yaka" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Yaka">
+              <PropertyRef Name="YakaId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserYaka" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_User_Yonetici">
+          <End Type="SurveyModel.Yonetici" Role="Yonetici" Multiplicity="0..1" />
+          <End Type="SurveyModel.User" Role="User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Yonetici">
+              <PropertyRef Name="YoneticiId" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="UserYoneticisi" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="Havuz">
+          <Key>
+            <PropertyRef Name="HavuzId" />
+          </Key>
+          <Property Name="HavuzId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="AnketId" Type="Int32" />
+          <Property Name="SoruID" Type="Int32" />
+          <Property Name="SoruGrupId" Type="Int32" />
+          <Property Name="CevapId" Type="Int32" />
+          <Property Name="CevapGrupId" Type="Int32" />
+          <Property Name="UserId" Type="Int32" />
+          <Property Name="CevapPuan" Type="Double" />
+          <Property Name="SoruPuan" Type="Double" />
+          <Property Name="SoruGrupPuan" Type="Double" />
+          <Property Name="KayitTar" Type="DateTime" Precision="3" />
+          <Property Name="Isimsiz" Type="Int32" />
+          <NavigationProperty Name="CevapGrup" Relationship="SurveyModel.FK_Havuz_CevapGrup" FromRole="Havuz" ToRole="CevapGrup" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_Havuz_User1" FromRole="Havuz" ToRole="User" />
+          <NavigationProperty Name="SoruGrup" Relationship="SurveyModel.FK_Havuz_SoruGrup" FromRole="Havuz" ToRole="SoruGrup" />
+          <NavigationProperty Name="Cevap" Relationship="SurveyModel.FK_Havuz_Cevap" FromRole="Havuz" ToRole="Cevap" />
+          <NavigationProperty Name="Soru" Relationship="SurveyModel.FK_Havuz_Soru" FromRole="Havuz" ToRole="Soru" />
+          <NavigationProperty Name="Anket" Relationship="SurveyModel.FK_Havuz_Anket" FromRole="Havuz" ToRole="Anket" />
+        </EntityType>
+        <Association Name="FK_Havuz_CevapGrup">
+          <End Type="SurveyModel.CevapGrup" Role="CevapGrup" Multiplicity="0..1" />
+          <End Type="SurveyModel.Havuz" Role="Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CevapGrup">
+              <PropertyRef Name="CevapGrupId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="CevapGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_User1">
+          <End Type="SurveyModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="SurveyModel.Havuz" Role="Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="UserId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="AnketGrup">
+          <Key>
+            <PropertyRef Name="AnketGupId" />
+          </Key>
+          <Property Name="AnketGupId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="AnketId" Type="Int32" />
+          <Property Name="SoruGrupId" Type="Int32" />
+          <NavigationProperty Name="SoruGrup" Relationship="SurveyModel.FK_AnketGrup_SoruGrup" FromRole="AnketGrup" ToRole="SoruGrup" />
+          <NavigationProperty Name="Anket" Relationship="SurveyModel.FK_AnketGrup_Anket" FromRole="AnketGrup" ToRole="Anket" />
+        </EntityType>
+        <EntityType Name="SoruGrup">
+          <Key>
+            <PropertyRef Name="SoruGrupId" />
+          </Key>
+          <Property Name="SoruGrupId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SoruGrupAdi" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="SoruGrupSira" Type="Int32" />
+          <Property Name="SoruGrupPuan" Type="Double" />
+          <NavigationProperty Name="AnketGrup" Relationship="SurveyModel.FK_AnketGrup_SoruGrup" FromRole="SoruGrup" ToRole="AnketGrup" />
+          <NavigationProperty Name="Havuz" Relationship="SurveyModel.FK_Havuz_SoruGrup" FromRole="SoruGrup" ToRole="Havuz" />
+          <NavigationProperty Name="Soru" Relationship="SurveyModel.FK_Soru_SoruGrup" FromRole="SoruGrup" ToRole="Soru" />
+        </EntityType>
+        <Association Name="FK_AnketGrup_SoruGrup">
+          <End Type="SurveyModel.SoruGrup" Role="SoruGrup" Multiplicity="0..1" />
+          <End Type="SurveyModel.AnketGrup" Role="AnketGrup" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="SoruGrup">
+              <PropertyRef Name="SoruGrupId" />
+            </Principal>
+            <Dependent Role="AnketGrup">
+              <PropertyRef Name="SoruGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_SoruGrup">
+          <End Type="SurveyModel.SoruGrup" Role="SoruGrup" Multiplicity="0..1" />
+          <End Type="SurveyModel.Havuz" Role="Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="SoruGrup">
+              <PropertyRef Name="SoruGrupId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="SoruGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="Cevap">
+          <Key>
+            <PropertyRef Name="CevapId" />
+          </Key>
+          <Property Name="CevapId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="CevapAdi" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="CevapGrupId" Type="Int32" />
+          <Property Name="CevapPuan" Type="Double" />
+          <Property Name="Dogru" Type="Boolean" />
+          <NavigationProperty Name="CevapGrup" Relationship="SurveyModel.FK_Cevap_CevapGrup" FromRole="Cevap" ToRole="CevapGrup" />
+          <NavigationProperty Name="Havuz" Relationship="SurveyModel.FK_Havuz_Cevap" FromRole="Cevap" ToRole="Havuz" />
+        </EntityType>
+        <Association Name="FK_Cevap_CevapGrup">
+          <End Type="SurveyModel.CevapGrup" Role="CevapGrup" Multiplicity="0..1" />
+          <End Type="SurveyModel.Cevap" Role="Cevap" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CevapGrup">
+              <PropertyRef Name="CevapGrupId" />
+            </Principal>
+            <Dependent Role="Cevap">
+              <PropertyRef Name="CevapGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_Cevap">
+          <End Type="SurveyModel.Cevap" Role="Cevap" Multiplicity="0..1" />
+          <End Type="SurveyModel.Havuz" Role="Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Cevap">
+              <PropertyRef Name="CevapId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="CevapId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="Soru">
+          <Key>
+            <PropertyRef Name="SoruId" />
+          </Key>
+          <Property Name="SoruId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SoruAdi" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="SoruSira" Type="Int32" />
+          <Property Name="SoruGrupId" Type="Int32" />
+          <Property Name="CevapGrupId" Type="Int32" />
+          <Property Name="SoruPuan" Type="Double" />
+          <NavigationProperty Name="CevapGrup" Relationship="SurveyModel.FK_Soru_CevapGrup" FromRole="Soru" ToRole="CevapGrup" />
+          <NavigationProperty Name="Havuz" Relationship="SurveyModel.FK_Havuz_Soru" FromRole="Soru" ToRole="Havuz" />
+          <NavigationProperty Name="SoruGrup" Relationship="SurveyModel.FK_Soru_SoruGrup" FromRole="Soru" ToRole="SoruGrup" />
+        </EntityType>
+        <Association Name="FK_Soru_CevapGrup">
+          <End Type="SurveyModel.CevapGrup" Role="CevapGrup" Multiplicity="0..1" />
+          <End Type="SurveyModel.Soru" Role="Soru" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CevapGrup">
+              <PropertyRef Name="CevapGrupId" />
+            </Principal>
+            <Dependent Role="Soru">
+              <PropertyRef Name="CevapGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_Soru">
+          <End Type="SurveyModel.Soru" Role="Soru" Multiplicity="0..1" />
+          <End Type="SurveyModel.Havuz" Role="Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Soru">
+              <PropertyRef Name="SoruId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="SoruID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Soru_SoruGrup">
+          <End Type="SurveyModel.SoruGrup" Role="SoruGrup" Multiplicity="0..1" />
+          <End Type="SurveyModel.Soru" Role="Soru" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="SoruGrup">
+              <PropertyRef Name="SoruGrupId" />
+            </Principal>
+            <Dependent Role="Soru">
+              <PropertyRef Name="SoruGrupId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="Anket">
+          <Key>
+            <PropertyRef Name="AnketId" />
+          </Key>
+          <Property Name="AnketId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="AnketAdi" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="Pasif" Type="Boolean" />
+          <Property Name="Tanimsiz" Type="Boolean" />
+          <Property Name="Sinav" Type="Boolean" />
+          <Property Name="Link" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Zaman" Type="Int32" />
+          <Property Name="Sonuc" Type="Boolean" />
+          <Property Name="EgitimVeren" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="Imza" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="DepartmanId" Type="Int32" />
+          <Property Name="SehirId" Type="Int32" />
+          <Property Name="SubeId" Type="Int32" />
+          <Property Name="UnvanId" Type="Int32" />
+          <Property Name="SertifikaNotu" Type="Int32" />
+          <NavigationProperty Name="Anket1" Relationship="SurveyModel.FK_Anket_Anket2" FromRole="Anket" ToRole="Anket1" />
+          <NavigationProperty Name="Anket2" Relationship="SurveyModel.FK_Anket_Anket2" FromRole="Anket1" ToRole="Anket" />
+          <NavigationProperty Name="Departman" Relationship="SurveyModel.FK_Anket_Departman" FromRole="Anket" ToRole="Departman" />
+          <NavigationProperty Name="Sehir" Relationship="SurveyModel.FK_Anket_Sehir" FromRole="Anket" ToRole="Sehir" />
+          <NavigationProperty Name="Sube" Relationship="SurveyModel.FK_Anket_Sube" FromRole="Anket" ToRole="Sube" />
+          <NavigationProperty Name="Unvan" Relationship="SurveyModel.FK_Anket_Unvan" FromRole="Anket" ToRole="Unvan" />
+          <NavigationProperty Name="AnketGrup" Relationship="SurveyModel.FK_AnketGrup_Anket" FromRole="Anket" ToRole="AnketGrup" />
+          <NavigationProperty Name="Havuz" Relationship="SurveyModel.FK_Havuz_Anket" FromRole="Anket" ToRole="Havuz" />
+          <NavigationProperty Name="Izledim" Relationship="SurveyModel.FK_Izledim_Anket" FromRole="Anket" ToRole="Izledim" />
+        </EntityType>
+        <Association Name="FK_Anket_Anket2">
+          <End Type="SurveyModel.Anket" Role="Anket" Multiplicity="1" />
+          <End Type="SurveyModel.Anket" Role="Anket1" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="Anket">
+              <PropertyRef Name="AnketId" />
+            </Principal>
+            <Dependent Role="Anket1">
+              <PropertyRef Name="AnketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Anket_Departman">
+          <End Type="SurveyModel.Departman" Role="Departman" Multiplicity="0..1" />
+          <End Type="SurveyModel.Anket" Role="Anket" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Departman">
+              <PropertyRef Name="DepartmanId" />
+            </Principal>
+            <Dependent Role="Anket">
+              <PropertyRef Name="DepartmanId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Anket_Sehir">
+          <End Type="SurveyModel.Sehir" Role="Sehir" Multiplicity="0..1" />
+          <End Type="SurveyModel.Anket" Role="Anket" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Sehir">
+              <PropertyRef Name="SehirId" />
+            </Principal>
+            <Dependent Role="Anket">
+              <PropertyRef Name="SehirId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Anket_Sube">
+          <End Type="SurveyModel.Sube" Role="Sube" Multiplicity="0..1" />
+          <End Type="SurveyModel.Anket" Role="Anket" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Sube">
+              <PropertyRef Name="SubeId" />
+            </Principal>
+            <Dependent Role="Anket">
+              <PropertyRef Name="SubeId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Anket_Unvan">
+          <End Type="SurveyModel.Unvan" Role="Unvan" Multiplicity="0..1" />
+          <End Type="SurveyModel.Anket" Role="Anket" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Unvan">
+              <PropertyRef Name="UnvanId" />
+            </Principal>
+            <Dependent Role="Anket">
+              <PropertyRef Name="UnvanId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AnketGrup_Anket">
+          <End Type="SurveyModel.Anket" Role="Anket" Multiplicity="0..1" />
+          <End Type="SurveyModel.AnketGrup" Role="AnketGrup" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Anket">
+              <PropertyRef Name="AnketId" />
+            </Principal>
+            <Dependent Role="AnketGrup">
+              <PropertyRef Name="AnketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Havuz_Anket">
+          <End Type="SurveyModel.Anket" Role="Anket" Multiplicity="0..1" />
+          <End Type="SurveyModel.Havuz" Role="Havuz" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Anket">
+              <PropertyRef Name="AnketId" />
+            </Principal>
+            <Dependent Role="Havuz">
+              <PropertyRef Name="AnketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="Izledim">
+          <Key>
+            <PropertyRef Name="IzleId" />
+          </Key>
+          <Property Name="IzleId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UseId" Type="Int32" />
+          <Property Name="AnketId" Type="Int32" />
+          <Property Name="Izledi" Type="Boolean" />
+          <Property Name="IzTarih" Type="DateTime" Precision="3" />
+          <Property Name="BitisZaman" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Anket" Relationship="SurveyModel.FK_Izledim_Anket" FromRole="Izledim" ToRole="Anket" />
+          <NavigationProperty Name="User" Relationship="SurveyModel.FK_Izledim_User" FromRole="Izledim" ToRole="User" />
+        </EntityType>
+        <Association Name="FK_Izledim_Anket">
+          <End Type="SurveyModel.Anket" Role="Anket" Multiplicity="0..1" />
+          <End Type="SurveyModel.Izledim" Role="Izledim" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Anket">
+              <PropertyRef Name="AnketId" />
+            </Principal>
+            <Dependent Role="Izledim">
+              <PropertyRef Name="AnketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Izledim_User">
+          <End Type="SurveyModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="SurveyModel.Izledim" Role="Izledim" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserId" />
+            </Principal>
+            <Dependent Role="Izledim">
+              <PropertyRef Name="UseId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="SurveyModelStoreContainer" CdmEntityContainer="SurveyEntities">
+          <EntitySetMapping Name="Bolge">
+            <EntityTypeMapping TypeName="SurveyModel.Bolge">
+              <MappingFragment StoreEntitySet="Bolge">
+                <ScalarProperty Name="BolgeAdi" ColumnName="BolgeAdi" />
+                <ScalarProperty Name="BolgeId" ColumnName="BolgeId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Bolum">
+            <EntityTypeMapping TypeName="SurveyModel.Bolum">
+              <MappingFragment StoreEntitySet="Bolum">
+                <ScalarProperty Name="BolumAdi" ColumnName="BolumAdi" />
+                <ScalarProperty Name="BolumId" ColumnName="BolumId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="CevapGrup">
+            <EntityTypeMapping TypeName="SurveyModel.CevapGrup">
+              <MappingFragment StoreEntitySet="CevapGrup">
+                <ScalarProperty Name="CevapGrupAdi" ColumnName="CevapGrupAdi" />
+                <ScalarProperty Name="CevapGrupId" ColumnName="CevapGrupId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Cinsiyet">
+            <EntityTypeMapping TypeName="SurveyModel.Cinsiyet">
+              <MappingFragment StoreEntitySet="Cinsiyet">
+                <ScalarProperty Name="CinsiyetAdi" ColumnName="CinsiyetAdi" />
+                <ScalarProperty Name="CinsiyetId" ColumnName="CinsiyetId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Departman">
+            <EntityTypeMapping TypeName="SurveyModel.Departman">
+              <MappingFragment StoreEntitySet="Departman">
+                <ScalarProperty Name="DepartmanAdi" ColumnName="DepartmanAdi" />
+                <ScalarProperty Name="DepartmanId" ColumnName="DepartmanId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Egitim">
+            <EntityTypeMapping TypeName="SurveyModel.Egitim">
+              <MappingFragment StoreEntitySet="Egitim">
+                <ScalarProperty Name="EgitimAdi" ColumnName="EgitimAdi" />
+                <ScalarProperty Name="EgitimId" ColumnName="EgitimId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="LisansKyn">
+            <EntityTypeMapping TypeName="SurveyModel.LisansKyn">
+              <MappingFragment StoreEntitySet="LisansKyn">
+                <ScalarProperty Name="IpAdress" ColumnName="IpAdress" />
+                <ScalarProperty Name="ModulSayi" ColumnName="ModulSayi" />
+                <ScalarProperty Name="SirketAdi" ColumnName="SirketAdi" />
+                <ScalarProperty Name="KayitTarih" ColumnName="KayitTarih" />
+                <ScalarProperty Name="VnTc1" ColumnName="VnTc1" />
+                <ScalarProperty Name="LisansId" ColumnName="LisansId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Personel">
+            <EntityTypeMapping TypeName="SurveyModel.Personel">
+              <MappingFragment StoreEntitySet="Personel">
+                <ScalarProperty Name="Admin" ColumnName="Admin" />
+                <ScalarProperty Name="KayitTarihi" ColumnName="KayitTarihi" />
+                <ScalarProperty Name="Pasif" ColumnName="Pasif" />
+                <ScalarProperty Name="Sifre" ColumnName="Sifre" />
+                <ScalarProperty Name="KullaniciAdi" ColumnName="KullaniciAdi" />
+                <ScalarProperty Name="Adres" ColumnName="Adres" />
+                <ScalarProperty Name="Telefon" ColumnName="Telefon" />
+                <ScalarProperty Name="Resim" ColumnName="Resim" />
+                <ScalarProperty Name="Mail" ColumnName="Mail" />
+                <ScalarProperty Name="Unvani" ColumnName="Unvani" />
+                <ScalarProperty Name="Tc" ColumnName="Tc" />
+                <ScalarProperty Name="PersonelAdi" ColumnName="PersonelAdi" />
+                <ScalarProperty Name="PersonelId" ColumnName="PersonelId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Sehir">
+            <EntityTypeMapping TypeName="SurveyModel.Sehir">
+              <MappingFragment StoreEntitySet="Sehir">
+                <ScalarProperty Name="SehiarAdi" ColumnName="SehiarAdi" />
+                <ScalarProperty Name="SehirId" ColumnName="SehirId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="smtpayar">
+            <EntityTypeMapping TypeName="SurveyModel.smtpayar">
+              <MappingFragment StoreEntitySet="smtpayar">
+                <ScalarProperty Name="Ssli" ColumnName="Ssli" />
+                <ScalarProperty Name="Portu" ColumnName="Portu" />
+                <ScalarProperty Name="Gonderen" ColumnName="Gonderen" />
+                <ScalarProperty Name="Password" ColumnName="Password" />
+                <ScalarProperty Name="UserName" ColumnName="UserName" />
+                <ScalarProperty Name="Sunucu" ColumnName="Sunucu" />
+                <ScalarProperty Name="MailId" ColumnName="MailId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Sube">
+            <EntityTypeMapping TypeName="SurveyModel.Sube">
+              <MappingFragment StoreEntitySet="Sube">
+                <ScalarProperty Name="SubeAdi" ColumnName="SubeAdi" />
+                <ScalarProperty Name="SubeId" ColumnName="SubeId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="truefalse">
+            <EntityTypeMapping TypeName="SurveyModel.truefalse">
+              <MappingFragment StoreEntitySet="truefalse">
+                <ScalarProperty Name="TrueFalsemi" ColumnName="TrueFalsemi" />
+                <ScalarProperty Name="TrueFalseId" ColumnName="TrueFalseId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Unvan">
+            <EntityTypeMapping TypeName="SurveyModel.Unvan">
+              <MappingFragment StoreEntitySet="Unvan">
+                <ScalarProperty Name="UnvanAdi" ColumnName="UnvanAdi" />
+                <ScalarProperty Name="UnvanId" ColumnName="UnvanId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="User">
+            <EntityTypeMapping TypeName="SurveyModel.User">
+              <MappingFragment StoreEntitySet="User">
+                <ScalarProperty Name="KayitTarihi" ColumnName="KayitTarihi" />
+                <ScalarProperty Name="Pasif" ColumnName="Pasif" />
+                <ScalarProperty Name="UserIseGirisTarihi" ColumnName="UserIseGirisTarihi" />
+                <ScalarProperty Name="UserAdres" ColumnName="UserAdres" />
+                <ScalarProperty Name="UserTelefon" ColumnName="UserTelefon" />
+                <ScalarProperty Name="UserResim" ColumnName="UserResim" />
+                <ScalarProperty Name="UserMail" ColumnName="UserMail" />
+                <ScalarProperty Name="UserDepartman" ColumnName="UserDepartman" />
+                <ScalarProperty Name="UserSehir" ColumnName="UserSehir" />
+                <ScalarProperty Name="UserBolge" ColumnName="UserBolge" />
+                <ScalarProperty Name="UserYaka" ColumnName="UserYaka" />
+                <ScalarProperty Name="UserSube" ColumnName="UserSube" />
+                <ScalarProperty Name="UserBolumu" ColumnName="UserBolumu" />
+                <ScalarProperty Name="UserYoneticisi" ColumnName="UserYoneticisi" />
+                <ScalarProperty Name="UserEgitim" ColumnName="UserEgitim" />
+                <ScalarProperty Name="UserDogumTar" ColumnName="UserDogumTar" />
+                <ScalarProperty Name="UserCinsiyet" ColumnName="UserCinsiyet" />
+                <ScalarProperty Name="UserUnvan" ColumnName="UserUnvan" />
+                <ScalarProperty Name="UserTc" ColumnName="UserTc" />
+                <ScalarProperty Name="UserAdi" ColumnName="UserAdi" />
+                <ScalarProperty Name="UserId" ColumnName="UserId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Yaka">
+            <EntityTypeMapping TypeName="SurveyModel.Yaka">
+              <MappingFragment StoreEntitySet="Yaka">
+                <ScalarProperty Name="YakaAdi" ColumnName="YakaAdi" />
+                <ScalarProperty Name="YakaId" ColumnName="YakaId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Yonetici">
+            <EntityTypeMapping TypeName="SurveyModel.Yonetici">
+              <MappingFragment StoreEntitySet="Yonetici">
+                <ScalarProperty Name="YoneticiAdi" ColumnName="YoneticiAdi" />
+                <ScalarProperty Name="YoneticiId" ColumnName="YoneticiId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Havuz">
+            <EntityTypeMapping TypeName="SurveyModel.Havuz">
+              <MappingFragment StoreEntitySet="Havuz">
+                <ScalarProperty Name="Isimsiz" ColumnName="Isimsiz" />
+                <ScalarProperty Name="KayitTar" ColumnName="KayitTar" />
+                <ScalarProperty Name="SoruGrupPuan" ColumnName="SoruGrupPuan" />
+                <ScalarProperty Name="SoruPuan" ColumnName="SoruPuan" />
+                <ScalarProperty Name="CevapPuan" ColumnName="CevapPuan" />
+                <ScalarProperty Name="UserId" ColumnName="UserId" />
+                <ScalarProperty Name="CevapGrupId" ColumnName="CevapGrupId" />
+                <ScalarProperty Name="CevapId" ColumnName="CevapId" />
+                <ScalarProperty Name="SoruGrupId" ColumnName="SoruGrupId" />
+                <ScalarProperty Name="SoruID" ColumnName="SoruID" />
+                <ScalarProperty Name="AnketId" ColumnName="AnketId" />
+                <ScalarProperty Name="HavuzId" ColumnName="HavuzId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AnketGrup">
+            <EntityTypeMapping TypeName="SurveyModel.AnketGrup">
+              <MappingFragment StoreEntitySet="AnketGrup">
+                <ScalarProperty Name="SoruGrupId" ColumnName="SoruGrupId" />
+                <ScalarProperty Name="AnketId" ColumnName="AnketId" />
+                <ScalarProperty Name="AnketGupId" ColumnName="AnketGupId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="SoruGrup">
+            <EntityTypeMapping TypeName="SurveyModel.SoruGrup">
+              <MappingFragment StoreEntitySet="SoruGrup">
+                <ScalarProperty Name="SoruGrupPuan" ColumnName="SoruGrupPuan" />
+                <ScalarProperty Name="SoruGrupSira" ColumnName="SoruGrupSira" />
+                <ScalarProperty Name="SoruGrupAdi" ColumnName="SoruGrupAdi" />
+                <ScalarProperty Name="SoruGrupId" ColumnName="SoruGrupId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Cevap">
+            <EntityTypeMapping TypeName="SurveyModel.Cevap">
+              <MappingFragment StoreEntitySet="Cevap">
+                <ScalarProperty Name="Dogru" ColumnName="Dogru" />
+                <ScalarProperty Name="CevapPuan" ColumnName="CevapPuan" />
+                <ScalarProperty Name="CevapGrupId" ColumnName="CevapGrupId" />
+                <ScalarProperty Name="CevapAdi" ColumnName="CevapAdi" />
+                <ScalarProperty Name="CevapId" ColumnName="CevapId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Soru">
+            <EntityTypeMapping TypeName="SurveyModel.Soru">
+              <MappingFragment StoreEntitySet="Soru">
+                <ScalarProperty Name="SoruPuan" ColumnName="SoruPuan" />
+                <ScalarProperty Name="CevapGrupId" ColumnName="CevapGrupId" />
+                <ScalarProperty Name="SoruGrupId" ColumnName="SoruGrupId" />
+                <ScalarProperty Name="SoruSira" ColumnName="SoruSira" />
+                <ScalarProperty Name="SoruAdi" ColumnName="SoruAdi" />
+                <ScalarProperty Name="SoruId" ColumnName="SoruId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Anket">
+            <EntityTypeMapping TypeName="SurveyModel.Anket">
+              <MappingFragment StoreEntitySet="Anket">
+                <ScalarProperty Name="SertifikaNotu" ColumnName="SertifikaNotu" />
+                <ScalarProperty Name="UnvanId" ColumnName="UnvanId" />
+                <ScalarProperty Name="SubeId" ColumnName="SubeId" />
+                <ScalarProperty Name="SehirId" ColumnName="SehirId" />
+                <ScalarProperty Name="DepartmanId" ColumnName="DepartmanId" />
+                <ScalarProperty Name="Imza" ColumnName="Imza" />
+                <ScalarProperty Name="EgitimVeren" ColumnName="EgitimVeren" />
+                <ScalarProperty Name="Sonuc" ColumnName="Sonuc" />
+                <ScalarProperty Name="Zaman" ColumnName="Zaman" />
+                <ScalarProperty Name="Link" ColumnName="Link" />
+                <ScalarProperty Name="Sinav" ColumnName="Sinav" />
+                <ScalarProperty Name="Tanimsiz" ColumnName="Tanimsiz" />
+                <ScalarProperty Name="Pasif" ColumnName="Pasif" />
+                <ScalarProperty Name="AnketAdi" ColumnName="AnketAdi" />
+                <ScalarProperty Name="AnketId" ColumnName="AnketId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Izledim">
+            <EntityTypeMapping TypeName="SurveyModel.Izledim">
+              <MappingFragment StoreEntitySet="Izledim">
+                <ScalarProperty Name="BitisZaman" ColumnName="BitisZaman" />
+                <ScalarProperty Name="IzTarih" ColumnName="IzTarih" />
+                <ScalarProperty Name="Izledi" ColumnName="Izledi" />
+                <ScalarProperty Name="AnketId" ColumnName="AnketId" />
+                <ScalarProperty Name="UseId" ColumnName="UseId" />
+                <ScalarProperty Name="IzleId" ColumnName="IzleId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="false" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

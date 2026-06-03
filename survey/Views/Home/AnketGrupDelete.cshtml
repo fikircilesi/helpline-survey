@@ -1,0 +1,32 @@
+@model survey.Models.AnketGrup
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="panel panel-primary">
+    <div class="panel-heading panel-head; text-uppercase">
+        SORU GRUBU KALDIRILIYOR
+    </div>
+    <div class="panel-body">
+
+        <div class="col-md-10">
+            <h5>Soru Grubu Adı</h5>
+            @Html.EditorFor(model => model.SoruGrup.SoruGrupAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+        </div>
+        <div class="col-lg-9"></div>
+        <div class="col-lg-3">
+            @using (Html.BeginForm())
+            {
+                @Html.AntiForgeryToken()
+                <br />
+                <div>
+                    <a class="btn btn-primary btn-outline-primary fa fa-backward" href="@Url.Action("AnketGrupIndex", "Home", new {id = ViewBag.id})"> Geri</a>
+                    <input hidden name="ank" value="@ViewBag.id" />
+                    <input type="submit" class="btn btn-primary btn-outline-primary fa fa-check" value=" Tamam" />
+                </div>
+            }
+        </div>
+    </div>
+</div>

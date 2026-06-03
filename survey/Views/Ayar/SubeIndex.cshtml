@@ -1,0 +1,43 @@
+@model IEnumerable<survey.Models.Sube>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="panel">
+    <div>
+        <h4>ŞUBE LİSTESİ</h4>
+    </div>
+    <div class="panel-body">
+
+        <table class="table">
+            <tr>
+                <td></td>
+                <th>
+                    Şube Adı
+                </th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <a class="fa fa-pencil" title="Ünvan düzenleme" href="@Url.Action("SubeEdit", "Ayar", new { id = item.SubeId })"></a>
+                        <a class="fa fa-trash-o" title="Ünvan sil" href="@Url.Action("SubeDelete", "Ayar", new { id = item.SubeId})"></a>
+                    </td>
+
+                    <td>
+                        @item.SubeAdi
+                    </td>
+
+                </tr>
+            }
+
+        </table>
+        <div class="col-lg-9"></div>
+        <div class="col-lg-3">
+                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
+                <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("SubeCreate", "Ayar")">Yeni</a>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,203 @@
+﻿/* ======================================
+   Rapor container & kart kutuları
+   ====================================== */
+#raporContainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2 sütun */
+    gap: 20px;
+    margin-top: 20px;
+    align-items: start;
+    width: 100%;
+}
+
+    /* her section/kart */
+    #raporContainer > div {
+        border: 1px solid #e3e6ea;
+        padding: 12px;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        overflow: visible;
+    }
+
+    /* başlık */
+    #raporContainer h4 {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        text-align: center;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* full width (Soru, Soru Grup vb.) */
+    #raporContainer .full-width {
+        grid-column: 1 / -1; /* iki sütun birden kapla */
+    }
+
+    /* ======================================
+   Canvas / chart genel ayarlar
+   - global yükseklik KALDIRILDI; özel kurallarla yönet
+   ====================================== */
+    #raporContainer canvas,
+    .chart-box canvas,
+    .column-chart {
+        width: 100% !important;
+        display: block !important;
+        margin: 0 auto !important;
+        transform: none !important;
+        box-sizing: border-box;
+        /* yükseklik özel sınıflarda ayarlanacak (screen vs print) */
+    }
+
+        /* küçük canvaslar için güvenlik */
+        #raporContainer canvas.small-chart {
+            min-height: 160px !important;
+        }
+
+/* genel chart container */
+.chart-container {
+    position: relative;
+    width: 100%;
+    overflow: auto;
+}
+
+/* ======================================
+   Soru-grup grafikleri (ekran)
+   ====================================== */
+.soru-grup-chart {
+    display: block;
+    width: 100% !important;
+    height: 300px !important; /* ekran için rahat yükseklik - istersen 240/300 dene */
+    margin: 8px 0 10px 0 !important;
+}
+
+/* presentation kartı (ekran) */
+.presentation-chart-card {
+    background: transparent !important;
+    border-radius: 6px;
+    padding: 18px 22px;
+    box-shadow: none !important;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+
+    .presentation-chart-card .pc-title {
+        font-family: "Arial", Helvetica, sans-serif;
+        font-weight: 800;
+        font-size: 28px;
+        text-align: center;
+        margin: 6px 0 16px 0;
+        letter-spacing: 1px;
+    }
+
+    .presentation-chart-card .pc-canvas {
+        width: 100%;
+        height: 550px; /* ekran görünümde */
+        margin: 0 auto 12px auto;
+        position: relative;
+    }
+
+.presentation-legend {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 8px;
+    background: rgba(255,255,255,0.6);
+    padding: 6px 10px;
+    border-radius: 4px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* soru-grup iç düzenleri */
+.soru-grup-section {
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #f1f3f5;
+    overflow: visible;
+}
+
+    .soru-grup-section h5 {
+        margin: 6px 0;
+        font-weight: 700;
+    }
+
+/* mobil düzen */
+@media screen and (max-width: 768px) {
+    .soru-grup-chart {
+        height: 220px !important;
+    }
+
+    #raporContainer {
+        grid-template-columns: 1fr;
+    }
+
+        #raporContainer .full-width {
+            grid-column: auto;
+        }
+}
+
+/* Tablo küçük ayar */
+#raporContainer table.mt-3 {
+    margin-top: 6px !important;
+}
+
+/* PDF / PRINT kuralları — hepsini 120mm ile hizaladık */
+@media print {
+    /* Soru-grup canvas'ı PDF'de 120mm */
+    #raporContainer canvas.soru-grup-chart {
+        height: 120mm !important;
+        margin-top: 4mm !important;
+        margin-bottom: 10mm !important;
+    }
+
+    /* Presentation-card içindeki canvas da PDF'de 120mm */
+    .presentation-chart-card .pc-canvas {
+        height: 120mm !important;
+    }
+
+    /* Diğer canvaslar için PDF yüksekliği (eğer hepsini 120mm istiyorsan) */
+    #raporContainer canvas:not(.soru-grup-chart) {
+        height: 120mm !important;
+        margin-top: 3mm !important;
+        margin-bottom: 3mm !important;
+    }
+
+    /* Tablo uzaklığı ve yazı ayarı */
+    /*#raporContainer table {
+        width: 100% !important;
+        border-collapse: collapse;
+        font-size: 16px;
+        margin-top: 8mm !important;
+    }*/
+    #raporContainer .no-table table {
+        display: none !important;
+    }
+
+
+    /* sayfa içinde bölünmeyi engelle */
+    .soru-grup-section {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* yazdırmada renk hassasiyeti */
+    #raporContainer, #raporContainer * {
+        -webkit-print-color-adjust: exact;
+        box-sizing: border-box;
+    }
+}
+
+/* gizle: soru-grup için tablolarsa göstermek istemezsen */
+.soru-grup-no-table table {
+    display: none !important;
+}
+
+/* isteğe bağlı: sıkıştırılmış PDF başlık boyutu (kullanılacaksa) */
+.pdf-tight .presentation-chart-card .pc-title {
+    font-size: 22px !important;
+}
+
+.soru-grup-no-table .pc-canvas {
+    margin-top: -8px !important;
+}

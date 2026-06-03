@@ -1,0 +1,35 @@
+@model survey.Models.AnketGrup
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    @Html.HiddenFor(model => model.AnketGupId)
+
+    <div class="panel">
+        <div>
+            <h4>ANKET GRUP LİSTESİ</h4>
+        </div>
+        <div class="panel-body">
+
+            <div hidden class="col-md-10">
+                @Html.TextBoxFor(model => model.AnketId, new { @Value = ViewBag.id })
+                @Html.ValidationMessageFor(model => model.AnketId, "", new { @class = "text-danger" })
+            </div>
+            <div class="col-md-10">
+                <h5>Soru Adı</h5>
+                @Html.DropDownListFor(m => m.SoruGrupId, (List<SelectListItem>)ViewBag.Sor, "Seçim", new { @class = "form-control", @Required = "" })
+                @Html.ValidationMessageFor(model => model.SoruGrupId, "", new { @class = "text-danger" })
+            </div>
+            <div>
+                <br />
+                <a class="btn btn-primary btn-outline-primary fa fa-backward" href="@Url.Action("AnketGrupIndex", "Home", new {id = ViewBag.id})"> Geri</a>
+                <input type="submit" class="btn btn-primary btn-outline-primary fa fa-check" value=" Kayıt" />
+            </div>
+        </div>
+    </div>
+}

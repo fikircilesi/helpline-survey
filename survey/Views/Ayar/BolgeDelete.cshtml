@@ -1,0 +1,29 @@
+@model survey.Models.Bolge
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="panel panel-primary">
+    <div class="panel-heading panel-head; text-uppercase">
+        BÖLGE SİL
+    </div>
+    <div class="panel-body">
+
+        <div class="col-md-10">
+            <h5>Bölge Adı</h5>
+            @Html.EditorFor(model => model.BolgeAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+        </div>
+        <div class="col-lg-9"></div>
+        <div class="col-lg-3">
+            @using (Html.BeginForm())
+            {
+                @Html.AntiForgeryToken()
+
+                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("BolgeIndex", "Ayar")">Geri</a>
+                <input type="submit" style="background-color:red; color:white" class="btn btn-default" value="Sil" />
+            }
+        </div>
+    </div>
+</div>

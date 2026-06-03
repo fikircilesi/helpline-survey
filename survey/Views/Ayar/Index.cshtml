@@ -1,0 +1,83 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div style="padding:20px" class="panel">
+    <div class="page-body button-page">
+
+                    <div class="card-">
+
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("UserIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Kullanıcı Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("PersonelIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Personel Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("UnvanIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Ünvan Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("DepartmanIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Departman Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("BolgeIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Bölge Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("SehirIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Şehir Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("BolumIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Bölüm Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("SubeIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Şube Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("YoneticiIndex", "Ayar", new {id = Session["id"] })">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Yönetici Tanımları</il>
+                        </a>
+                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("AiAyar", "Ayar")">
+                            <br />
+                            <br />
+                            <br />
+                            <il class="ion-android-settings"> Yapay Zeka Ayarları</il>
+                        </a>
+                    </div>
+                </div>
+            </div>
+<script>
+    function buyukresim1(x) {
+        x.style.width = "265px";
+        x.style.height = "185px";
+    }
+
+    function normalresim1(x) {
+        x.style.width = "270px";
+        x.style.height = "190px";
+
+    }
+</script>

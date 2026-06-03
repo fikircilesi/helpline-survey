@@ -1,0 +1,126 @@
+@model survey.Models.Tumcontroller
+@{
+    if (Session["tc"] != null || ViewBag.kod != null)
+    {
+        Layout = "~/Views/Shared/_AnketLayout.cshtml";
+    }
+    else
+    {
+        Layout = "~/Views/Shared/_AnketLayout.cshtml";
+    }
+}
+
+<head>
+    <script src="~/Scripts/jquery-3.7.1.js"></script>
+    <link href="~/files/assets/css/jquery.dataTables.min.css" rel="stylesheet" />
+    <script src="~/files/assets/js/jquery.dataTables.min.js"></script>
+</head>
+
+
+@if (ViewBag.kod != null)
+{
+    <h4 class="text-uppercase">Hoş Geldiniz</h4>
+    <div class="alert alert-info" style="border-radius:8px">
+        Katılım kodunuz: <strong>@ViewBag.kod</strong>.
+        Sınav/eğitim sonucunuzu ve sertifikanızı daha sonra ana sayfadaki <strong>Katılım Kodum Var</strong> alanından takip edebilirsiniz.
+    </div>
+}
+else
+{
+    <h4 class="text-uppercase">Sayın:@Session["adi"] Hoş Geldiniz</h4>
+}
+
+@if (ViewBag.sinav == true && ViewBag.link != null)
+{
+    <h4>Bu Bir Eğitim Sınavıdır. Lütfen önce Videoyu izleyiniz.</h4>
+
+    <!-- YouTube video -->
+    <iframe id="ytplayer" width="400" height="315"
+            src="https://www.youtube.com/embed/@ViewBag.link?enablejsapi=1"
+            frameborder="0" allowfullscreen></iframe>
+
+    if (ViewBag.izledi == true)
+    {
+        <h3 style="color:green">Videoyu izlediğinizi kabul ettiniz</h3>
+    }
+
+    <form id="examForm" method="post" action="@Url.Action("Izledim", "Home")">
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <input type="hidden" name="UseId" value="@(ViewBag.user ?? Session["id"] ?? 1)" />
+        <input type="hidden" name="AnketId" value="@ViewBag.id" />
+        <input type="hidden" name="Izledi" value="true" />
+        <input type="hidden" name="IzTarih" value="@DateTime.Now" />
+        <input type="hidden" name="user" value="@(ViewBag.user ?? Session["id"] ?? 1)" />
+        <input type="hidden" name="kod" value="@ViewBag.kod" />
+
+        @if (ViewBag.izledi == true)
+        {
+            <button type="submit" id="btnStartExam" class="btn btn-primary btn-outline-primary w-100">
+                Sınava Devam Et
+            </button>
+        }
+        else
+        {
+            <button type="submit" id="btnStartExam" class="btn btn-primary btn-outline-primary w-100">
+                Videoyu izledim, Sınav Başla
+            </button>
+        }
+    </form>
+}
+else
+{
+    <form id="examForm" method="post" action="@Url.Action("Izledim", "Home")">
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <input type="hidden" name="UseId" value="@(ViewBag.user ?? Session["id"] ?? 1)" />
+        <input type="hidden" name="AnketId" value="@ViewBag.id" />
+        <input type="hidden" name="Izledi" value="true" />
+        <input type="hidden" name="IzTarih" value="@DateTime.Now" />
+        <input type="hidden" name="user" value="@(ViewBag.user ?? Session["id"] ?? 1)" />
+        <input type="hidden" name="kod" value="@ViewBag.kod" />
+
+        <button type="submit" id="btnStartExam" class="btn btn-primary btn-outline-primary w-100">
+            Sınava Devam Et
+        </button>
+    </form>
+}
+
+@if (Session["tc"] != null || ViewBag.kod != null)
+{
+    <a style="background-color:red; color:white"
+       class="btn btn-default"
+       href="@Url.Action("AnketGiris", "Home")">Çıkış</a>
+}
+
+<script>
+    $('#Grid').dataTable({});
+
+    // YouTube API entegrasyonu
+    var player;
+    var videoBitti = false;
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('ytplayer', {
+            events: { 'onStateChange': onPlayerStateChange }
+        });
+    }
+
+    function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+            videoBitti = true;
+        }
+    }
+
+    document.getElementById("examForm")?.addEventListener("submit", function (e) {
+        if (!videoBitti) {
+            var onay = confirm("Videoyu tam olarak izlemediniz. Yine de devam etmek istiyor musunuz?");
+            if (!onay) {
+                e.preventDefault(); // gönderimi iptal et
+            }
+        }
+    });
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>

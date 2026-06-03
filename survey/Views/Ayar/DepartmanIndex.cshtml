@@ -1,0 +1,43 @@
+@model IEnumerable<survey.Models.Departman>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="panel">
+    <div>
+        <h4>DEPARTMAN LİSTESİ</h4>
+    </div>
+    <div class="panel-body">
+
+        <table class="table">
+            <tr>
+                <td></td>
+                <th>
+                    Departman Adı
+                </th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <a class="fa fa-pencil" title="Ünvan düzenleme" href="@Url.Action("DepartmanEdit", "Ayar", new { id = item.DepartmanId })"></a>
+                        <a class="fa fa-trash-o" title="Ünvan sil" href="@Url.Action("DepartmanDelete", "Ayar", new { id = item.DepartmanId})"></a>
+                    </td>
+
+                    <td>
+                        @item.DepartmanAdi
+                    </td>
+
+                </tr>
+            }
+
+        </table>
+        <div class="col-lg-9"></div>
+        <div class="col-lg-3">
+                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
+                <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("DepartmanCreate", "Ayar")">Yeni</a>
+        </div>
+
+    </div>
+</div>

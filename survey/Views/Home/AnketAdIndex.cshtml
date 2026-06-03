@@ -1,0 +1,579 @@
+@model IEnumerable<survey.Models.Anket>
+@using System
+@using System.Collections.Generic
+@using System.Linq
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var calismalar = (Model ?? Enumerable.Empty<survey.Models.Anket>()).ToList();
+    var aktifSayisi = calismalar.Count(x => x.Pasif != true);
+    var pasifSayisi = calismalar.Count(x => x.Pasif == true);
+    var sinavSayisi = calismalar.Count(x => x.Sinav == true);
+    var anketSayisi = calismalar.Count - sinavSayisi;
+    var duplicateGroups = calismalar
+        .GroupBy(x => (x.AnketAdi ?? string.Empty).Trim(), StringComparer.CurrentCultureIgnoreCase)
+        .Where(g => !string.IsNullOrWhiteSpace(g.Key) && g.Count() > 1)
+        .ToList();
+    var duplicateIds = new HashSet<int>(duplicateGroups.SelectMany(g => g.Select(x => x.AnketId)));
+    Func<string, string> safe = value => string.IsNullOrWhiteSpace(value) ? "Tanımsız" : value.Trim();
+}
+
+<div class="study-center">
+    <section class="study-hero">
+        <div>
+            <span class="study-eyebrow">Evalio Studio</span>
+            <h1>Çalışmalar</h1>
+            <p>Anket, sınav ve eğitimleri buradan yönetin. Durum değiştirme, yayın zamanı ve tür ayarları her çalışmanın ayar ekranında tek yerden yapılır.</p>
+            <div class="study-chip-row">
+                <span><i class="fa fa-folder-open"></i> @calismalar.Count çalışma</span>
+                <span><i class="fa fa-check-circle"></i> @aktifSayisi aktif</span>
+                <span><i class="fa fa-ban"></i> @pasifSayisi pasif</span>
+                <span><i class="fa fa-pencil-square-o"></i> @anketSayisi anket</span>
+                <span><i class="fa fa-graduation-cap"></i> @sinavSayisi sınav/eğitim</span>
+            </div>
+        </div>
+        <div class="study-actions">
+            <a class="study-btn" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                <i class="fa fa-th-large"></i> Panele dön
+            </a>
+            <a class="study-btn primary" href="@Url.Action("AssessmentWizard", "Home")">
+                <i class="fa fa-magic"></i> Sihirbaz
+            </a>
+            <a class="study-btn primary" href="@Url.Action("AnketAdCreate", "Home")">
+                <i class="fa fa-plus"></i> Yeni çalışma
+            </a>
+        </div>
+    </section>
+
+    @if (duplicateGroups.Any())
+    {
+        <section class="study-alert">
+            <i class="fa fa-exclamation-triangle"></i>
+            <div>
+                <strong>Aynı isimli çalışmalar var.</strong>
+                <span>Yeni kayıtlarda artık aynı isim engellendi. Mevcut tekrarları ayarlardan yeniden adlandırın ya da kullanmadığınızı pasife alın.</span>
+            </div>
+        </section>
+    }
+
+    <section class="study-toolbar">
+        <div class="study-search">
+            <i class="fa fa-search"></i>
+            <input id="studySearch" type="search" placeholder="Çalışma adı, tür veya durum ara" autocomplete="off" />
+        </div>
+        <div class="study-filter" role="group" aria-label="Çalışma filtresi">
+            <button type="button" class="active" data-filter="all">Tümü</button>
+            <button type="button" data-filter="active">Aktif</button>
+            <button type="button" data-filter="passive">Pasif</button>
+            <button type="button" data-filter="survey">Anket</button>
+            <button type="button" data-filter="exam">Sınav / eğitim</button>
+        </div>
+    </section>
+
+    @if (calismalar.Any())
+    {
+        <section class="study-grid" id="studyGrid">
+            @foreach (var item in calismalar)
+            {
+                var isExam = item.Sinav == true;
+                var isPassive = item.Pasif == true;
+                var anonymousOpen = item.Tanimsiz != true;
+                var duplicate = duplicateIds.Contains(item.AnketId);
+                var statusText = isPassive ? "Pasif" : "Aktif";
+                var typeText = isExam ? "Sınav / eğitim" : "Anket";
+                var resultText = item.Sonuc == true ? "Sonuç görünür" : "Sonuç gizli";
+                var durationText = isExam
+                    ? (item.Zaman.HasValue && item.Zaman.Value > 0 ? item.Zaman.Value + " dk" : "Süre yok")
+                    : "Süre uygulanmaz";
+                var searchText = (safe(item.AnketAdi) + " " + statusText + " " + typeText + " " + resultText).ToLower(new System.Globalization.CultureInfo("tr-TR"));
+
+                <article class="study-card"
+                         data-study-card
+                         data-status="@(isPassive ? "passive" : "active")"
+                         data-type="@(isExam ? "exam" : "survey")"
+                         data-search="@searchText">
+                    <div class="study-card-main">
+                        <div class="study-card-icon @(isExam ? "exam" : "survey")">
+                            <i class="fa @(isExam ? "fa-graduation-cap" : "fa-pencil-square-o")"></i>
+                        </div>
+                        <div class="study-card-text">
+                            <div class="study-card-topline">
+                                <span class="study-id">#@item.AnketId</span>
+                                <span class="study-status @(isPassive ? "passive" : "active")">@statusText</span>
+                                @if (duplicate)
+                                {
+                                    <span class="study-status duplicate">Aynı isim</span>
+                                }
+                            </div>
+                            <h2>
+                                <a href="@Url.Action("AnketAdEdit", "Home", new { id = item.AnketId })">@safe(item.AnketAdi)</a>
+                            </h2>
+                            <div class="study-meta">
+                                <span>@typeText</span>
+                                <span>@resultText</span>
+                                <span>@durationText</span>
+                                <span>@(anonymousOpen ? "Anonim link açık" : "Kayıtlı hedef")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="study-card-actions">
+                        <a class="study-icon-btn" title="Ayarlar" href="@Url.Action("AnketAdEdit", "Home", new { id = item.AnketId })">
+                            <i class="fa fa-cog"></i>
+                        </a>
+                        <a class="study-icon-btn" title="Kırılımlar" href="@Url.Action("AnketGrupIndex", "Home", new { id = item.AnketId, adi = item.AnketAdi })">
+                            <i class="fa fa-list"></i>
+                        </a>
+                        <a class="study-icon-btn" title="Rapor" href="@Url.Action("AnketIndex1", "Home", new { id = item.AnketId })">
+                            <i class="fa fa-pie-chart"></i>
+                        </a>
+                        <a class="study-icon-btn danger" title="Sil" href="@Url.Action("AnketAdDelete", "Home", new { id = item.AnketId })">
+                            <i class="fa fa-trash-o"></i>
+                        </a>
+                    </div>
+                </article>
+            }
+        </section>
+
+        <section class="study-empty" id="studySearchEmpty" hidden>
+            <i class="fa fa-search"></i>
+            <h2>Sonuç bulunamadı</h2>
+            <p>Arama veya filtreyi değiştirerek tekrar deneyin.</p>
+        </section>
+    }
+    else
+    {
+        <section class="study-empty">
+            <i class="fa fa-magic"></i>
+            <h2>Henüz çalışma yok</h2>
+            <p>İlk anket, sınav veya eğitimi sihirbazla oluşturabilirsiniz.</p>
+            <a class="study-btn primary" href="@Url.Action("AssessmentWizard", "Home")">Sihirbazı aç</a>
+        </section>
+    }
+</div>
+
+<style>
+    .study-center {
+        width: min(1580px, calc(100% - 48px));
+        margin: 34px auto 60px;
+        color: #061a35;
+    }
+
+    .study-center * {
+        box-sizing: border-box;
+    }
+
+    .study-hero,
+    .study-toolbar,
+    .study-card,
+    .study-empty,
+    .study-alert {
+        border: 1px solid #d6e2f3;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .96);
+        box-shadow: 0 20px 48px rgba(24, 45, 83, .08);
+    }
+
+    .study-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 28px;
+        padding: 34px;
+        background: linear-gradient(130deg, rgba(225, 253, 246, .96), rgba(244, 247, 255, .9) 58%, rgba(255, 248, 229, .72)), #fff;
+    }
+
+    .study-eyebrow {
+        display: inline-flex;
+        color: #255ef5;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .study-hero h1 {
+        margin: 10px 0 8px;
+        font-size: 40px;
+        line-height: 1.12;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .study-hero p {
+        max-width: 760px;
+        margin: 0;
+        color: #53627a;
+        font-size: 15px;
+        line-height: 1.7;
+        font-weight: 650;
+    }
+
+    .study-chip-row,
+    .study-actions,
+    .study-card-actions,
+    .study-meta,
+    .study-filter,
+    .study-card-topline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .study-chip-row {
+        margin-top: 20px;
+    }
+
+    .study-chip-row span,
+    .study-meta span,
+    .study-id,
+    .study-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #24436d;
+        font-size: 12px;
+        font-weight: 850;
+        padding: 8px 11px;
+    }
+
+    .study-chip-row i {
+        color: #11a99b;
+    }
+
+    .study-actions {
+        align-content: flex-start;
+        justify-content: flex-end;
+        min-width: 430px;
+    }
+
+    .study-btn,
+    .study-icon-btn,
+    .study-filter button {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid #cfe0f6;
+        border-radius: 10px;
+        background: #fff;
+        color: #071832;
+        font-weight: 900;
+        text-decoration: none;
+        padding: 0 16px;
+        cursor: pointer;
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .study-btn.primary {
+        border-color: #22b8a6;
+        background: linear-gradient(135deg, #16bca9, #3562f4);
+        color: #fff;
+        box-shadow: 0 16px 32px rgba(34, 105, 244, .18);
+    }
+
+    .study-btn:hover,
+    .study-icon-btn:hover,
+    .study-filter button:hover,
+    .study-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 38px rgba(19, 42, 80, .12);
+        text-decoration: none;
+    }
+
+    .study-alert {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-color: #ffd29a;
+        background: #fff9ed;
+        color: #744500;
+    }
+
+    .study-alert i {
+        margin-top: 3px;
+        color: #d88300;
+    }
+
+    .study-alert strong,
+    .study-alert span {
+        display: block;
+    }
+
+    .study-alert span {
+        margin-top: 4px;
+        color: #805a1f;
+        font-weight: 700;
+    }
+
+    .study-toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        margin-top: 18px;
+        padding: 16px;
+    }
+
+    .study-search {
+        position: relative;
+        flex: 1 1 340px;
+    }
+
+    .study-search i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #7890b0;
+    }
+
+    .study-search input {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid #d3dfef;
+        border-radius: 10px;
+        padding: 0 14px 0 40px;
+        color: #071832;
+        font-weight: 750;
+        outline: none;
+    }
+
+    .study-search input:focus {
+        border-color: #3562f4;
+        box-shadow: 0 0 0 3px rgba(53, 98, 244, .12);
+    }
+
+    .study-filter {
+        justify-content: flex-end;
+    }
+
+    .study-filter button {
+        min-height: 38px;
+        padding: 0 13px;
+        font-size: 12px;
+    }
+
+    .study-filter button.active {
+        border-color: #255ef5;
+        background: #eef3ff;
+        color: #1e4fe0;
+    }
+
+    .study-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+    }
+
+    .study-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        padding: 18px;
+        transition: transform .16s ease, box-shadow .16s ease;
+    }
+
+    .study-card-main {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 16px;
+        min-width: 0;
+    }
+
+    .study-card-icon {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        color: #fff;
+        font-size: 22px;
+        box-shadow: 0 14px 28px rgba(80, 101, 246, .20);
+    }
+
+    .study-card-icon.survey {
+        background: linear-gradient(135deg, #18b7a4, #5065f6);
+    }
+
+    .study-card-icon.exam {
+        background: linear-gradient(135deg, #d99300, #e04d72);
+    }
+
+    .study-card-text {
+        min-width: 0;
+    }
+
+    .study-card h2 {
+        margin: 10px 0 12px;
+        color: #061a35;
+        font-size: 20px;
+        line-height: 1.3;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .study-card h2 a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .study-card h2 a:hover {
+        color: #255ef5;
+    }
+
+    .study-status.active {
+        background: #e6fff7;
+        color: #047864;
+    }
+
+    .study-status.passive {
+        background: #fff0f0;
+        color: #a32626;
+    }
+
+    .study-status.duplicate {
+        background: #fff4d9;
+        color: #9a6500;
+    }
+
+    .study-card-actions {
+        align-content: flex-start;
+        justify-content: flex-end;
+        min-width: 156px;
+    }
+
+    .study-icon-btn {
+        width: 40px;
+        min-height: 40px;
+        padding: 0;
+    }
+
+    .study-icon-btn.danger {
+        color: #d9364f;
+        border-color: #ffd1d8;
+        background: #fff7f8;
+    }
+
+    .study-empty {
+        display: grid;
+        place-items: center;
+        gap: 10px;
+        margin-top: 18px;
+        padding: 50px 24px;
+        text-align: center;
+    }
+
+    .study-empty i {
+        display: grid;
+        place-items: center;
+        width: 74px;
+        height: 74px;
+        border-radius: 22px;
+        background: #eef5ff;
+        color: #255ef5;
+        font-size: 30px;
+    }
+
+    .study-empty h2 {
+        margin: 8px 0 0;
+        font-size: 24px;
+        font-weight: 950;
+    }
+
+    .study-empty p {
+        margin: 0 0 10px;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 1180px) {
+        .study-hero,
+        .study-toolbar,
+        .study-grid,
+        .study-card {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .study-actions,
+        .study-card-actions {
+            min-width: 0;
+            justify-content: flex-start;
+        }
+    }
+
+    @@media (max-width: 720px) {
+        .study-center {
+            width: min(100% - 22px, 1580px);
+            margin-top: 18px;
+        }
+
+        .study-hero {
+            padding: 24px 20px;
+        }
+
+        .study-hero h1 {
+            font-size: 32px;
+        }
+
+        .study-card-main {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        const searchInput = document.getElementById('studySearch');
+        const filterButtons = document.querySelectorAll('[data-filter]');
+        const cards = document.querySelectorAll('[data-study-card]');
+        const empty = document.getElementById('studySearchEmpty');
+        let activeFilter = 'all';
+
+        function normalize(value) {
+            return (value || '').toLocaleLowerCase('tr-TR').trim();
+        }
+
+        function applyFilters() {
+            const term = normalize(searchInput ? searchInput.value : '');
+            let visible = 0;
+
+            cards.forEach(function (card) {
+                const matchesFilter = activeFilter === 'all'
+                    || card.dataset.status === activeFilter
+                    || card.dataset.type === activeFilter;
+                const matchesText = !term || normalize(card.dataset.search).indexOf(term) > -1;
+                const show = matchesFilter && matchesText;
+                card.hidden = !show;
+                if (show) {
+                    visible += 1;
+                }
+            });
+
+            if (empty) {
+                empty.hidden = visible !== 0;
+            }
+        }
+
+        filterButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                filterButtons.forEach(function (item) { item.classList.remove('active'); });
+                button.classList.add('active');
+                activeFilter = button.dataset.filter || 'all';
+                applyFilters();
+            });
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+
+        applyFilters();
+    })();
+</script>

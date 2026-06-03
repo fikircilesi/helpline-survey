@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Schema Namespace="EnvanterTakipLisansModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+  <EntityType Name="Lisans">
+    <Key>
+      <PropertyRef Name="LisansId" />
+    </Key>
+    <Property Name="LisansId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="VnTc" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+    <Property Name="KayitTarih" Type="DateTime" Precision="3" />
+    <Property Name="SirketAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+    <Property Name="ModulSayi" Type="Int32" />
+    <Property Name="IpAdress" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+  </EntityType>
+  <EntityContainer Name="EnvanterTakipLisansEntities" annotation:LazyLoadingEnabled="true">
+    <EntitySet Name="Lisans" EntityType="Self.Lisans" />
+    <EntitySet Name="User" EntityType="EnvanterTakipLisansModel.User" />
+  </EntityContainer>
+  <EntityType Name="User">
+    <Key>
+      <PropertyRef Name="Id" />
+    </Key>
+    <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="Idkod" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+    <Property Name="Adi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+    <Property Name="Unvani" Type="Int32" />
+    <Property Name="KullaniciAdi" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+    <Property Name="Sifre" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+    <Property Name="aktif" Type="Boolean" />
+    <Property Name="KayitTarih" Type="DateTime" Precision="3" />
+    <Property Name="Email" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+    <Property Name="Admin" Type="Boolean" />
+    <Property Name="Resim" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+  </EntityType>
+</Schema>

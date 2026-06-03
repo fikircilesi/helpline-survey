@@ -1,0 +1,1083 @@
+@model survey.Models.Tumcontroller
+@{
+    ViewBag.Title = "Çalışma Alanım";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var anketler = (Model.Ank ?? Enumerable.Empty<survey.Models.Anket>()).ToList();
+    var havuz = (Model.Hav ?? Enumerable.Empty<survey.Models.Havuz>()).ToList();
+    var anketGruplari = (Model.AnkGrp ?? Enumerable.Empty<survey.Models.AnketGrup>()).ToList();
+    var sorular = (Model.Sor ?? Enumerable.Empty<survey.Models.Soru>()).ToList();
+    var aktifSayisi = anketler.Count(x => x.Pasif != true);
+    var taslakSayisi = anketler.Count(x => x.Pasif == true);
+    var kayitliKatilimSayisi = havuz.Where(x => x.UserId != null && x.UserId != 1).Select(x => x.UserId).Distinct().Count();
+    var anonimKatilimSayisi = havuz.Where(x => x.UserId == null && x.Isimsiz != null).Select(x => x.Isimsiz).Distinct().Count();
+    var katilimSayisi = kayitliKatilimSayisi + anonimKatilimSayisi;
+    var sertifikaHazir = anketler.Count(x => x.Sinav == true && x.Sonuc == true);
+    var katilimTokenMap = ViewBag.KatilimTokenMap as System.Collections.Generic.Dictionary<int, string>
+        ?? new System.Collections.Generic.Dictionary<int, string>();
+    var katilimYontemiMap = ViewBag.KatilimYontemiMap as System.Collections.Generic.Dictionary<int, string>
+        ?? new System.Collections.Generic.Dictionary<int, string>();
+    var kullaniciAdi = (Session["adi"] as string) ?? "Çalışma Alanım";
+}
+
+<style>
+    .workspace-page {
+        color: #142033;
+    }
+
+    .workspace-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 22px;
+        padding: 28px;
+        margin-bottom: 18px;
+        border-radius: 8px;
+        color: #fff;
+        background:
+            linear-gradient(135deg, rgba(11, 18, 32, .95), rgba(20, 43, 57, .94)),
+            url('@Url.Content("~/files/assets/images/widget-bg.png")') center/cover no-repeat;
+        box-shadow: 0 18px 48px rgba(21, 34, 50, .14);
+        overflow: hidden;
+    }
+
+    .workspace-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 30px;
+        padding: 0 11px;
+        margin-bottom: 14px;
+        border: 1px solid rgba(255, 255, 255, .22);
+        border-radius: 999px;
+        color: rgba(255, 255, 255, .78);
+        background: rgba(255, 255, 255, .08);
+        font-weight: 700;
+        font-size: 12px;
+    }
+
+    .workspace-title {
+        margin: 0;
+        color: #fff;
+        font-size: 32px;
+        font-weight: 900;
+        line-height: 1.18;
+    }
+
+    .workspace-subtitle {
+        max-width: 760px;
+        margin: 10px 0 0;
+        color: rgba(255, 255, 255, .72);
+        font-size: 15px;
+        line-height: 1.6;
+    }
+
+    .workspace-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .workspace-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 16px;
+        border: 1px solid rgba(255, 255, 255, .24);
+        border-radius: 8px;
+        color: #fff;
+        background: rgba(255, 255, 255, .1);
+        font-weight: 800;
+        font-size: 13px;
+        transition: transform .18s ease, background .18s ease;
+    }
+
+    .workspace-btn:hover {
+        color: #fff;
+        transform: translateY(-1px);
+        background: rgba(255, 255, 255, .18);
+    }
+
+    .workspace-btn.primary {
+        color: #0b1220;
+        border-color: transparent;
+        background: #8df0c7;
+        box-shadow: 0 16px 34px rgba(56, 211, 159, .24);
+    }
+
+    .workspace-btn.primary:hover {
+        color: #0b1220;
+    }
+
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .stat-tile {
+        min-height: 118px;
+        padding: 18px;
+        border: 1px solid #e8edf5;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 12px 30px rgba(20, 32, 51, .06);
+    }
+
+    .stat-tile i {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 18px;
+    }
+
+    .stat-tile:nth-child(1) i { background: #19a7ce; }
+    .stat-tile:nth-child(2) i { background: #38a169; }
+    .stat-tile:nth-child(3) i { background: #f26b4f; }
+    .stat-tile:nth-child(4) i { background: #7559d9; }
+
+    .stat-value {
+        display: block;
+        margin-top: 15px;
+        color: #101827;
+        font-size: 28px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .stat-label {
+        display: block;
+        margin-top: 7px;
+        color: #667085;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .workspace-section {
+        margin-top: 10px;
+    }
+
+    .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
+    .section-title {
+        margin: 0;
+        color: #101827;
+        font-size: 20px;
+        font-weight: 900;
+    }
+
+    .section-note {
+        margin: 4px 0 0;
+        color: #667085;
+        font-size: 13px;
+    }
+
+    .assessment-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .assessment-card {
+        display: grid;
+        min-height: 236px;
+        padding: 18px;
+        border: 1px solid #e8edf5;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(20, 32, 51, .06);
+    }
+
+    .assessment-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .assessment-name {
+        margin: 0;
+        color: #101827;
+        font-size: 17px;
+        font-weight: 900;
+        line-height: 1.35;
+        text-transform: uppercase;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .status-badge.live {
+        color: #08724f;
+        background: #ddf8ea;
+    }
+
+    .status-badge.draft {
+        color: #9a3412;
+        background: #ffedd5;
+    }
+
+    .assessment-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin: 18px 0;
+    }
+
+    .meta-box {
+        min-height: 62px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f7fafc;
+    }
+
+    .meta-box strong {
+        display: block;
+        color: #101827;
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .meta-box span {
+        display: block;
+        margin-top: 7px;
+        color: #667085;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .assessment-tags {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-bottom: 16px;
+    }
+
+    .tag-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 9px;
+        border-radius: 999px;
+        color: #344054;
+        background: #eef2f7;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .tag-pill.open {
+        color: #08724f;
+        background: #ddf8ea;
+    }
+
+    .tag-pill.closed {
+        color: #9a3412;
+        background: #ffedd5;
+    }
+
+    .assessment-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: auto;
+    }
+
+    .mini-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 38px;
+        border: 1px solid #d9e1ec;
+        border-radius: 8px;
+        color: #344054;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .mini-btn:hover {
+        color: #101827;
+        background: #f7fafc;
+    }
+
+    .mini-btn:disabled {
+        color: #98a2b3;
+        border-color: #e8edf5;
+        background: #f7fafc;
+        cursor: not-allowed;
+    }
+
+    .mini-btn.publish {
+        color: #0b1220;
+        border-color: transparent;
+        background: #8df0c7;
+    }
+
+    .mini-btn.share {
+        color: #0b4b77;
+        border-color: #c7e8f8;
+        background: #eef9ff;
+    }
+
+    .share-modal[hidden] {
+        display: none;
+    }
+
+    .share-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1050;
+        display: grid;
+        place-items: center;
+        padding: 22px;
+        background: rgba(15, 23, 42, .48);
+    }
+
+    .share-dialog {
+        width: min(560px, 100%);
+        padding: 22px;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, .25);
+    }
+
+    .share-dialog-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .share-dialog h3 {
+        margin: 0;
+        color: #101827;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.35;
+    }
+
+    .share-dialog p {
+        margin: 6px 0 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .share-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border: 1px solid #e8edf5;
+        border-radius: 8px;
+        color: #344054;
+        background: #fff;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .share-url-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        margin: 14px 0;
+    }
+
+    .share-url-row input {
+        min-width: 0;
+        height: 42px;
+        padding: 0 12px;
+        border: 1px solid #d9e1ec;
+        border-radius: 8px;
+        color: #344054;
+        background: #f8fafc;
+        font-size: 13px;
+    }
+
+    .share-qr-box {
+        display: grid;
+        place-items: center;
+        min-height: 230px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+
+    .share-qr-box img {
+        width: 210px;
+        height: 210px;
+    }
+
+    .share-platform-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin: 10px 0 14px;
+    }
+
+    .share-platform-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 10px;
+        border: 1px solid #d9e1ec;
+        border-radius: 8px;
+        color: #172033;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .share-platform-btn:hover {
+        color: #0b1220;
+        border-color: #b9c7dc;
+        background: #f8fbff;
+    }
+
+    .share-platform-btn.primary {
+        color: #fff;
+        border-color: transparent;
+        background: linear-gradient(135deg, #172033, #4f46e5);
+    }
+
+    .share-platform-btn i {
+        font-size: 15px;
+    }
+
+    .share-feedback {
+        min-height: 18px;
+        margin-top: 10px;
+        color: #08724f;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 620px) {
+        .share-platform-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    .management-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .management-link {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+        min-height: 74px;
+        padding: 14px;
+        border: 1px solid #e8edf5;
+        border-radius: 8px;
+        color: #101827;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(20, 32, 51, .05);
+    }
+
+    .management-link:hover {
+        color: #101827;
+        border-color: #cbd5e1;
+        background: #f8fbff;
+    }
+
+    .management-link i {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        color: #0b1220;
+        background: #eef2f7;
+        font-size: 17px;
+    }
+
+    .management-link strong {
+        display: block;
+        overflow: hidden;
+        color: #101827;
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .management-link span {
+        display: block;
+        margin-top: 3px;
+        color: #667085;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .management-link.danger i {
+        color: #7f1d1d;
+        background: #fee2e2;
+    }
+
+    .empty-state {
+        display: grid;
+        place-items: center;
+        min-height: 260px;
+        padding: 32px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        text-align: center;
+    }
+
+    .empty-state i {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        margin-bottom: 16px;
+        border-radius: 8px;
+        color: #0b1220;
+        background: #8df0c7;
+        font-size: 25px;
+    }
+
+    .empty-state h3 {
+        margin: 0;
+        color: #101827;
+        font-size: 20px;
+        font-weight: 900;
+    }
+
+    .empty-state p {
+        max-width: 520px;
+        margin: 10px auto 18px;
+        color: #667085;
+        line-height: 1.6;
+    }
+
+    @@media (max-width: 1200px) {
+        .assessment-grid,
+        .management-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 900px) {
+        .workspace-hero,
+        .section-head {
+            grid-template-columns: 1fr;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .workspace-actions {
+            justify-content: flex-start;
+        }
+
+        .stat-grid,
+        .assessment-grid,
+        .management-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .share-url-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="page-body workspace-page">
+    <section class="workspace-hero">
+        <div>
+            <div class="workspace-kicker">
+                <i class="ti-dashboard"></i>
+                Evalio by Aslana çalışma alanı
+            </div>
+            <h1 class="workspace-title">Merhaba @kullaniciAdi, bugün neyi yayına alıyoruz?</h1>
+            <p class="workspace-subtitle">
+                Sihirbazdan sınav, anket, eğitim veya aday değerlendirmesi hazırlayın; ödeme ve kredi adımı tamamlandığında yayın akışını buradan yönetin.
+            </p>
+        </div>
+        <div class="workspace-actions">
+            <a class="workspace-btn primary" href="@Url.Action("AssessmentWizard", "Home")">
+                <i class="ti-wand"></i>
+                Yeni Sihirbaz
+            </a>
+            <a class="workspace-btn" href="@Url.Action("AnketAdIndex", "Home")">
+                <i class="ti-list"></i>
+                Klasik Liste
+            </a>
+        </div>
+    </section>
+
+    <section class="stat-grid">
+        <div class="stat-tile">
+            <i class="ti-layout-grid2"></i>
+            <strong class="stat-value">@anketler.Count</strong>
+            <span class="stat-label">Toplam çalışma</span>
+        </div>
+        <div class="stat-tile">
+            <i class="ti-signal"></i>
+            <strong class="stat-value">@aktifSayisi</strong>
+            <span class="stat-label">Yayında</span>
+        </div>
+        <div class="stat-tile">
+            <i class="ti-pencil-alt"></i>
+            <strong class="stat-value">@taslakSayisi</strong>
+            <span class="stat-label">Taslak / pasif</span>
+        </div>
+        <div class="stat-tile">
+            <i class="ti-id-badge"></i>
+            <strong class="stat-value">@sertifikaHazir</strong>
+            <span class="stat-label">Sertifika hazır</span>
+        </div>
+    </section>
+
+    <section class="workspace-section">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">Çalışma Stüdyosu</h2>
+                <p class="section-note">Günlük akış sihirbaz üzerinden ilerler; soru bankası ve bakım araçları gerektiğinde kullanılır.</p>
+            </div>
+        </div>
+
+        <div class="management-grid">
+            <a class="management-link" href="@Url.Action("AssessmentWizard", "Home")">
+                <i class="ti-wand"></i>
+                <span>
+                    <strong>Yeni Çalışma Oluştur</strong>
+                    <span>Sınav, anket veya değerlendirme sihirbazı</span>
+                </span>
+            </a>
+            <a class="management-link" href="@Url.Action("AnketAdIndex", "Home", new { id = Session["id"] })">
+                <i class="ti-clipboard"></i>
+                <span>
+                    <strong>Çalışma Tanımları</strong>
+                    <span>Yayın, süre ve sertifika ayarları</span>
+                </span>
+            </a>
+            <a class="management-link" href="@Url.Action("SoruIndex", "Home", new { id = Session["id"] })">
+                <i class="ti-help-alt"></i>
+                <span>
+                    <strong>Soru Bankası</strong>
+                    <span>Sorular ve puan yapısı</span>
+                </span>
+            </a>
+            <a class="management-link" href="@Url.Action("SoruGrupIndex", "Home", new { id = Session["id"] })">
+                <i class="ti-layers"></i>
+                <span>
+                    <strong>Bölüm / Kategori Bankası</strong>
+                    <span>Soru grupları ve sıralama</span>
+                </span>
+            </a>
+            <a class="management-link" href="@Url.Action("CevapIndex", "Home", new { id = Session["id"] })">
+                <i class="ti-check-box"></i>
+                <span>
+                    <strong>Seçenek Bankası</strong>
+                    <span>Anket puanı ve doğru cevap bilgisi</span>
+                </span>
+            </a>
+            <a class="management-link" href="@Url.Action("CevapGrupIndex", "Home", new { id = Session["id"] })">
+                <i class="ti-view-list"></i>
+                <span>
+                    <strong>Gelişmiş Seçenek Grupları</strong>
+                    <span>Manuel soru bankası eşleşmeleri</span>
+                </span>
+            </a>
+            <a class="management-link danger" href="@Url.Action("AnketHavuzIndex", "Home", new { id = Session["id"] })">
+                <i class="ti-trash"></i>
+                <span>
+                    <strong>Katılım Verilerini Temizle</strong>
+                    <span>Cevap ve sonuç kayıtları</span>
+                </span>
+            </a>
+            <a class="management-link danger" href="@Url.Action("AnketZamanIndex", "Home", new { id = Session["id"] })">
+                <i class="ti-timer"></i>
+                <span>
+                    <strong>Süre Kayıtlarını Sıfırla</strong>
+                    <span>Sınav zaman takibi</span>
+                </span>
+            </a>
+        </div>
+    </section>
+
+    <section class="workspace-section">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">Çalışmalarım</h2>
+                <p class="section-note">@katilimSayisi katılımcı kaydı sistemde takip ediliyor.</p>
+            </div>
+            <a class="mini-btn publish" href="@Url.Action("AssessmentWizard", "Home")">
+                <i class="ti-plus"></i>
+                Yeni Çalışma
+            </a>
+        </div>
+
+        @if (!anketler.Any())
+        {
+            <div class="empty-state">
+                <div>
+                    <i class="ti-wand"></i>
+                    <h3>İlk çalışmanızı oluşturun</h3>
+                    <p>Sürükle-bırak sihirbaz ile sınav, anket veya işe alım değerlendirmesi hazırlayıp yayın akışına taşıyın.</p>
+                    <a class="workspace-btn primary" href="@Url.Action("AssessmentWizard", "Home")">Sihirbazı Aç</a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="assessment-grid">
+                @foreach (var item in anketler.OrderByDescending(x => x.AnketId))
+                {
+                    var itemHavuz = havuz.Where(x => x.AnketId == item.AnketId).ToList();
+                    var soruGruplari = anketGruplari.Where(x => x.AnketId == item.AnketId).ToList();
+                    var soruSayisi = (from detay in soruGruplari
+                                      join soru in sorular on detay.SoruGrupId equals soru.SoruGrupId
+                                      select soru).Count();
+                    var kayitliKatilim = itemHavuz.Where(x => x.UserId != null && x.UserId != 1).Select(x => x.UserId).Distinct().Count();
+                    var anonimKatilim = itemHavuz.Where(x => x.UserId == null && x.Isimsiz != null).Select(x => x.Isimsiz).Distinct().Count();
+                    var katilim = kayitliKatilim + anonimKatilim;
+                    var durumClass = item.Pasif == true ? "draft" : "live";
+                    var durumText = item.Pasif == true ? "Taslak" : "Yayında";
+                    var tipText = item.Sinav == true ? "Sınav" : "Anket";
+                    var katilimToken = katilimTokenMap.ContainsKey(item.AnketId) ? katilimTokenMap[item.AnketId] : "";
+                    var publicLinkEnabled = item.Pasif != true && !string.IsNullOrWhiteSpace(katilimToken);
+                    var paylasimUrl = Url.Action("Katilim", "Home", new { token = katilimToken }, Context.Request.Scheme);
+                    var qrUrl = Url.Action("KatilimQr", "Home", new { token = katilimToken });
+                    var katilimYontemi = katilimYontemiMap.ContainsKey(item.AnketId) ? katilimYontemiMap[item.AnketId] : "HerkeseAcik";
+                    var katilimYontemiText = katilimYontemi == "Kayitli"
+                        ? "Kayitli kisiler"
+                        : katilimYontemi == "KisiyeOzel"
+                            ? "Kisiye ozel"
+                            : katilimYontemi == "BilgiFormu"
+                                ? "Bilgi formu"
+                                : "Herkese acik";
+                    var shareSubtitle = katilimYontemi == "Kayitli" || katilimYontemi == "KisiyeOzel"
+                        ? "Bu baglanti kayitli katilimcilara ozeldir. Giris yapan uygun kisilerin sonuclari kendi profiline islenir."
+                        : katilimYontemi == "BilgiFormu"
+                            ? "Bu baglanti genel katilima aciktir; kayitli olmayan kisiler kod ile takip edilir."
+                            : "Bu baglanti herkese aciktir; giris yapan kayitli kisiler kendi profiliyle, digerleri katilim koduyla izlenir.";
+
+                    <article class="assessment-card">
+                        <div class="assessment-top">
+                            <h3 class="assessment-name">@item.AnketAdi</h3>
+                            <span class="status-badge @durumClass">@durumText</span>
+                        </div>
+
+                        <div class="assessment-meta">
+                            <div class="meta-box">
+                                <strong>@soruGruplari.Count(x => x.SoruGrupId != null)</strong>
+                                <span>Grup</span>
+                            </div>
+                            <div class="meta-box">
+                                <strong>@soruSayisi</strong>
+                                <span>Soru</span>
+                            </div>
+                            <div class="meta-box">
+                                <strong>@katilim</strong>
+                                <span>Katılım</span>
+                            </div>
+                        </div>
+
+                        <div class="assessment-tags">
+                            <span class="tag-pill">@tipText</span>
+                            @if (item.Sonuc == true)
+                            {
+                                <span class="tag-pill">Sonuç açık</span>
+                            }
+                            @if (item.SertifikaNotu != null)
+                            {
+                                <span class="tag-pill">Sertifika @item.SertifikaNotu+</span>
+                            }
+                            @if (item.Zaman != null)
+                            {
+                                <span class="tag-pill">@item.Zaman dk</span>
+                            }
+                            <span class="tag-pill">@katilimYontemiText</span>
+                            <span class="tag-pill @(publicLinkEnabled ? "open" : "closed")">@(publicLinkEnabled ? "Link hazır" : "Link kapalı")</span>
+                        </div>
+
+                        <div class="assessment-actions">
+                            <a class="mini-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = item.AnketId, adi = item.AnketAdi })">
+                                <i class="ti-pencil"></i>
+                                Düzenle
+                            </a>
+                            <a class="mini-btn" href="@Url.Action("DogruCevapEditor", "Home", new { id = item.AnketId })">
+                                <i class="ti-check"></i>
+                                Doğru Cevap
+                            </a>
+                            <a class="mini-btn" href="@Url.Action("AnketIndex1", "Home", new { id = item.AnketId })">
+                                <i class="ti-bar-chart"></i>
+                                Rapor
+                            </a>
+                            <a class="mini-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = item.AnketId })">
+                                <i class="ti-settings"></i>
+                                Ayarlar
+                            </a>
+                            <a class="mini-btn" href="@Url.Action("SertifikaWizard", "Home", new { id = item.AnketId })">
+                                <i class="ti-cup"></i>
+                                Sertifika
+                            </a>
+                            @if (publicLinkEnabled)
+                            {
+                                <button class="mini-btn share js-share"
+                                        type="button"
+                                        data-share-url="@paylasimUrl"
+                                        data-qr-url="@qrUrl"
+                                        data-share-title="@item.AnketAdi"
+                                        data-share-subtitle="@shareSubtitle">
+                                    <i class="ti-share"></i>
+                                    Paylaş
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="mini-btn" type="button" disabled>
+                                    <i class="ti-share"></i>
+                                    Paylaşım Kapalı
+                                </button>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+<div class="share-modal" id="shareModal" hidden>
+    <div class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+        <div class="share-dialog-head">
+            <div>
+                <h3 id="shareModalTitle">Paylaşım Bağlantısı</h3>
+                <p id="shareModalSubtitle">Bu link veya QR kod çalışma ayarlarındaki katılım yöntemine göre çalışır.</p>
+            </div>
+            <button class="share-close" type="button" id="shareModalClose" aria-label="Kapat">
+                <span aria-hidden="true">x</span>
+            </button>
+        </div>
+
+        <div class="share-url-row">
+            <input id="shareUrlInput" type="text" readonly />
+            <button class="mini-btn share" type="button" id="shareCopyButton">
+                <i class="ti-files"></i>
+                Kopyala
+            </button>
+        </div>
+
+        <div class="share-platform-grid" aria-label="Paylasim kanallari">
+            <button class="share-platform-btn primary" type="button" id="shareNativeButton">
+                <i class="ti-share"></i>
+                Paylas
+            </button>
+            <button class="share-platform-btn" type="button" data-share-platform="whatsapp">
+                <i class="ti-mobile"></i>
+                WhatsApp
+            </button>
+            <button class="share-platform-btn" type="button" data-share-platform="telegram">
+                <i class="ti-location-arrow"></i>
+                Telegram
+            </button>
+            <button class="share-platform-btn" type="button" data-share-platform="teams">
+                <i class="ti-comments"></i>
+                Teams
+            </button>
+            <button class="share-platform-btn" type="button" data-share-platform="mail">
+                <i class="ti-email"></i>
+                E-posta
+            </button>
+            <button class="share-platform-btn" type="button" data-share-platform="sms">
+                <i class="ti-comment"></i>
+                SMS
+            </button>
+        </div>
+
+        <div class="share-qr-box" id="shareQrBox">
+            <img id="shareQrImage" alt="Katılım QR kodu" />
+        </div>
+        <div class="share-feedback" id="shareFeedback" aria-live="polite"></div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const modal = document.getElementById("shareModal");
+        const title = document.getElementById("shareModalTitle");
+        const subtitle = document.getElementById("shareModalSubtitle");
+        const input = document.getElementById("shareUrlInput");
+        const qrBox = document.getElementById("shareQrBox");
+        const qrImage = document.getElementById("shareQrImage");
+        const feedback = document.getElementById("shareFeedback");
+        const copyButton = document.getElementById("shareCopyButton");
+        const closeButton = document.getElementById("shareModalClose");
+        const nativeShareButton = document.getElementById("shareNativeButton");
+        const platformButtons = document.querySelectorAll("[data-share-platform]");
+        let currentShareTitle = "";
+
+        function openShareModal(button) {
+            const shareUrl = button.dataset.shareUrl || "";
+            const qrUrl = button.dataset.qrUrl || "";
+            const shareTitle = button.dataset.shareTitle || "Çalışma";
+            const shareSubtitle = button.dataset.shareSubtitle || "Bu bağlantıyı veya QR kodu kendi biriminizle paylaşabilirsiniz.";
+
+            currentShareTitle = shareTitle;
+            title.textContent = shareTitle;
+            subtitle.textContent = shareSubtitle;
+            input.value = shareUrl;
+            qrImage.src = qrUrl || "";
+            qrBox.style.display = qrUrl ? "grid" : "none";
+            qrImage.style.display = qrUrl ? "block" : "none";
+            feedback.textContent = "";
+            modal.hidden = false;
+            input.select();
+        }
+
+        async function copyShareUrl() {
+            const value = input.value;
+            if (!value) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(value);
+                } else {
+                    input.select();
+                    document.execCommand("copy");
+                }
+                feedback.textContent = "Bağlantı kopyalandı.";
+            } catch {
+                feedback.textContent = "Bağlantıyı elle kopyalayabilirsiniz.";
+            }
+        }
+
+        function platformShareUrl(platform, shareUrl, shareTitle) {
+            const encodedUrl = encodeURIComponent(shareUrl);
+            const encodedTitle = encodeURIComponent(shareTitle || "Evalio Studio");
+            const encodedText = encodeURIComponent((shareTitle || "Evalio Studio") + " " + shareUrl);
+
+            switch (platform) {
+                case "whatsapp":
+                    return "https://wa.me/?text=" + encodedText;
+                case "telegram":
+                    return "https://t.me/share/url?url=" + encodedUrl + "&text=" + encodedTitle;
+                case "teams":
+                    return "https://teams.microsoft.com/share?href=" + encodedUrl + "&msgText=" + encodedTitle;
+                case "mail":
+                    return "mailto:?subject=" + encodedTitle + "&body=" + encodedText;
+                case "sms":
+                    return "sms:?&body=" + encodedText;
+                default:
+                    return "";
+            }
+        }
+
+        async function nativeShare() {
+            const value = input.value;
+            if (!value) return;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: currentShareTitle || "Evalio Studio",
+                        text: currentShareTitle || "Evalio Studio",
+                        url: value
+                    });
+                    feedback.textContent = "Paylasim penceresi acildi.";
+                    return;
+                } catch (error) {
+                    if (error && error.name === "AbortError") {
+                        feedback.textContent = "";
+                        return;
+                    }
+                }
+            }
+
+            await copyShareUrl();
+            feedback.textContent = "Bu cihazda genel paylasim desteklenmiyor; baglanti kopyalandi.";
+        }
+
+        function openPlatformShare(platform) {
+            const value = input.value;
+            if (!value) return;
+
+            const targetUrl = platformShareUrl(platform, value, currentShareTitle);
+            if (!targetUrl) return;
+
+            if (targetUrl.startsWith("mailto:") || targetUrl.startsWith("sms:")) {
+                window.location.href = targetUrl;
+            } else {
+                window.open(targetUrl, "_blank", "noopener,noreferrer");
+            }
+            feedback.textContent = "Paylasim kanali acildi.";
+        }
+
+        function closeShareModal() {
+            modal.hidden = true;
+            qrBox.style.display = "none";
+            qrImage.removeAttribute("src");
+        }
+
+        document.querySelectorAll(".js-share").forEach(function (button) {
+            button.addEventListener("click", function () {
+                openShareModal(button);
+            });
+        });
+
+        nativeShareButton.addEventListener("click", nativeShare);
+        platformButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                openPlatformShare(button.dataset.sharePlatform || "");
+            });
+        });
+        copyButton.addEventListener("click", copyShareUrl);
+        closeButton.addEventListener("click", closeShareModal);
+        modal.addEventListener("click", function (event) {
+            if (event.target === modal) {
+                closeShareModal();
+            }
+        });
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && !modal.hidden) {
+                closeShareModal();
+            }
+        });
+    })();
+</script>

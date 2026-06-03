@@ -1,0 +1,322 @@
+@model IEnumerable<survey.Models.Izledim>
+@using System
+@using System.Globalization
+@using System.Linq
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var izlemeler = (Model ?? Enumerable.Empty<survey.Models.Izledim>())
+        .GroupBy(x => x.UseId ?? x.IzleId)
+        .Select(g => g.OrderByDescending(x => x.BitisZaman ?? x.IzTarih).First())
+        .ToList();
+    var anketId = ViewBag.AnketId;
+    var anketAdi = Convert.ToString(ViewBag.AnketAdi ?? "Çalışma");
+    var tamamlananVideo = izlemeler.Count(x => x.Izledi == true);
+    Func<string, string> safe = value => string.IsNullOrWhiteSpace(value) ? "Tanımsız" : value;
+}
+
+<div class="watch-center">
+    <section class="watch-hero">
+        <div>
+            <span class="eyebrow">Katılım takibi</span>
+            <h1>Sadece Video İzleyenler</h1>
+            <p>@anketAdi çalışmasında eğitim videosuna girip henüz sınav/anket cevabı oluşturmayan katılımcılar burada görünür.</p>
+            <div class="hero-chips">
+                <span><i class="fa fa-video-camera"></i> @izlemeler.Count kişi</span>
+                <span><i class="fa fa-check-circle"></i> @tamamlananVideo video tamamlandı</span>
+                <span><i class="fa fa-clock-o"></i> @(izlemeler.Count - tamamlananVideo) süreçte</span>
+            </div>
+        </div>
+        <div class="hero-actions">
+            <a class="center-btn primary" href="@Url.Action("AnketIndex1", "Home", new { id = anketId })">
+                <i class="fa fa-pie-chart"></i> Rapor Panosu
+            </a>
+            <a class="center-btn" href="@Url.Action("AnketIndex", "Home", new { id = anketId })">
+                <i class="fa fa-th-large"></i> Rapor Merkezi
+            </a>
+        </div>
+    </section>
+
+    @if (izlemeler.Any())
+    {
+        <section class="people-grid">
+            @foreach (var item in izlemeler)
+            {
+                var user = item.User;
+                var ad = !string.IsNullOrWhiteSpace(user?.UserAdi)
+                    ? user.UserAdi
+                    : "Katılımcı #" + (item.UseId?.ToString() ?? item.IzleId.ToString());
+                var ilkHarf = ad.Substring(0, 1).ToUpper(new CultureInfo("tr-TR"));
+                var profil = user == null
+                    ? "Katılım kodu ile giriş"
+                    : string.Join(" / ", new[]
+                    {
+                        user.Departman?.DepartmanAdi,
+                        user.Unvan?.UnvanAdi,
+                        user.Sehir?.SehiarAdi
+                    }.Where(x => !string.IsNullOrWhiteSpace(x)).DefaultIfEmpty("Profil bilgisi yok"));
+                var durum = item.Izledi == true ? "Video tamamlandı" : "Video süreci başladı";
+                var durumClass = item.Izledi == true ? "active" : "waiting";
+
+                <article class="person-card">
+                    <div class="person-avatar">@ilkHarf</div>
+                    <div class="person-main">
+                        <div class="person-head">
+                            <div>
+                                <h2>@ad</h2>
+                                <p>@profil</p>
+                            </div>
+                            <span class="status-chip @durumClass">@durum</span>
+                        </div>
+                        <div class="person-meta">
+                            <span><i class="fa fa-key"></i> Kod: @(item.UseId?.ToString() ?? "-")</span>
+                            <span><i class="fa fa-calendar"></i> Başlangıç: @(item.IzTarih.HasValue ? item.IzTarih.Value.ToString("dd.MM.yyyy HH:mm") : "-")</span>
+                            <span><i class="fa fa-flag-checkered"></i> Bitiş: @(item.BitisZaman.HasValue ? item.BitisZaman.Value.ToString("dd.MM.yyyy HH:mm") : "-")</span>
+                            <span><i class="fa fa-layer-group"></i> @safe(user?.Yaka?.YakaAdi)</span>
+                        </div>
+                    </div>
+                </article>
+            }
+        </section>
+    }
+    else
+    {
+        <section class="empty-center">
+            <i class="fa fa-video-camera"></i>
+            <h2>Sadece video izleyen katılımcı yok</h2>
+            <p>Video izleyip sınav/anket cevabı vermeden kalan kimse görünmüyor.</p>
+            <a class="center-btn primary" href="@Url.Action("AnketIndex1", "Home", new { id = anketId })">
+                Rapor Panosuna Dön
+            </a>
+        </section>
+    }
+</div>
+
+<style>
+    .watch-center {
+        width: min(1500px, calc(100% - 48px));
+        margin: 32px auto 56px;
+        color: #061a35;
+    }
+
+    .watch-hero,
+    .person-card,
+    .empty-center {
+        border: 1px solid #d3e1f4;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .96);
+        box-shadow: 0 22px 55px rgba(24, 48, 88, .10);
+    }
+
+    .watch-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 28px;
+        padding: 34px;
+        background: linear-gradient(130deg, rgba(225, 253, 246, .96), rgba(244, 247, 255, .9) 58%, rgba(255, 248, 229, .72)), #fff;
+    }
+
+    .eyebrow {
+        display: inline-flex;
+        color: #255ef5;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .watch-hero h1 {
+        margin: 10px 0 8px;
+        font-size: 38px;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .watch-hero p {
+        max-width: 760px;
+        margin: 0;
+        color: #53627a;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    .hero-chips,
+    .person-meta,
+    .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .hero-chips {
+        margin-top: 20px;
+    }
+
+    .hero-chips span,
+    .person-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #24436d;
+        font-size: 12px;
+        font-weight: 850;
+        padding: 8px 11px;
+    }
+
+    .hero-chips i {
+        color: #11a99b;
+    }
+
+    .hero-actions {
+        align-items: flex-start;
+        justify-content: flex-end;
+        min-width: 280px;
+    }
+
+    .center-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        border: 1px solid #cfe0f6;
+        border-radius: 10px;
+        background: #fff;
+        color: #071832;
+        font-weight: 900;
+        text-decoration: none;
+        padding: 0 16px;
+        transition: transform .16s ease, box-shadow .16s ease;
+    }
+
+    .center-btn.primary {
+        border-color: #22b8a6;
+        background: linear-gradient(135deg, #16bca9, #3562f4);
+        color: #fff;
+        box-shadow: 0 16px 32px rgba(34, 105, 244, .18);
+    }
+
+    .center-btn:hover,
+    .person-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 38px rgba(19, 42, 80, .12);
+        text-decoration: none;
+    }
+
+    .people-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+    }
+
+    .person-card {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 16px;
+        padding: 20px;
+        transition: transform .16s ease, box-shadow .16s ease;
+    }
+
+    .person-avatar {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 17px;
+        background: linear-gradient(135deg, #18b7a4, #5065f6);
+        color: #fff;
+        font-size: 21px;
+        font-weight: 950;
+        box-shadow: 0 14px 28px rgba(80, 101, 246, .20);
+    }
+
+    .person-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .person-head h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 950;
+    }
+
+    .person-head p {
+        margin: 6px 0 12px;
+        color: #64748b;
+        font-weight: 750;
+    }
+
+    .status-chip {
+        align-self: flex-start;
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .status-chip.active {
+        background: #e6fff7;
+        color: #047864;
+    }
+
+    .status-chip.waiting {
+        background: #fff4d9;
+        color: #9a6500;
+    }
+
+    .empty-center {
+        display: grid;
+        place-items: center;
+        gap: 10px;
+        margin-top: 18px;
+        padding: 48px 24px;
+        text-align: center;
+    }
+
+    .empty-center i {
+        display: grid;
+        place-items: center;
+        width: 72px;
+        height: 72px;
+        border-radius: 22px;
+        background: #eef5ff;
+        color: #255ef5;
+        font-size: 28px;
+    }
+
+    .empty-center h2 {
+        margin: 8px 0 0;
+        font-size: 24px;
+        font-weight: 950;
+    }
+
+    .empty-center p {
+        margin: 0 0 10px;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 900px) {
+        .watch-hero,
+        .people-grid,
+        .person-card {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .hero-actions {
+            min-width: 0;
+            justify-content: stretch;
+        }
+
+        .center-btn {
+            flex: 1 1 100%;
+        }
+    }
+</style>

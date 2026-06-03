@@ -1,0 +1,729 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Schema Namespace="SurveyModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+  <EntityType Name="Anket">
+    <Key>
+      <PropertyRef Name="AnketId" />
+    </Key>
+    <Property Name="AnketId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="AnketAdi" Type="nvarchar" MaxLength="250" />
+    <Property Name="Pasif" Type="bit" />
+    <Property Name="Tanimsiz" Type="bit" />
+    <Property Name="Sinav" Type="bit" />
+    <Property Name="Link" Type="nvarchar" MaxLength="500" />
+    <Property Name="Zaman" Type="int" />
+    <Property Name="Sonuc" Type="bit" />
+    <Property Name="EgitimVeren" Type="nvarchar" MaxLength="250" />
+    <Property Name="Imza" Type="nvarchar" MaxLength="250" />
+    <Property Name="DepartmanId" Type="int" />
+    <Property Name="SehirId" Type="int" />
+    <Property Name="SubeId" Type="int" />
+    <Property Name="UnvanId" Type="int" />
+    <Property Name="SertifikaNotu" Type="int" />
+  </EntityType>
+  <EntityType Name="AnketGrup">
+    <Key>
+      <PropertyRef Name="AnketGupId" />
+    </Key>
+    <Property Name="AnketGupId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="AnketId" Type="int" />
+    <Property Name="SoruGrupId" Type="int" />
+  </EntityType>
+  <EntityType Name="Bolge">
+    <Key>
+      <PropertyRef Name="BolgeId" />
+    </Key>
+    <Property Name="BolgeId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="BolgeAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="Bolum">
+    <Key>
+      <PropertyRef Name="BolumId" />
+    </Key>
+    <Property Name="BolumId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="BolumAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="Cevap">
+    <Key>
+      <PropertyRef Name="CevapId" />
+    </Key>
+    <Property Name="CevapId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="CevapAdi" Type="nvarchar" MaxLength="250" />
+    <Property Name="CevapGrupId" Type="int" />
+    <Property Name="CevapPuan" Type="float" />
+    <Property Name="Dogru" Type="bit" />
+  </EntityType>
+  <EntityType Name="CevapGrup">
+    <Key>
+      <PropertyRef Name="CevapGrupId" />
+    </Key>
+    <Property Name="CevapGrupId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="CevapGrupAdi" Type="nvarchar" MaxLength="250" />
+  </EntityType>
+  <EntityType Name="Cinsiyet">
+    <Key>
+      <PropertyRef Name="CinsiyetId" />
+    </Key>
+    <Property Name="CinsiyetId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="CinsiyetAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="Departman">
+    <Key>
+      <PropertyRef Name="DepartmanId" />
+    </Key>
+    <Property Name="DepartmanId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="DepartmanAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="Egitim">
+    <Key>
+      <PropertyRef Name="EgitimId" />
+    </Key>
+    <Property Name="EgitimId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="EgitimAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="Havuz">
+    <Key>
+      <PropertyRef Name="HavuzId" />
+    </Key>
+    <Property Name="HavuzId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="AnketId" Type="int" />
+    <Property Name="SoruID" Type="int" />
+    <Property Name="SoruGrupId" Type="int" />
+    <Property Name="CevapId" Type="int" />
+    <Property Name="CevapGrupId" Type="int" />
+    <Property Name="UserId" Type="int" />
+    <Property Name="CevapPuan" Type="float" />
+    <Property Name="SoruPuan" Type="float" />
+    <Property Name="SoruGrupPuan" Type="float" />
+    <Property Name="KayitTar" Type="datetime" />
+    <Property Name="Isimsiz" Type="int" />
+  </EntityType>
+  <EntityType Name="Izledim">
+    <Key>
+      <PropertyRef Name="IzleId" />
+    </Key>
+    <Property Name="IzleId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="UseId" Type="int" />
+    <Property Name="AnketId" Type="int" />
+    <Property Name="Izledi" Type="bit" />
+    <Property Name="IzTarih" Type="datetime" />
+    <Property Name="BitisZaman" Type="datetime" />
+  </EntityType>
+  <EntityType Name="LisansKyn">
+    <Key>
+      <PropertyRef Name="LisansId" />
+    </Key>
+    <Property Name="LisansId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="VnTc1" Type="nvarchar" MaxLength="50" />
+    <Property Name="KayitTarih" Type="datetime" />
+    <Property Name="SirketAdi" Type="nvarchar" MaxLength="50" />
+    <Property Name="ModulSayi" Type="int" />
+    <Property Name="IpAdress" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="Personel">
+    <Key>
+      <PropertyRef Name="PersonelId" />
+    </Key>
+    <Property Name="PersonelId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="PersonelAdi" Type="nvarchar" MaxLength="50" />
+    <Property Name="Tc" Type="nvarchar" MaxLength="50" />
+    <Property Name="Unvani" Type="int" />
+    <Property Name="Mail" Type="nvarchar" MaxLength="50" />
+    <Property Name="Resim" Type="nvarchar" MaxLength="50" />
+    <Property Name="Telefon" Type="nvarchar" MaxLength="50" />
+    <Property Name="Adres" Type="text" />
+    <Property Name="KullaniciAdi" Type="nvarchar" MaxLength="50" />
+    <Property Name="Sifre" Type="nvarchar" MaxLength="50" />
+    <Property Name="Pasif" Type="bit" />
+    <Property Name="KayitTarihi" Type="datetime" />
+    <Property Name="Admin" Type="bit" />
+  </EntityType>
+  <EntityType Name="Sehir">
+    <Key>
+      <PropertyRef Name="SehirId" />
+    </Key>
+    <Property Name="SehirId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="SehiarAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="smtpayar">
+    <Key>
+      <PropertyRef Name="MailId" />
+    </Key>
+    <Property Name="MailId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="Sunucu" Type="nvarchar" MaxLength="50" Nullable="false" />
+    <Property Name="UserName" Type="nvarchar" MaxLength="50" Nullable="false" />
+    <Property Name="Password" Type="nvarchar" MaxLength="50" Nullable="false" />
+    <Property Name="Gonderen" Type="nvarchar" MaxLength="50" Nullable="false" />
+    <Property Name="Portu" Type="int" Nullable="false" />
+    <Property Name="Ssli" Type="bit" Nullable="false" />
+  </EntityType>
+  <EntityType Name="Soru">
+    <Key>
+      <PropertyRef Name="SoruId" />
+    </Key>
+    <Property Name="SoruId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="SoruAdi" Type="nvarchar" MaxLength="250" />
+    <Property Name="SoruSira" Type="int" />
+    <Property Name="SoruGrupId" Type="int" />
+    <Property Name="CevapGrupId" Type="int" />
+    <Property Name="SoruPuan" Type="float" />
+  </EntityType>
+  <EntityType Name="SoruGrup">
+    <Key>
+      <PropertyRef Name="SoruGrupId" />
+    </Key>
+    <Property Name="SoruGrupId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="SoruGrupAdi" Type="nvarchar" MaxLength="250" />
+    <Property Name="SoruGrupSira" Type="int" />
+    <Property Name="SoruGrupPuan" Type="float" />
+  </EntityType>
+  <EntityType Name="Sube">
+    <Key>
+      <PropertyRef Name="SubeId" />
+    </Key>
+    <Property Name="SubeId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="SubeAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="truefalse">
+    <Key>
+      <PropertyRef Name="TrueFalseId" />
+    </Key>
+    <Property Name="TrueFalseId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="TrueFalsemi" Type="nvarchar" MaxLength="10" />
+  </EntityType>
+  <EntityType Name="Unvan">
+    <Key>
+      <PropertyRef Name="UnvanId" />
+    </Key>
+    <Property Name="UnvanId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="UnvanAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="User">
+    <Key>
+      <PropertyRef Name="UserId" />
+    </Key>
+    <Property Name="UserId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="UserAdi" Type="nvarchar" MaxLength="50" />
+    <Property Name="UserTc" Type="nvarchar" MaxLength="50" />
+    <Property Name="UserUnvan" Type="int" />
+    <Property Name="UserCinsiyet" Type="int" />
+    <Property Name="UserDogumTar" Type="date" />
+    <Property Name="UserEgitim" Type="int" />
+    <Property Name="UserYoneticisi" Type="int" />
+    <Property Name="UserBolumu" Type="int" />
+    <Property Name="UserSube" Type="int" />
+    <Property Name="UserYaka" Type="int" />
+    <Property Name="UserBolge" Type="int" />
+    <Property Name="UserSehir" Type="int" />
+    <Property Name="UserDepartman" Type="int" />
+    <Property Name="UserMail" Type="nvarchar" MaxLength="50" />
+    <Property Name="UserResim" Type="nvarchar" MaxLength="50" />
+    <Property Name="UserTelefon" Type="nvarchar" MaxLength="50" />
+    <Property Name="UserAdres" Type="text" />
+    <Property Name="UserIseGirisTarihi" Type="date" />
+    <Property Name="Pasif" Type="bit" />
+    <Property Name="KayitTarihi" Type="datetime" />
+  </EntityType>
+  <EntityType Name="Yaka">
+    <Key>
+      <PropertyRef Name="YakaId" />
+    </Key>
+    <Property Name="YakaId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="YakaAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <EntityType Name="Yonetici">
+    <Key>
+      <PropertyRef Name="YoneticiId" />
+    </Key>
+    <Property Name="YoneticiId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="YoneticiAdi" Type="nvarchar" MaxLength="50" />
+  </EntityType>
+  <Association Name="FK_Anket_Anket2">
+    <End Role="Anket" Type="Self.Anket" Multiplicity="1" />
+    <End Role="Anket1" Type="Self.Anket" Multiplicity="0..1" />
+    <ReferentialConstraint>
+      <Principal Role="Anket">
+        <PropertyRef Name="AnketId" />
+      </Principal>
+      <Dependent Role="Anket1">
+        <PropertyRef Name="AnketId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Anket_Departman">
+    <End Role="Departman" Type="Self.Departman" Multiplicity="0..1" />
+    <End Role="Anket" Type="Self.Anket" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Departman">
+        <PropertyRef Name="DepartmanId" />
+      </Principal>
+      <Dependent Role="Anket">
+        <PropertyRef Name="DepartmanId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Anket_Sehir">
+    <End Role="Sehir" Type="Self.Sehir" Multiplicity="0..1" />
+    <End Role="Anket" Type="Self.Anket" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Sehir">
+        <PropertyRef Name="SehirId" />
+      </Principal>
+      <Dependent Role="Anket">
+        <PropertyRef Name="SehirId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Anket_Sube">
+    <End Role="Sube" Type="Self.Sube" Multiplicity="0..1" />
+    <End Role="Anket" Type="Self.Anket" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Sube">
+        <PropertyRef Name="SubeId" />
+      </Principal>
+      <Dependent Role="Anket">
+        <PropertyRef Name="SubeId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Anket_Unvan">
+    <End Role="Unvan" Type="Self.Unvan" Multiplicity="0..1" />
+    <End Role="Anket" Type="Self.Anket" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Unvan">
+        <PropertyRef Name="UnvanId" />
+      </Principal>
+      <Dependent Role="Anket">
+        <PropertyRef Name="UnvanId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_AnketGrup_Anket">
+    <End Role="Anket" Type="Self.Anket" Multiplicity="0..1" />
+    <End Role="AnketGrup" Type="Self.AnketGrup" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Anket">
+        <PropertyRef Name="AnketId" />
+      </Principal>
+      <Dependent Role="AnketGrup">
+        <PropertyRef Name="AnketId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_AnketGrup_SoruGrup">
+    <End Role="SoruGrup" Type="Self.SoruGrup" Multiplicity="0..1" />
+    <End Role="AnketGrup" Type="Self.AnketGrup" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="SoruGrup">
+        <PropertyRef Name="SoruGrupId" />
+      </Principal>
+      <Dependent Role="AnketGrup">
+        <PropertyRef Name="SoruGrupId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Cevap_CevapGrup">
+    <End Role="CevapGrup" Type="Self.CevapGrup" Multiplicity="0..1" />
+    <End Role="Cevap" Type="Self.Cevap" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="CevapGrup">
+        <PropertyRef Name="CevapGrupId" />
+      </Principal>
+      <Dependent Role="Cevap">
+        <PropertyRef Name="CevapGrupId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Havuz_Anket">
+    <End Role="Anket" Type="Self.Anket" Multiplicity="0..1" />
+    <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Anket">
+        <PropertyRef Name="AnketId" />
+      </Principal>
+      <Dependent Role="Havuz">
+        <PropertyRef Name="AnketId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Havuz_Cevap">
+    <End Role="Cevap" Type="Self.Cevap" Multiplicity="0..1" />
+    <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Cevap">
+        <PropertyRef Name="CevapId" />
+      </Principal>
+      <Dependent Role="Havuz">
+        <PropertyRef Name="CevapId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Havuz_CevapGrup">
+    <End Role="CevapGrup" Type="Self.CevapGrup" Multiplicity="0..1" />
+    <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="CevapGrup">
+        <PropertyRef Name="CevapGrupId" />
+      </Principal>
+      <Dependent Role="Havuz">
+        <PropertyRef Name="CevapGrupId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Havuz_Soru">
+    <End Role="Soru" Type="Self.Soru" Multiplicity="0..1" />
+    <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Soru">
+        <PropertyRef Name="SoruId" />
+      </Principal>
+      <Dependent Role="Havuz">
+        <PropertyRef Name="SoruID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Havuz_SoruGrup">
+    <End Role="SoruGrup" Type="Self.SoruGrup" Multiplicity="0..1" />
+    <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="SoruGrup">
+        <PropertyRef Name="SoruGrupId" />
+      </Principal>
+      <Dependent Role="Havuz">
+        <PropertyRef Name="SoruGrupId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Havuz_User1">
+    <End Role="User" Type="Self.User" Multiplicity="0..1" />
+    <End Role="Havuz" Type="Self.Havuz" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="User">
+        <PropertyRef Name="UserId" />
+      </Principal>
+      <Dependent Role="Havuz">
+        <PropertyRef Name="UserId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Izledim_Anket">
+    <End Role="Anket" Type="Self.Anket" Multiplicity="0..1" />
+    <End Role="Izledim" Type="Self.Izledim" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Anket">
+        <PropertyRef Name="AnketId" />
+      </Principal>
+      <Dependent Role="Izledim">
+        <PropertyRef Name="AnketId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Izledim_User">
+    <End Role="User" Type="Self.User" Multiplicity="0..1" />
+    <End Role="Izledim" Type="Self.Izledim" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="User">
+        <PropertyRef Name="UserId" />
+      </Principal>
+      <Dependent Role="Izledim">
+        <PropertyRef Name="UseId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Personel_Unvan">
+    <End Role="Unvan" Type="Self.Unvan" Multiplicity="0..1" />
+    <End Role="Personel" Type="Self.Personel" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Unvan">
+        <PropertyRef Name="UnvanId" />
+      </Principal>
+      <Dependent Role="Personel">
+        <PropertyRef Name="Unvani" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Soru_CevapGrup">
+    <End Role="CevapGrup" Type="Self.CevapGrup" Multiplicity="0..1" />
+    <End Role="Soru" Type="Self.Soru" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="CevapGrup">
+        <PropertyRef Name="CevapGrupId" />
+      </Principal>
+      <Dependent Role="Soru">
+        <PropertyRef Name="CevapGrupId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Soru_SoruGrup">
+    <End Role="SoruGrup" Type="Self.SoruGrup" Multiplicity="0..1" />
+    <End Role="Soru" Type="Self.Soru" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="SoruGrup">
+        <PropertyRef Name="SoruGrupId" />
+      </Principal>
+      <Dependent Role="Soru">
+        <PropertyRef Name="SoruGrupId" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Bolge">
+    <End Role="Bolge" Type="Self.Bolge" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Bolge">
+        <PropertyRef Name="BolgeId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserBolge" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Bolum">
+    <End Role="Bolum" Type="Self.Bolum" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Bolum">
+        <PropertyRef Name="BolumId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserBolumu" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Cinsiyet">
+    <End Role="Cinsiyet" Type="Self.Cinsiyet" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Cinsiyet">
+        <PropertyRef Name="CinsiyetId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserCinsiyet" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Departman">
+    <End Role="Departman" Type="Self.Departman" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Departman">
+        <PropertyRef Name="DepartmanId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserDepartman" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Egitim">
+    <End Role="Egitim" Type="Self.Egitim" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Egitim">
+        <PropertyRef Name="EgitimId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserEgitim" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Sehir">
+    <End Role="Sehir" Type="Self.Sehir" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Sehir">
+        <PropertyRef Name="SehirId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserSehir" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Sube">
+    <End Role="Sube" Type="Self.Sube" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Sube">
+        <PropertyRef Name="SubeId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserSube" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Unvan">
+    <End Role="Unvan" Type="Self.Unvan" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Unvan">
+        <PropertyRef Name="UnvanId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserUnvan" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Yaka">
+    <End Role="Yaka" Type="Self.Yaka" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Yaka">
+        <PropertyRef Name="YakaId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserYaka" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_User_Yonetici">
+    <End Role="Yonetici" Type="Self.Yonetici" Multiplicity="0..1" />
+    <End Role="User" Type="Self.User" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Yonetici">
+        <PropertyRef Name="YoneticiId" />
+      </Principal>
+      <Dependent Role="User">
+        <PropertyRef Name="UserYoneticisi" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <EntityContainer Name="SurveyModelStoreContainer">
+    <EntitySet Name="Anket" EntityType="Self.Anket" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="AnketGrup" EntityType="Self.AnketGrup" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Bolge" EntityType="Self.Bolge" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Bolum" EntityType="Self.Bolum" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Cevap" EntityType="Self.Cevap" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="CevapGrup" EntityType="Self.CevapGrup" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Cinsiyet" EntityType="Self.Cinsiyet" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Departman" EntityType="Self.Departman" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Egitim" EntityType="Self.Egitim" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Havuz" EntityType="Self.Havuz" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Izledim" EntityType="Self.Izledim" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="LisansKyn" EntityType="Self.LisansKyn" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Personel" EntityType="Self.Personel" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Sehir" EntityType="Self.Sehir" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="smtpayar" EntityType="Self.smtpayar" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Soru" EntityType="Self.Soru" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="SoruGrup" EntityType="Self.SoruGrup" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Sube" EntityType="Self.Sube" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="truefalse" EntityType="Self.truefalse" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Unvan" EntityType="Self.Unvan" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="User" EntityType="Self.User" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Yaka" EntityType="Self.Yaka" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Yonetici" EntityType="Self.Yonetici" Schema="dbo" store:Type="Tables" />
+    <AssociationSet Name="FK_Anket_Anket2" Association="Self.FK_Anket_Anket2">
+      <End Role="Anket" EntitySet="Anket" />
+      <End Role="Anket1" EntitySet="Anket" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Anket_Departman" Association="Self.FK_Anket_Departman">
+      <End Role="Departman" EntitySet="Departman" />
+      <End Role="Anket" EntitySet="Anket" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Anket_Sehir" Association="Self.FK_Anket_Sehir">
+      <End Role="Sehir" EntitySet="Sehir" />
+      <End Role="Anket" EntitySet="Anket" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Anket_Sube" Association="Self.FK_Anket_Sube">
+      <End Role="Sube" EntitySet="Sube" />
+      <End Role="Anket" EntitySet="Anket" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Anket_Unvan" Association="Self.FK_Anket_Unvan">
+      <End Role="Unvan" EntitySet="Unvan" />
+      <End Role="Anket" EntitySet="Anket" />
+    </AssociationSet>
+    <AssociationSet Name="FK_AnketGrup_Anket" Association="Self.FK_AnketGrup_Anket">
+      <End Role="Anket" EntitySet="Anket" />
+      <End Role="AnketGrup" EntitySet="AnketGrup" />
+    </AssociationSet>
+    <AssociationSet Name="FK_AnketGrup_SoruGrup" Association="Self.FK_AnketGrup_SoruGrup">
+      <End Role="SoruGrup" EntitySet="SoruGrup" />
+      <End Role="AnketGrup" EntitySet="AnketGrup" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Cevap_CevapGrup" Association="Self.FK_Cevap_CevapGrup">
+      <End Role="CevapGrup" EntitySet="CevapGrup" />
+      <End Role="Cevap" EntitySet="Cevap" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Havuz_Anket" Association="Self.FK_Havuz_Anket">
+      <End Role="Anket" EntitySet="Anket" />
+      <End Role="Havuz" EntitySet="Havuz" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Havuz_Cevap" Association="Self.FK_Havuz_Cevap">
+      <End Role="Cevap" EntitySet="Cevap" />
+      <End Role="Havuz" EntitySet="Havuz" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Havuz_CevapGrup" Association="Self.FK_Havuz_CevapGrup">
+      <End Role="CevapGrup" EntitySet="CevapGrup" />
+      <End Role="Havuz" EntitySet="Havuz" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Havuz_Soru" Association="Self.FK_Havuz_Soru">
+      <End Role="Soru" EntitySet="Soru" />
+      <End Role="Havuz" EntitySet="Havuz" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Havuz_SoruGrup" Association="Self.FK_Havuz_SoruGrup">
+      <End Role="SoruGrup" EntitySet="SoruGrup" />
+      <End Role="Havuz" EntitySet="Havuz" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Havuz_User1" Association="Self.FK_Havuz_User1">
+      <End Role="User" EntitySet="User" />
+      <End Role="Havuz" EntitySet="Havuz" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Izledim_Anket" Association="Self.FK_Izledim_Anket">
+      <End Role="Anket" EntitySet="Anket" />
+      <End Role="Izledim" EntitySet="Izledim" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Izledim_User" Association="Self.FK_Izledim_User">
+      <End Role="User" EntitySet="User" />
+      <End Role="Izledim" EntitySet="Izledim" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Personel_Unvan" Association="Self.FK_Personel_Unvan">
+      <End Role="Unvan" EntitySet="Unvan" />
+      <End Role="Personel" EntitySet="Personel" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Soru_CevapGrup" Association="Self.FK_Soru_CevapGrup">
+      <End Role="CevapGrup" EntitySet="CevapGrup" />
+      <End Role="Soru" EntitySet="Soru" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Soru_SoruGrup" Association="Self.FK_Soru_SoruGrup">
+      <End Role="SoruGrup" EntitySet="SoruGrup" />
+      <End Role="Soru" EntitySet="Soru" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Bolge" Association="Self.FK_User_Bolge">
+      <End Role="Bolge" EntitySet="Bolge" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Bolum" Association="Self.FK_User_Bolum">
+      <End Role="Bolum" EntitySet="Bolum" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Cinsiyet" Association="Self.FK_User_Cinsiyet">
+      <End Role="Cinsiyet" EntitySet="Cinsiyet" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Departman" Association="Self.FK_User_Departman">
+      <End Role="Departman" EntitySet="Departman" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Egitim" Association="Self.FK_User_Egitim">
+      <End Role="Egitim" EntitySet="Egitim" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Sehir" Association="Self.FK_User_Sehir">
+      <End Role="Sehir" EntitySet="Sehir" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Sube" Association="Self.FK_User_Sube">
+      <End Role="Sube" EntitySet="Sube" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Unvan" Association="Self.FK_User_Unvan">
+      <End Role="Unvan" EntitySet="Unvan" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Yaka" Association="Self.FK_User_Yaka">
+      <End Role="Yaka" EntitySet="Yaka" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+    <AssociationSet Name="FK_User_Yonetici" Association="Self.FK_User_Yonetici">
+      <End Role="Yonetici" EntitySet="Yonetici" />
+      <End Role="User" EntitySet="User" />
+    </AssociationSet>
+  </EntityContainer>
+</Schema>

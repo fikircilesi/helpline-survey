@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="4802af6e1e5244d5825c834d7aa8d2a7" Name="Diagram1" ZoomLevel="69">
+        <EntityTypeShape EntityType="SurveyModel.Bolge" Width="1.5" PointX="0.75" PointY="13.625" />
+        <EntityTypeShape EntityType="SurveyModel.Bolum" Width="1.5" PointX="0.75" PointY="25.375" />
+        <EntityTypeShape EntityType="SurveyModel.CevapGrup" Width="1.5" PointX="0.75" PointY="33.125" />
+        <EntityTypeShape EntityType="SurveyModel.Cinsiyet" Width="1.5" PointX="0.75" PointY="20.625" />
+        <EntityTypeShape EntityType="SurveyModel.Departman" Width="1.5" PointX="0.75" PointY="27.75" />
+        <EntityTypeShape EntityType="SurveyModel.Egitim" Width="1.5" PointX="0.75" PointY="23" />
+        <EntityTypeShape EntityType="SurveyModel.LisansKyn" Width="1.5" PointX="5.75" PointY="2.5" />
+        <EntityTypeShape EntityType="SurveyModel.Personel" Width="1.5" PointX="3" PointY="15" />
+        <EntityTypeShape EntityType="SurveyModel.Sehir" Width="1.5" PointX="0.75" PointY="18.375" />
+        <EntityTypeShape EntityType="SurveyModel.smtpayar" Width="1.5" PointX="7.75" PointY="2.5" />
+        <EntityTypeShape EntityType="SurveyModel.Sube" Width="1.5" PointX="0.75" PointY="11.25" />
+        <EntityTypeShape EntityType="SurveyModel.truefalse" Width="1.5" PointX="7.75" PointY="6.5" />
+        <EntityTypeShape EntityType="SurveyModel.Unvan" Width="1.5" PointX="0.75" PointY="8" />
+        <EntityTypeShape EntityType="SurveyModel.User" Width="1.5" PointX="3" PointY="5.375" />
+        <EntityTypeShape EntityType="SurveyModel.Yaka" Width="1.5" PointX="0.75" PointY="30" />
+        <EntityTypeShape EntityType="SurveyModel.Yonetici" Width="1.5" PointX="0.75" PointY="16" />
+        <AssociationConnector Association="SurveyModel.FK_User_Bolge" />
+        <AssociationConnector Association="SurveyModel.FK_User_Bolum" />
+        <AssociationConnector Association="SurveyModel.FK_User_Cinsiyet" />
+        <AssociationConnector Association="SurveyModel.FK_User_Departman" />
+        <AssociationConnector Association="SurveyModel.FK_User_Egitim" />
+        <AssociationConnector Association="SurveyModel.FK_Personel_Unvan" />
+        <AssociationConnector Association="SurveyModel.FK_User_Sehir" />
+        <AssociationConnector Association="SurveyModel.FK_User_Sube" />
+        <AssociationConnector Association="SurveyModel.FK_User_Unvan" />
+        <AssociationConnector Association="SurveyModel.FK_User_Yaka" />
+        <AssociationConnector Association="SurveyModel.FK_User_Yonetici" />
+        <EntityTypeShape EntityType="SurveyModel.Havuz" Width="1.5" PointX="5.25" PointY="15.75" />
+        <AssociationConnector Association="SurveyModel.FK_Havuz_CevapGrup" />
+        <AssociationConnector Association="SurveyModel.FK_Havuz_User1" />
+        <EntityTypeShape EntityType="SurveyModel.AnketGrup" Width="1.5" PointX="5.25" PointY="12.625" />
+        <EntityTypeShape EntityType="SurveyModel.SoruGrup" Width="1.5" PointX="0.75" PointY="18.25" />
+        <AssociationConnector Association="SurveyModel.FK_AnketGrup_SoruGrup" />
+        <AssociationConnector Association="SurveyModel.FK_Havuz_SoruGrup" />
+        <EntityTypeShape EntityType="SurveyModel.Cevap" Width="1.5" PointX="3" PointY="32.875" />
+        <AssociationConnector Association="SurveyModel.FK_Cevap_CevapGrup" />
+        <AssociationConnector Association="SurveyModel.FK_Havuz_Cevap" />
+        <EntityTypeShape EntityType="SurveyModel.Soru" Width="1.5" PointX="3" PointY="25.25" />
+        <AssociationConnector Association="SurveyModel.FK_Soru_CevapGrup" />
+        <AssociationConnector Association="SurveyModel.FK_Havuz_Soru" />
+        <AssociationConnector Association="SurveyModel.FK_Soru_SoruGrup" />
+        <EntityTypeShape EntityType="SurveyModel.Anket" Width="1.5" PointX="8" PointY="15" />
+        <AssociationConnector Association="SurveyModel.FK_Anket_Anket2" />
+        <AssociationConnector Association="SurveyModel.FK_Anket_Departman" />
+        <AssociationConnector Association="SurveyModel.FK_Anket_Sehir" />
+        <AssociationConnector Association="SurveyModel.FK_Anket_Sube" />
+        <AssociationConnector Association="SurveyModel.FK_Anket_Unvan" />
+        <AssociationConnector Association="SurveyModel.FK_AnketGrup_Anket" />
+        <AssociationConnector Association="SurveyModel.FK_Havuz_Anket" />
+        <EntityTypeShape EntityType="SurveyModel.Izledim" Width="1.5" PointX="10.25" PointY="11.75" />
+        <AssociationConnector Association="SurveyModel.FK_Izledim_Anket" />
+        <AssociationConnector Association="SurveyModel.FK_Izledim_User" />
+        </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

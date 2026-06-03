@@ -1,0 +1,131 @@
+﻿@model survey.Models.User
+@{
+    ViewBag.Title = "Giris";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evalio by Aslana</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="icon" href="~/files/assets/images/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,800" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="~/files/bower_components/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="~/files/assets/icon/themify-icons/themify-icons.css">
+    <link rel="stylesheet" type="text/css" href="~/files/assets/icon/icofont/css/icofont.css">
+    <link rel="stylesheet" type="text/css" href="~/files/assets/css/style.css">
+</head>
+<body>
+    <section class="login-block">
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-12">
+                    @using (Html.BeginForm("AnketGirisIsimsiz", "Home", FormMethod.Post, new { @class = "md-float-material form-material" }))
+                    {
+                        @Html.AntiForgeryToken()
+
+                        <div class="text-center">
+                            <img src="~/Content/img/evalio-logo-dark.svg" alt="Evalio by Aslana">
+                        </div>
+                        <div class="auth-box card">
+                            <div class="card-block">
+                                <div class="row m-b-20">
+                                    <div class="col-md-12">
+                                        <h3 class="text-center">GiriÅŸ</h3>
+                                    </div>
+                                </div>
+
+                                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                                <div class="form-group">
+                                    <div hidden>
+                                        <b>Cinsiyet</b>
+                                        @Html.DropDownListFor(m => m.UserCinsiyet, (IEnumerable<SelectListItem>)ViewBag.Cin, "SeÃ§im", new { @class = "form-control" })
+                                        @Html.ValidationMessageFor(model => model.UserCinsiyet, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div>
+                                        <b>EÄŸitim</b>
+                                        @Html.DropDownListFor(m => m.UserEgitim, (IEnumerable<SelectListItem>)ViewBag.Egi, "SeÃ§im", new { @class = "form-control", required = "required" })
+                                        @Html.ValidationMessageFor(model => model.UserEgitim, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div>
+                                        <b>YaÅŸÄ±</b>
+                                        @Html.EditorFor(model => model.UserDogumTar, new { htmlAttributes = new { type = "date", @class = "form-control", required = "required", maxlength = "50" } })
+                                        @Html.ValidationMessageFor(model => model.UserDogumTar, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div>
+                                        <b>BÃ¶lÃ¼m</b>
+                                        @Html.DropDownListFor(m => m.UserBolumu, (IEnumerable<SelectListItem>)ViewBag.Bol, "SeÃ§im", new { @class = "form-control", required = "required" })
+                                        @Html.ValidationMessageFor(model => model.UserBolumu, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div>
+                                        <b>Åube AdÄ±</b>
+                                        @Html.DropDownListFor(m => m.UserSube, (IEnumerable<SelectListItem>)ViewBag.Sub, "SeÃ§im", new { @class = "form-control", required = "required" })
+                                        @Html.ValidationMessageFor(model => model.UserSube, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div>
+                                        <b>BÃ¶lge AdÄ±</b>
+                                        @Html.DropDownListFor(m => m.UserBolge, (IEnumerable<SelectListItem>)ViewBag.Blg, "SeÃ§im", new { @class = "form-control", required = "required" })
+                                        @Html.ValidationMessageFor(model => model.UserBolge, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div>
+                                        <b>Departman AdÄ±</b>
+                                        @Html.DropDownListFor(m => m.UserDepartman, (IEnumerable<SelectListItem>)ViewBag.Dep, "SeÃ§im", new { @class = "form-control", required = "required" })
+                                        @Html.ValidationMessageFor(model => model.UserDepartman, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div>
+                                        <b>Yaka AdÄ±</b>
+                                        @Html.DropDownListFor(m => m.UserYaka, (IEnumerable<SelectListItem>)ViewBag.Yak, "SeÃ§im", new { @class = "form-control", required = "required" })
+                                        @Html.ValidationMessageFor(model => model.UserYaka, "", new { @class = "text-danger" })
+                                    </div>
+                                    <div>
+                                        <b>Åehir AdÄ±</b>
+                                        @Html.DropDownListFor(m => m.UserSehir, (IEnumerable<SelectListItem>)ViewBag.Seh, "SeÃ§im", new { @class = "form-control", required = "required" })
+                                        @Html.ValidationMessageFor(model => model.UserSehir, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+
+                                <div class="row m-t-30">
+                                    <div class="col-md-12">
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-primary btn-md waves-effect waves-light text-center m-b-20">GiriÅŸ</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr />
+                                <div class="row">
+                                    <div class="col-md-10">
+                                        <a href="@Url.Action("Giris", "Home")">
+                                            <p class="text-inverse text-start m-b-0">&copy; Evalio by Aslana</p>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <img width="50" src="~/Content/img/evalio-mark.svg" alt="Evalio by Aslana">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script type="text/javascript" src="~/files/bower_components/jquery/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/popper.js/dist/umd/popper.min.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/jquery-slimscroll/jquery.slimscroll.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/modernizr/modernizr.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/modernizr/feature-detects/css-scrollbars.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/i18next/i18next.min.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/i18next-xhr-backend/i18nextXHRBackend.min.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/i18next-browser-languagedetector/i18nextBrowserLanguageDetector.min.js"></script>
+    <script type="text/javascript" src="~/files/bower_components/jquery-i18next/jquery-i18next.min.js"></script>
+    <script type="text/javascript" src="~/files/assets/js/common-pages.js"></script>
+</body>
+</html>

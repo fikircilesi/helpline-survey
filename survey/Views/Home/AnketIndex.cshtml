@@ -1,0 +1,356 @@
+@model IEnumerable<survey.Models.Anket>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var calismalar = (Model ?? Enumerable.Empty<survey.Models.Anket>()).ToList();
+    var aktif = calismalar.Count(x => x.Pasif != true);
+    var tanimsizAcik = calismalar.Count(x => x.Tanimsiz == true);
+    var sinavSayisi = calismalar.Count(x => x.Sinav == true);
+}
+
+<div class="report-center">
+    <section class="center-hero">
+        <div>
+            <span class="eyebrow">Evalio Studio</span>
+            <h1>Rapor Merkezi</h1>
+            <p>Yayınladığınız sınav, eğitim ve anketlerin rapor panosuna, katılım takibine ve video izleme kontrollerine buradan geçin.</p>
+            <div class="hero-chips">
+                <span><i class="fa fa-th-large"></i> @calismalar.Count çalışma</span>
+                <span><i class="fa fa-check-circle"></i> @aktif aktif</span>
+                <span><i class="fa fa-user-secret"></i> @tanimsizAcik katılım kodlu</span>
+                <span><i class="fa fa-clipboard"></i> @sinavSayisi sınav/eğitim</span>
+            </div>
+        </div>
+        <div class="hero-actions">
+            <a class="center-btn" href="@Url.Action("Indexgosterge", "Home")">
+                <i class="fa fa-dashboard"></i> Panele Dön
+            </a>
+            <a class="center-btn primary" href="@Url.Action("AssessmentWizard", "Home")">
+                <i class="fa fa-plus"></i> Yeni Çalışma
+            </a>
+        </div>
+    </section>
+
+    @if (calismalar.Any())
+    {
+        <section class="work-grid">
+            @foreach (var item in calismalar)
+            {
+                var tur = item.Sinav == true ? "Sınav / eğitim" : "Anket";
+                var durum = item.Pasif == true ? "Pasif" : "Aktif";
+                var sonuc = item.Sonuc == true ? "Sonuç görünür" : "Sonuç gizli";
+                var sure = item.Zaman != null && item.Zaman > 0 ? item.Zaman + " dk" : "Süre yok";
+                var initials = string.IsNullOrWhiteSpace(item.AnketAdi) ? "E" : item.AnketAdi.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR"));
+
+                <article class="work-card">
+                    <div class="work-main">
+                        <div class="work-avatar">@initials</div>
+                        <div>
+                            <span class="work-kind">@tur</span>
+                            <h2>@item.AnketAdi</h2>
+                        </div>
+                    </div>
+
+                    <div class="work-meta">
+                        <span class="@(item.Pasif == true ? "soft danger" : "soft success")">
+                            <i class="fa fa-circle"></i> @durum
+                        </span>
+                        <span class="soft">
+                            <i class="fa fa-line-chart"></i> @sonuc
+                        </span>
+                        <span class="soft">
+                            <i class="fa fa-clock-o"></i> @sure
+                        </span>
+                        @if (item.Tanimsiz == true)
+                        {
+                            <span class="soft">
+                                <i class="fa fa-link"></i> Katılım kodlu
+                            </span>
+                        }
+                    </div>
+
+                    <div class="work-actions">
+                        <a class="action-btn primary" href="@Url.Action("AnketIndex1", "Home", new { id = item.AnketId })">
+                            <i class="fa fa-pie-chart"></i> Rapor Panosu
+                        </a>
+                        <a class="action-btn" href="@Url.Action("UserIndex1", "Ayar", new { id = item.AnketId })">
+                            <i class="fa fa-user-times"></i> Katılmayanlar
+                        </a>
+                        <a class="action-btn" href="@Url.Action("UserIndex2", "Ayar", new { id = item.AnketId })">
+                            <i class="fa fa-video-camera"></i> Sadece Video İzleyenler
+                        </a>
+                    </div>
+                </article>
+            }
+        </section>
+    }
+    else
+    {
+        <section class="empty-center">
+            <i class="fa fa-folder-open"></i>
+            <h2>Henüz raporlanacak çalışma yok</h2>
+            <p>Yeni bir sınav, eğitim ya da anket hazırladığınızda rapor merkezi burada dolacak.</p>
+            <a class="center-btn primary" href="@Url.Action("AssessmentWizard", "Home")">
+                <i class="fa fa-plus"></i> İlk Çalışmayı Oluştur
+            </a>
+        </section>
+    }
+</div>
+
+<style>
+    .report-center {
+        width: min(1500px, calc(100% - 48px));
+        margin: 32px auto 56px;
+        color: #061a35;
+    }
+
+    .center-hero,
+    .work-card,
+    .empty-center {
+        border: 1px solid #d3e1f4;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .96);
+        box-shadow: 0 22px 55px rgba(24, 48, 88, .10);
+    }
+
+    .center-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 28px;
+        padding: 34px;
+        background:
+            linear-gradient(130deg, rgba(225, 253, 246, .96), rgba(244, 247, 255, .9) 58%, rgba(255, 248, 229, .72)),
+            #fff;
+    }
+
+    .eyebrow {
+        display: inline-flex;
+        color: #255ef5;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .center-hero h1 {
+        margin: 10px 0 8px;
+        font-size: 38px;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .center-hero p {
+        max-width: 780px;
+        margin: 0;
+        color: #53627a;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    .hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .hero-chips span,
+    .soft {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #24436d;
+        font-size: 12px;
+        font-weight: 850;
+        padding: 8px 11px;
+    }
+
+    .hero-chips i {
+        color: #11a99b;
+    }
+
+    .hero-actions {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        gap: 10px;
+        min-width: 280px;
+        flex-wrap: wrap;
+    }
+
+    .center-btn,
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        border: 1px solid #cfe0f6;
+        border-radius: 10px;
+        background: #fff;
+        color: #071832;
+        font-weight: 900;
+        text-decoration: none;
+        padding: 0 16px;
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .center-btn.primary,
+    .action-btn.primary {
+        border-color: #22b8a6;
+        background: linear-gradient(135deg, #16bca9, #3562f4);
+        color: #fff;
+        box-shadow: 0 16px 32px rgba(34, 105, 244, .18);
+    }
+
+    .center-btn:hover,
+    .action-btn:hover,
+    .work-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 38px rgba(19, 42, 80, .12);
+        text-decoration: none;
+    }
+
+    .work-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+    }
+
+    .work-card {
+        display: grid;
+        gap: 18px;
+        padding: 22px;
+        transition: transform .16s ease, box-shadow .16s ease;
+    }
+
+    .work-main {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
+    }
+
+    .work-avatar {
+        display: grid;
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #18b7a4, #5065f6);
+        color: #fff;
+        font-size: 20px;
+        font-weight: 950;
+        box-shadow: 0 14px 28px rgba(80, 101, 246, .20);
+    }
+
+    .work-kind {
+        color: #255ef5;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .work-card h2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 54px;
+        margin: 5px 0 0;
+        font-size: 20px;
+        font-weight: 950;
+        line-height: 1.35;
+    }
+
+    .work-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .soft.success {
+        background: #e6fff7;
+        color: #047864;
+    }
+
+    .soft.danger {
+        background: #fff0ed;
+        color: #b13d2c;
+    }
+
+    .work-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 9px;
+        padding-top: 4px;
+    }
+
+    .empty-center {
+        display: grid;
+        place-items: center;
+        gap: 10px;
+        margin-top: 18px;
+        padding: 48px 24px;
+        text-align: center;
+    }
+
+    .empty-center i {
+        display: grid;
+        place-items: center;
+        width: 72px;
+        height: 72px;
+        border-radius: 22px;
+        background: #eef5ff;
+        color: #255ef5;
+        font-size: 28px;
+    }
+
+    .empty-center h2 {
+        margin: 8px 0 0;
+        font-size: 24px;
+        font-weight: 950;
+    }
+
+    .empty-center p {
+        margin: 0 0 10px;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 1200px) {
+        .work-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .report-center {
+            width: min(100% - 24px, 1500px);
+            margin-top: 16px;
+        }
+
+        .center-hero {
+            display: grid;
+            padding: 24px;
+        }
+
+        .center-hero h1 {
+            font-size: 30px;
+        }
+
+        .hero-actions,
+        .work-grid {
+            min-width: 0;
+            grid-template-columns: 1fr;
+        }
+
+        .center-btn {
+            flex: 1 1 100%;
+        }
+    }
+</style>

@@ -1,0 +1,424 @@
+@model survey.Controllers.HomeController.KatilimPortalModel
+
+@{
+    Layout = "~/Views/Shared/_AnketLayout.cshtml";
+
+    var toplam = Model.Calismalar.Count;
+    var tamamlanan = Model.Calismalar.Count(x => x.Tamamlandi);
+    var sertifikaHazir = Model.Calismalar.Count(x => x.SertifikaHazir);
+    var routeUser = Model.User ?? Model.Kod;
+    var portalMesaj = TempData["Mesaj"] as string;
+    if (!Model.Calismalar.Any()
+        && !string.IsNullOrWhiteSpace(portalMesaj)
+        && portalMesaj.IndexOf("Süreniz dol", StringComparison.OrdinalIgnoreCase) >= 0)
+    {
+        portalMesaj = null;
+    }
+}
+
+<style>
+    body {
+        background: #f4f7fb;
+    }
+
+    .participant-shell {
+        width: min(1120px, calc(100% - 24px));
+        margin: 24px auto 42px;
+        color: #172033;
+    }
+
+    .participant-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        padding: 24px;
+        border: 1px solid #dbe5f2;
+        border-radius: 8px;
+        background:
+            linear-gradient(135deg, rgba(24, 183, 164, .12), transparent 34%),
+            linear-gradient(315deg, rgba(67, 97, 238, .12), transparent 36%),
+            #fff;
+        box-shadow: 0 20px 44px rgba(22, 32, 51, .08);
+    }
+
+    .participant-kicker {
+        margin: 0 0 8px;
+        color: #4361ee;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .participant-title {
+        margin: 0;
+        color: #101828;
+        font-size: clamp(28px, 4vw, 42px);
+        font-weight: 950;
+        line-height: 1.1;
+    }
+
+    .participant-subtitle {
+        max-width: 700px;
+        margin: 12px 0 0;
+        color: #536174;
+        font-size: 15px;
+        line-height: 1.7;
+        font-weight: 650;
+    }
+
+    .participant-code {
+        min-width: 170px;
+        padding: 14px;
+        border: 1px solid #dbe5f2;
+        border-radius: 8px;
+        background: #fff;
+        text-align: center;
+    }
+
+    .participant-code strong {
+        display: block;
+        color: #111827;
+        font-size: 18px;
+        font-weight: 950;
+    }
+
+    .participant-code span {
+        display: block;
+        margin-top: 6px;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .participant-alert {
+        margin: 16px 0 0;
+        padding: 13px 15px;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        color: #991b1b;
+        background: #fff1f2;
+        font-weight: 900;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 16px 0;
+    }
+
+    .summary-box {
+        min-height: 94px;
+        padding: 17px;
+        border: 1px solid #dbe5f2;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 14px 28px rgba(22, 32, 51, .06);
+    }
+
+    .summary-box strong {
+        display: block;
+        color: #111827;
+        font-size: 30px;
+        font-weight: 950;
+        line-height: 1;
+    }
+
+    .summary-box span {
+        display: block;
+        margin-top: 10px;
+        color: #667085;
+        font-size: 13px;
+        font-weight: 850;
+    }
+
+    .work-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .work-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        padding: 18px;
+        border: 1px solid #dbe5f2;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 14px 28px rgba(22, 32, 51, .06);
+    }
+
+    .work-title {
+        margin: 0;
+        color: #111827;
+        font-size: 19px;
+        font-weight: 930;
+        line-height: 1.35;
+    }
+
+    .work-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 8px;
+        color: #344054;
+        background: #eef3fb;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .tag.exam {
+        color: #173078;
+        background: #e7edff;
+    }
+
+    .tag.ready {
+        color: #05603a;
+        background: #dcfae6;
+    }
+
+    .tag.waiting {
+        color: #92400e;
+        background: #fffbeb;
+    }
+
+    .tag.closed {
+        color: #475467;
+        background: #f2f4f7;
+    }
+
+    .work-progress {
+        width: min(360px, 100%);
+        margin-top: 14px;
+    }
+
+    .work-progress-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 7px;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .work-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e9eef7;
+    }
+
+    .work-bar {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #18b7a4, #4361ee);
+    }
+
+    .work-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .portal-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 8px;
+        font-weight: 900;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .portal-btn.primary {
+        color: #fff;
+        background: #172033;
+    }
+
+    .portal-btn.success {
+        color: #063f33;
+        background: #dff9ef;
+        border: 1px solid #8de0c7;
+    }
+
+    .portal-btn.muted {
+        color: #667085;
+        background: #f2f4f7;
+        border: 1px solid #e4e7ec;
+        max-width: 300px;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.35;
+        padding-block: 8px;
+    }
+
+    .empty-state {
+        padding: 30px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        color: #667085;
+        text-align: center;
+        font-weight: 750;
+    }
+
+    @@media (max-width: 760px) {
+        .participant-hero,
+        .work-card {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .participant-code,
+        .work-actions,
+        .portal-btn {
+            width: 100%;
+        }
+
+        .work-actions {
+            justify-content: stretch;
+        }
+    }
+</style>
+
+<main class="participant-shell">
+    <section class="participant-hero">
+        <div>
+            <p class="participant-kicker">Evalio Studio</p>
+            <h1 class="participant-title">Katılım Alanım</h1>
+            <p class="participant-subtitle">
+                Merhaba @Model.KatilimciAdi. Katıldığınız sınav, eğitim ve anketleri buradan takip edebilir;
+                uygun olduğunuzda sertifikanızı açıp yazdırabilirsiniz. Bu kodu saklayın; farklı cihazdan geldiğinizde aynı çalışmalarınıza bu kodla ulaşabilirsiniz.
+            </p>
+        </div>
+        <div class="participant-code">
+            <strong>@(Model.Kod?.ToString() ?? routeUser?.ToString() ?? "-")</strong>
+            <span>Katılım kodu</span>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(portalMesaj))
+    {
+        <div class="participant-alert">@portalMesaj</div>
+    }
+
+    <section class="summary-grid" aria-label="Katılım özeti">
+        <div class="summary-box">
+            <strong>@toplam</strong>
+            <span>Toplam çalışma</span>
+        </div>
+        <div class="summary-box">
+            <strong>@tamamlanan</strong>
+            <span>Tamamlanan</span>
+        </div>
+        <div class="summary-box">
+            <strong>@sertifikaHazir</strong>
+            <span>Hazır sertifika</span>
+        </div>
+    </section>
+
+    @if (!Model.Calismalar.Any())
+    {
+        <div class="empty-state">
+            Bu katılım bilgisiyle henüz bir sınav, eğitim veya anket kaydı bulunamadı.
+        </div>
+    }
+    else
+    {
+        <section class="work-list">
+            @foreach (var item in Model.Calismalar)
+            {
+                var progress = item.ToplamSoru > 0
+                    ? Math.Min(100, Math.Round((double)item.Cevaplanan / item.ToplamSoru * 100))
+                    : (item.Tamamlandi ? 100 : 0);
+                var devamAksiyon = item.VideoGerekli ? "AnketGirisCreate1" : "AnketGirisCreate2";
+                var devamText = item.SuresiDoldu
+                    ? "Süre doldu"
+                    : (item.Tamamlandi ? "Çalışma tamamlandı" : (item.YayinAcik ? "Devam et" : "Katilim kapali"));
+                var sertifikaEtiket = !string.IsNullOrWhiteSpace(item.SertifikaDurumMesaji)
+                    && item.SertifikaDurumMesaji.IndexOf("puan yetersiz", StringComparison.OrdinalIgnoreCase) >= 0
+                        ? "Sertifika yok: puan yetersiz"
+                        : "Sertifika beklemede";
+
+                <article class="work-card">
+                    <div>
+                        <h2 class="work-title">@item.AnketAdi</h2>
+                        <div class="work-meta">
+                            <span class="tag @(item.Sinav ? "exam" : "")">@item.TipEtiketi</span>
+                            <span class="tag @((item.Tamamlandi || item.SuresiDoldu || !item.YayinAcik) ? "closed" : "waiting")">@item.DurumMetni</span>
+                            @if (item.Sinav)
+                            {
+                                <span class="tag">Puan: @String.Format("{0:n2}", item.Puan)</span>
+                            }
+                            @if (item.SertifikaHazir)
+                            {
+                                <span class="tag ready">Sertifika hazır</span>
+                            }
+                            else if (item.SertifikaVar && item.DevamEdiyor)
+                            {
+                                <span class="tag waiting">@item.SertifikaDurumMesaji</span>
+                            }
+                            else if (item.SertifikaVar)
+                            {
+                                <span class="tag closed">@sertifikaEtiket</span>
+                            }
+                        </div>
+                        <div class="work-progress">
+                            <div class="work-progress-line">
+                                <span>@item.Cevaplanan / @item.ToplamSoru cevap</span>
+                                <span>@progress%</span>
+                            </div>
+                            <div class="work-track">
+                                <div class="work-bar" style="width:@progress%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="work-actions">
+                        @if (!item.YayinAcik || ((item.Tamamlandi || item.SuresiDoldu) && !item.DevamEdiyor))
+                        {
+                            <span class="portal-btn muted">@devamText</span>
+                        }
+                        else
+                        {
+                            <a class="portal-btn primary"
+                               href="@Url.Action(devamAksiyon, "Home", new { id = item.AnketId, kod = Model.Kod, user = routeUser })">
+                                @devamText
+                            </a>
+                        }
+                        @if (item.SertifikaHazir)
+                        {
+                            <a class="portal-btn success"
+                               target="_blank"
+                               href="@Url.Action("Anketsertifika", "Home", new { id = routeUser ?? 1, kod = Model.Kod, ank = item.AnketId, ankadi = item.AnketAdi })">
+                                Sertifika / Yazdır
+                            </a>
+                        }
+                        else if (item.SertifikaVar && !string.IsNullOrWhiteSpace(item.SertifikaDurumMesaji))
+                        {
+                            <span class="portal-btn muted">@item.SertifikaDurumMesaji</span>
+                        }
+                    </div>
+                </article>
+            }
+        </section>
+    }
+</main>

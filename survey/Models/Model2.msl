@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+  <EntityContainerMapping StorageEntityContainer="EnvanterTakipLisansModelStoreContainer" CdmEntityContainer="EnvanterTakipLisansEntities">
+    <EntitySetMapping Name="Lisans">
+      <EntityTypeMapping TypeName="EnvanterTakipLisansModel.Lisans">
+        <MappingFragment StoreEntitySet="Lisans">
+          <ScalarProperty Name="LisansId" ColumnName="LisansId" />
+          <ScalarProperty Name="VnTc" ColumnName="VnTc" />
+          <ScalarProperty Name="KayitTarih" ColumnName="KayitTarih" />
+          <ScalarProperty Name="SirketAdi" ColumnName="SirketAdi" />
+          <ScalarProperty Name="ModulSayi" ColumnName="ModulSayi" />
+          <ScalarProperty Name="IpAdress" ColumnName="IpAdress" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+    <EntitySetMapping Name="User">
+      <EntityTypeMapping TypeName="EnvanterTakipLisansModel.User">
+        <MappingFragment StoreEntitySet="User">
+          <ScalarProperty Name="Resim" ColumnName="Resim" />
+          <ScalarProperty Name="Admin" ColumnName="Admin" />
+          <ScalarProperty Name="Email" ColumnName="Email" />
+          <ScalarProperty Name="KayitTarih" ColumnName="KayitTarih" />
+          <ScalarProperty Name="aktif" ColumnName="aktif" />
+          <ScalarProperty Name="Sifre" ColumnName="Sifre" />
+          <ScalarProperty Name="KullaniciAdi" ColumnName="KullaniciAdi" />
+          <ScalarProperty Name="Unvani" ColumnName="Unvani" />
+          <ScalarProperty Name="Adi" ColumnName="Adi" />
+          <ScalarProperty Name="Idkod" ColumnName="Idkod" />
+          <ScalarProperty Name="Id" ColumnName="Id" />
+        </MappingFragment>
+      </EntityTypeMapping>
+    </EntitySetMapping>
+  </EntityContainerMapping>
+</Mapping>
