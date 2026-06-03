@@ -50,6 +50,88 @@
             height: 48px;
             object-fit: contain;
         }
+
+        .pcoded-inner-navbar.main-menu {
+            min-height: calc(100vh - 76px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pcoded-left-item {
+            flex: 1 1 auto;
+        }
+
+        .sidebar-account {
+            margin-top: auto;
+            padding: 14px 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.09);
+        }
+
+        .sidebar-user-card {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 12px;
+            color: #fff;
+        }
+
+        .sidebar-user-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .sidebar-user-main img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.18);
+            flex: 0 0 auto;
+        }
+
+        .sidebar-user-name {
+            display: block;
+            max-width: 118px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 700;
+            font-size: 13px;
+            line-height: 1.2;
+        }
+
+        .sidebar-user-role {
+            display: block;
+            color: rgba(255, 255, 255, 0.62);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .sidebar-user-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 7px;
+            margin-top: 12px;
+        }
+
+        .sidebar-user-actions a {
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 7px;
+            color: rgba(255, 255, 255, 0.82);
+            background: rgba(255, 255, 255, 0.08);
+            transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+        }
+
+        .sidebar-user-actions a:hover {
+            color: #fff;
+            background: rgba(123, 230, 190, 0.2);
+            transform: translateY(-1px);
+        }
     </style>
 
     @RenderSection("HeadExtra", required: false)
@@ -91,40 +173,6 @@
                                 <a href="#!" onclick="toggleFullScreen()" class="waves-effect waves-light">
                                     <i class="full-screen feather icon-maximize"></i>
                                 </a>
-                            </li>
-                        </ul>
-                        <ul class="nav-right">
-                            <li class="user-profile header-notification">
-                                <div class="dropdown-primary dropdown">
-                                    <div class="dropdown-toggle" data-bs-toggle="dropdown">
-                                        <img class="img-radius" src="@profileImageUrl" alt="User" onerror="this.onerror=null;this.src='@fallbackProfileImageUrl';" />
-                                        <span>@profileName</span>
-                                        <i class="feather icon-chevron-down"></i>
-                                    </div>
-                                    <ul class="show-notification profile-notification dropdown-menu"
-                                        data-dropdown-in="fadeIn" data-dropdown-out="fadeOut">
-                                        <li>
-                                            <a href="@Url.Action("Index", "Ayar", new { id = Session["id"] })">
-                                                <i class="feather icon-settings"></i> Ayarlar
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a href="@Url.Action("UserEdit", "Home", new { id = Session["id"] })">
-                                                <i class="feather icon-user"></i> Hesabım
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a href="@Url.Action("Hakkinda", "Home", new { id = Session["id"] })">
-                                                <i class="ti-key"></i> Program Hakkında
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a href="@Url.Action("GirisCikis", "Home", new { id = Session["id"] })">
-                                                <i class="feather icon-log-out"></i> Çıkış
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
                             </li>
                         </ul>
                     </div>
@@ -179,6 +227,28 @@
                                     </ul>
                                 </li>
                             </ul>
+                            <div class="sidebar-account">
+                                <div class="sidebar-user-card">
+                                    <div class="sidebar-user-main">
+                                        <img src="@profileImageUrl" alt="@profileName" onerror="this.onerror=null;this.src='@fallbackProfileImageUrl';" />
+                                        <div>
+                                            <span class="sidebar-user-name">@profileName</span>
+                                            <span class="sidebar-user-role">Studio hesabı</span>
+                                        </div>
+                                    </div>
+                                    <div class="sidebar-user-actions" aria-label="Hesap bağlantıları">
+                                        <a title="Ayarlar" href="@Url.Action("Index", "Ayar", new { id = Session["id"] })">
+                                            <i class="feather icon-settings"></i>
+                                        </a>
+                                        <a title="Hesabım" href="@Url.Action("UserEdit", "Home", new { id = Session["id"] })">
+                                            <i class="feather icon-user"></i>
+                                        </a>
+                                        <a title="Çıkış" href="@Url.Action("GirisCikis", "Home", new { id = Session["id"] })">
+                                            <i class="feather icon-log-out"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         @* <div id="styleSelector"></div> *@
                     </nav>

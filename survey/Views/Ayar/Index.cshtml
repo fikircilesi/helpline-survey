@@ -1,83 +1,293 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<div style="padding:20px" class="panel">
-    <div class="page-body button-page">
 
-                    <div class="card-">
+@section HeadExtra {
+    <style>
+        .settings-workspace {
+            padding: 26px 18px 42px;
+        }
 
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("UserIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Kullanıcı Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("PersonelIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Personel Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("UnvanIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Ünvan Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("DepartmanIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Departman Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("BolgeIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Bölge Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("SehirIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Şehir Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("BolumIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Bölüm Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("SubeIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Şube Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("YoneticiIndex", "Ayar", new {id = Session["id"] })">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Yönetici Tanımları</il>
-                        </a>
-                        <a style="width: 270px; height: 190px" onmouseover="buyukresim1(this)" onmouseout="normalresim1(this)" class="btn btn-inverse" href="@Url.Action("AiAyar", "Ayar")">
-                            <br />
-                            <br />
-                            <br />
-                            <il class="ion-android-settings"> Yapay Zeka Ayarları</il>
-                        </a>
-                    </div>
-                </div>
+        .settings-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .settings-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 28px;
+            padding: 0 11px;
+            border: 1px solid #d7dee9;
+            border-radius: 8px;
+            color: #55647a;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .settings-title {
+            margin: 10px 0 0;
+            color: #172033;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .settings-subtitle {
+            margin: 7px 0 0;
+            color: #667085;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .settings-shell {
+            background: #fff;
+            border: 1px solid #e6ebf2;
+            border-radius: 8px;
+            padding: 18px;
+            box-shadow: 0 18px 42px rgba(16, 24, 40, 0.06);
+        }
+
+        .settings-section + .settings-section {
+            margin-top: 22px;
+            padding-top: 20px;
+            border-top: 1px solid #edf1f6;
+        }
+
+        .settings-section-title {
+            margin: 0 0 12px;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .settings-card {
+            min-height: 116px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid #e4e9f1;
+            border-radius: 8px;
+            padding: 16px;
+            color: #172033;
+            background: #fbfcfe;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+        }
+
+        .settings-card:hover,
+        .settings-card:focus {
+            color: #172033;
+            border-color: #8bdcbe;
+            box-shadow: 0 16px 30px rgba(22, 199, 181, 0.12);
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+        .settings-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .settings-icon {
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #0f766e;
+            background: #e9fbf6;
+            font-size: 18px;
+        }
+
+        .settings-arrow {
+            color: #98a2b3;
+            font-size: 17px;
+        }
+
+        .settings-card-title {
+            margin: 14px 0 4px;
+            color: #172033;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .settings-card-meta {
+            color: #667085;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        @@media (max-width: 767px) {
+            .settings-workspace {
+                padding: 18px 12px 30px;
+            }
+
+            .settings-header {
+                display: block;
+            }
+
+            .settings-title {
+                font-size: 24px;
+            }
+
+            .settings-shell {
+                padding: 14px;
+            }
+        }
+    </style>
+}
+
+<div class="settings-workspace">
+    <div class="settings-header">
+        <div>
+            <span class="settings-kicker">
+                <i class="feather icon-settings"></i>
+                Aslana Survey Studio
+            </span>
+            <h1 class="settings-title">Ayarlar</h1>
+            <p class="settings-subtitle">Kullanıcı, organizasyon ve sistem tanımları</p>
+        </div>
+    </div>
+
+    <div class="settings-shell">
+        <section class="settings-section">
+            <h2 class="settings-section-title">Kullanıcılar</h2>
+            <div class="settings-grid">
+                <a class="settings-card" href="@Url.Action("UserIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-users"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Kullanıcı Tanımları</span>
+                        <span class="settings-card-meta">Erişim</span>
+                    </span>
+                </a>
+                <a class="settings-card" href="@Url.Action("PersonelIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-user-check"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Personel Tanımları</span>
+                        <span class="settings-card-meta">Katılımcılar</span>
+                    </span>
+                </a>
             </div>
-<script>
-    function buyukresim1(x) {
-        x.style.width = "265px";
-        x.style.height = "185px";
-    }
+        </section>
 
-    function normalresim1(x) {
-        x.style.width = "270px";
-        x.style.height = "190px";
+        <section class="settings-section">
+            <h2 class="settings-section-title">Organizasyon</h2>
+            <div class="settings-grid">
+                <a class="settings-card" href="@Url.Action("UnvanIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-award"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Ünvan Tanımları</span>
+                        <span class="settings-card-meta">Rol</span>
+                    </span>
+                </a>
+                <a class="settings-card" href="@Url.Action("DepartmanIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-briefcase"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Departman Tanımları</span>
+                        <span class="settings-card-meta">Birim</span>
+                    </span>
+                </a>
+                <a class="settings-card" href="@Url.Action("BolumIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-layers"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Bölüm Tanımları</span>
+                        <span class="settings-card-meta">Yapı</span>
+                    </span>
+                </a>
+                <a class="settings-card" href="@Url.Action("YoneticiIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-shield"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Yönetici Tanımları</span>
+                        <span class="settings-card-meta">Sorumlular</span>
+                    </span>
+                </a>
+            </div>
+        </section>
 
-    }
-</script>
+        <section class="settings-section">
+            <h2 class="settings-section-title">Lokasyon</h2>
+            <div class="settings-grid">
+                <a class="settings-card" href="@Url.Action("BolgeIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-map"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Bölge Tanımları</span>
+                        <span class="settings-card-meta">Alan</span>
+                    </span>
+                </a>
+                <a class="settings-card" href="@Url.Action("SehirIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-map-pin"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Şehir Tanımları</span>
+                        <span class="settings-card-meta">Konum</span>
+                    </span>
+                </a>
+                <a class="settings-card" href="@Url.Action("SubeIndex", "Ayar", new { id = Session["id"] })">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-home"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Şube Tanımları</span>
+                        <span class="settings-card-meta">Tesis</span>
+                    </span>
+                </a>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h2 class="settings-section-title">Sistem</h2>
+            <div class="settings-grid">
+                <a class="settings-card" href="@Url.Action("AiAyar", "Ayar")">
+                    <span class="settings-card-top">
+                        <span class="settings-icon"><i class="feather icon-cpu"></i></span>
+                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                    </span>
+                    <span>
+                        <span class="settings-card-title">Yapay Zeka Ayarları</span>
+                        <span class="settings-card-meta">Studio AI</span>
+                    </span>
+                </a>
+            </div>
+        </section>
+    </div>
+</div>
