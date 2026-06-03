@@ -7,8 +7,9 @@ Bu dosya evdeki ve isteki Codex'in ayni proje durumunu anlamasi icin tutulur.
 - GitHub repo: `https://github.com/fikircilesi/helpline-survey.git`
 - Lokal proje klasoru: `C:\Users\DeLL\Documents\helpline-survey`
 - Visual Studio solution: `C:\Users\DeLL\Documents\helpline-survey\survey\survey.sln`
-- Uygulama adi: `Helpline Survey`
-- Planlanan adres: `anket.aslana.com.tr`
+- Uygulama adi: `Aslana Survey Studio`
+- Eski repo/proje adi: `Helpline Survey`
+- Planlanan adres: `survey.aslana.com.tr`
 
 ## Her Bilgisayarda Baslarken
 
@@ -43,6 +44,7 @@ Su an is bilgisayarinda:
 - SQL Server Developer kurulu.
 - SSMS 22 kurulu.
 - `Survey` veritabani attach edildi.
+- `SaasGuvenlik.sql` uygulanmis durumda; `CalismaAlani`, `CalismaAlaniUye` ve ilgili `Personel`/`Anket` kolonlari var.
 - `EnvanterTakipLisans` su an ana konu degil, dokunulmadan duruyor.
 
 Evde SQL degisikligi yapildiysa ise gelince once `Survey.bak` getirilmeli, sonra burada restore edilmeli.
@@ -71,6 +73,12 @@ Iste baslarken:
 
 ```text
 Kaldigimiz yerden devam. Git pull yap, CODEX-SYNC.md dosyasina gore proje ve SQL durumunu kontrol et.
+```
+
+Aslana Survey Studio icin devam ederken:
+
+```text
+Once SaasGuvenlik.sql uygulanmis mi kontrol et. Sonra rapor, duzenleme, sertifika, soru grubu ve havuz yonetimi ekranlarinda CalismaAlaniId yetki kontrollerini kontrol et.
 ```
 
 Yedek gelince:

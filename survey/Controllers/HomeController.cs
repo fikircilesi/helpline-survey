@@ -411,6 +411,58 @@ namespace survey.Controllers
             return null;
         }
 
+        private bool AnketCalismaAlanindaMi(int? anketId)
+        {
+            if (!anketId.HasValue || anketId.Value <= 0)
+            {
+                return false;
+            }
+
+            var calismaAlaniId = AktifCalismaAlaniId();
+            var personelId = AktifPersonelId();
+
+            try
+            {
+                if (calismaAlaniId.HasValue)
+                {
+                    return db.Database.SqlQuery<int>(
+                        @"SELECT COUNT(1)
+                          FROM dbo.Anket
+                          WHERE AnketId = @p0
+                            AND CalismaAlaniId = @p1",
+                        anketId.Value,
+                        calismaAlaniId.Value).FirstOrDefault() > 0;
+                }
+
+                if (personelId.HasValue)
+                {
+                    return db.Database.SqlQuery<int>(
+                        @"SELECT COUNT(1)
+                          FROM dbo.Anket a
+                          LEFT JOIN dbo.CalismaAlaniUye cau ON cau.CalismaAlaniId = a.CalismaAlaniId
+                          WHERE a.AnketId = @p0
+                            AND (a.SahipPersonelId = @p1 OR (cau.PersonelId = @p1 AND ISNULL(cau.Pasif, 0) = 0))",
+                        anketId.Value,
+                        personelId.Value).FirstOrDefault() > 0;
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
+        private Anket CalismaAlaniAnketGetir(int? anketId)
+        {
+            if (!AnketCalismaAlanindaMi(anketId))
+            {
+                return null;
+            }
+
+            return db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
+        }
+
         private List<Anket> CalismaAlaniAnketleri()
         {
             var calismaAlaniId = AktifCalismaAlaniId();
@@ -2924,7 +2976,7 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["id"] == null || Session["admin"] == null)
                 return RedirectToAction("Giris", "Home");
 
-            var anket = db.Anket.FirstOrDefault(x => x.AnketId == id);
+            var anket = CalismaAlaniAnketGetir(id);
             if (anket == null)
                 return RedirectToAction("AnketIndex");
 
@@ -2966,13 +3018,15 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
-            var anket = db.Anket.FirstOrDefault(x => x.AnketId == id);
-            ViewBag.id = id;
-            if (anket != null)
+            var anket = CalismaAlaniAnketGetir(id);
+            if (anket == null)
             {
-                ViewBag.adi = anket.AnketAdi;
-                ViewBag.sinav = SinavTurundeMi(anket);
+                return RedirectToAction("AnketIndex");
             }
+
+            ViewBag.id = id;
+            ViewBag.adi = anket.AnketAdi;
+            ViewBag.sinav = SinavTurundeMi(anket);
 
             var bul = db.Havuz
                 .Include("User")
@@ -3395,6 +3449,11 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return RedirectToAction("AnketIndex");
+            }
+
             var anket = db.Anket
                 .Include("Departman")
                 .Include("Sehir")
@@ -3462,6 +3521,11 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["admin"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
             }
 
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
@@ -3871,6 +3935,11 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
+            }
+
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
             var bul = bul1.Where(x => x.User.UserCinsiyet == id);
             var adi = db.Havuz.Where(x => x.User.UserCinsiyet == id).FirstOrDefault();
@@ -4276,6 +4345,11 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["admin"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
             }
 
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
@@ -4685,6 +4759,11 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
+            }
+
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
             var bul = bul1.Where(x => x.User.UserDogumTar.Value.Year == id);
             var adi = db.Havuz.Where(x => x.User.UserDogumTar.Value.Year == id).FirstOrDefault();
@@ -5090,6 +5169,11 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["admin"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
             }
 
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
@@ -5499,6 +5583,11 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
+            }
+
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
             var bul = bul1.Where(x => x.User.UserSube == id);
             var adi = db.Havuz.Where(x => x.User.UserSube == id).FirstOrDefault();
@@ -5904,6 +5993,11 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["admin"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
             }
 
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
@@ -6321,6 +6415,11 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
 
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
+            }
+
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
             var bul = db.Havuz.Where(x => x.AnketId == ank).Where(x => x.UserId == id);
             var adi = db.Havuz
@@ -6435,6 +6534,11 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["admin"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
             }
 
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
@@ -6845,6 +6949,11 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
+            }
+
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
             var bul = bul1.Where(x => x.User.UserYoneticisi == id);
             var adi = db.Havuz.Where(x => x.User.UserYoneticisi == id).FirstOrDefault();
@@ -7251,6 +7360,11 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["admin"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
             }
 
             var bul = db.Havuz
@@ -7675,6 +7789,11 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["admin"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
             }
 
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
@@ -8183,7 +8302,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
-            var anket = db.Anket.Find(id);
+            var anket = CalismaAlaniAnketGetir(id);
             if (anket == null) return NotFound();
 
             PrepareAnketAdLookups(id);
@@ -8228,7 +8347,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                var anket = db.Anket.Find(dgskn.AnketId);
+                var anket = CalismaAlaniAnketGetir(dgskn.AnketId);
                 if (anket == null) return NotFound();
                 var isExamSubmission = dgskn.Sinav == true;
 
@@ -8320,7 +8439,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home");
             }
 
-            var anket = db.Anket.Find(id);
+            var anket = CalismaAlaniAnketGetir(id);
             if (anket == null) return NotFound();
 
             var ayar = SertifikaAyariniGetir(id);
@@ -8358,7 +8477,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home");
             }
 
-            var anket = db.Anket.Find(form.AnketId);
+            var anket = CalismaAlaniAnketGetir(form.AnketId);
             if (anket == null) return NotFound();
 
             form.AnketAdi = anket.AnketAdi;
@@ -8499,7 +8618,10 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.Anket.Where(x => x.AnketId == id).FirstOrDefault());
+            var anket = CalismaAlaniAnketGetir(id);
+            if (anket == null) return NotFound();
+
+            return View(anket);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -8512,6 +8634,11 @@ Yalnizca su JSON semasinda cevap ver:
             if (Session["admin"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return NotFound();
             }
 
             if (ModelState.IsValid)
@@ -8529,7 +8656,9 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                Anket unv = db.Anket.Where(x => x.AnketId == id).FirstOrDefault();
+                Anket unv = CalismaAlaniAnketGetir(id);
+                if (unv == null) return NotFound();
+
                 db.Anket.Remove(unv);
                 db.SaveChanges();
                 return RedirectToAction("AnketAdIndex");
@@ -8552,6 +8681,11 @@ Yalnizca su JSON semasinda cevap ver:
             }
             ViewBag.id = id;
             ViewBag.adi = adi;
+
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
 
             var gruplar = db.AnketGrup
                 .Include("SoruGrup")
@@ -8586,7 +8720,7 @@ Yalnizca su JSON semasinda cevap ver:
 
         private DogruCevapEditorModel DogruCevapEditorModelOlustur(int anketId)
         {
-            var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId);
+            var anket = CalismaAlaniAnketGetir(anketId);
             if (anket == null)
             {
                 return null;
@@ -8791,8 +8925,13 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.id = id;
             ViewBag.adi = adi;
 
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
             List<SelectListItem> an =
-            (from i in db.Anket.OrderBy(x => x.AnketAdi).ToList()
+            (from i in CalismaAlaniAnketleri().OrderBy(x => x.AnketAdi).ToList()
              select new SelectListItem
              {
                  Text = i.AnketAdi,
@@ -8830,6 +8969,11 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!AnketCalismaAlanindaMi(dgskn.AnketId))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
             if (db.AnketGrup.Any(x => x.SoruGrupId == dgskn.SoruGrupId && x.AnketId == dgskn.AnketId))
             {
                 return RedirectToAction("Hata1", "Home", null);
@@ -8859,8 +9003,13 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.id = ank;
             ViewBag.adi = adi;
 
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
             List<SelectListItem> an =
-            (from i in db.Anket.OrderBy(x => x.AnketAdi).ToList()
+            (from i in CalismaAlaniAnketleri().OrderBy(x => x.AnketAdi).ToList()
              select new SelectListItem
              {
                  Text = i.AnketAdi,
@@ -8884,7 +9033,7 @@ Yalnizca su JSON semasinda cevap ver:
              }).ToList();
             ViewBag.Sor = sr;
 
-            return View(db.AnketGrup.Where(x => x.AnketGupId == id).FirstOrDefault());
+            return View(db.AnketGrup.Where(x => x.AnketGupId == id && x.AnketId == ank).FirstOrDefault());
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -8898,6 +9047,11 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!AnketCalismaAlanindaMi(ank) || !AnketCalismaAlanindaMi(dgskn.AnketId))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
             if (db.Havuz.Any(x => x.SoruGrupId == sr && x.AnketId == ank))
             {
                 return RedirectToAction("Hata3", "Home", null);
@@ -8930,7 +9084,12 @@ Yalnizca su JSON semasinda cevap ver:
             }
             ViewBag.id = ank;
             ViewBag.adi = adi;
-            return View(db.AnketGrup.Where(x => x.AnketGupId == id).FirstOrDefault());
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
+            return View(db.AnketGrup.Where(x => x.AnketGupId == id && x.AnketId == ank).FirstOrDefault());
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -8944,6 +9103,11 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
             if (db.Havuz.Any(x => x.SoruGrupId == sr && x.AnketId == ank))
             {
                 return RedirectToAction("Hata3", "Home", null);
@@ -8952,7 +9116,9 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                AnketGrup unv = db.AnketGrup.Where(x => x.AnketGupId == id).FirstOrDefault();
+                AnketGrup unv = db.AnketGrup.Where(x => x.AnketGupId == id && x.AnketId == ank).FirstOrDefault();
+                if (unv == null) return NotFound();
+
                 db.AnketGrup.Remove(unv);
                 db.SaveChanges();
                 return RedirectToAction("AnketGrupIndex", new { id = ank, adi });
@@ -10890,6 +11056,11 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
             var ad = db.Havuz.Include("Anket").Where(x => x.AnketId == id).FirstOrDefault();
             if (ad != null)
             {
@@ -10897,7 +11068,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (string.IsNullOrWhiteSpace(Convert.ToString(ViewBag.ankadi)))
             {
-                var anket = db.Anket.Find(id);
+                var anket = CalismaAlaniAnketGetir(id);
                 ViewBag.ankadi = anket != null ? anket.AnketAdi : "Çalışma";
             }
             ViewBag.id = id;
@@ -10921,6 +11092,11 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
             var ad = db.Havuz.Include("Anket").Where(x => x.AnketId == ank).FirstOrDefault();
             if (ad != null)
             {
@@ -10928,7 +11104,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (string.IsNullOrWhiteSpace(Convert.ToString(ViewBag.ankadi)) && ank.HasValue)
             {
-                var anket = db.Anket.Find(ank.Value);
+                var anket = CalismaAlaniAnketGetir(ank.Value);
                 ViewBag.ankadi = anket != null ? anket.AnketAdi : "Çalışma";
             }
 
@@ -10958,9 +11134,14 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return RedirectToAction("AnketAdIndex");
+            }
+
             var bul = db.Havuz.Where(x => x.AnketId == id);
 
-            var ad = db.Anket.Where(x => x.AnketId == id).FirstOrDefault();
+            var ad = CalismaAlaniAnketGetir(id);
             ViewBag.adi = ad != null ? ad.AnketAdi : "Çalışma";
 
             var item3 = bul.Where(x => x.UserId != 1);
@@ -11006,6 +11187,11 @@ Yalnizca su JSON semasinda cevap ver:
                     var tablo = db.Havuz.Find(id);
                     if (tablo != null)
                     {
+                        if (!AnketCalismaAlanindaMi(tablo.AnketId))
+                        {
+                            return NotFound();
+                        }
+
                         db.Havuz.Remove(tablo);
                     }
                 }
@@ -11030,6 +11216,11 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!AnketCalismaAlanindaMi(ank))
+            {
+                return RedirectToAction("AnketIndex");
+            }
+
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
             var bul = bul1.Where(x => x.SoruGrupId == id);
 
