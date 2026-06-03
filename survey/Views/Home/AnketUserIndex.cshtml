@@ -133,7 +133,7 @@
                         {
 
 
-                            if (item.Cevap.CevapPuan < 5)
+                            if (item.Cevap == null || item.Cevap.Dogru != true)
                             {
                                 <h6 style="color:red">Yanlış</h6>
                             }

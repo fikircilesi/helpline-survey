@@ -6403,7 +6403,19 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
-            var izll = db.Izledim.Where(x => x.AnketId == ank && x.UseId == id).FirstOrDefault();
+            if (ank == null)
+            {
+                return RedirectToAction("AnketIndex");
+            }
+
+            var routeId = id > 0 ? (int?)id : null;
+            var raporUserId = user.HasValue && user.Value > 0 ? user : routeId;
+            var effectiveUseId = ResolveKatilimUseId(raporUserId, routeId);
+
+            var izll = db.Izledim
+                .Where(x => x.AnketId == ank && x.UseId == effectiveUseId)
+                .OrderByDescending(x => x.IzleId)
+                .FirstOrDefault();
 
             if (izll != null)
 
@@ -6420,26 +6432,33 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = db.Havuz.Where(x => x.AnketId == ank).Where(x => x.UserId == id);
-            var adi = db.Havuz
-                .Where(x => x.AnketId == ank && x.UserId == id)
-                .OrderByDescending(x => x.KayitTar)
+            var tumCevaplar = KatilimHavuzlariniGetir(ank.Value, routeId, raporUserId);
+            var bul = SonSoruCevaplari(tumCevaplar);
+            var adi = tumCevaplar
+                .OrderByDescending(x => x.KayitTar ?? DateTime.MinValue)
+                .ThenByDescending(x => x.HavuzId)
                 .FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
-            if (adi != null)
+            if (adi?.User != null)
             {
                 ViewBag.adisoyadi = adi.User.UserAdi;
-                ViewBag.unvan = adi.User.Unvan.UnvanAdi;
-                ViewBag.egitim = adi.User.Egitim.EgitimAdi;
-                ViewBag.cinsiyet = adi.User.Cinsiyet.CinsiyetAdi;
-                ViewBag.departman = adi.User.Departman.DepartmanAdi;
+                ViewBag.unvan = adi.User.Unvan?.UnvanAdi;
+                ViewBag.egitim = adi.User.Egitim?.EgitimAdi;
+                ViewBag.cinsiyet = adi.User.Cinsiyet?.CinsiyetAdi;
+                ViewBag.departman = adi.User.Departman?.DepartmanAdi;
                 ViewBag.giris = adi.User.UserIseGirisTarihi;
                 ViewBag.kayit = adi.KayitTar;
-                ViewBag.yonetici = adi.User.Yonetici.YoneticiAdi;
-                ViewBag.yaka = adi.User.Yaka.YakaAdi;
-                ViewBag.sehir = adi.User.Sehir.SehiarAdi;
-                ViewBag.sube = adi.User.Sube.SubeAdi;
+                ViewBag.yonetici = adi.User.Yonetici?.YoneticiAdi;
+                ViewBag.yaka = adi.User.Yaka?.YakaAdi;
+                ViewBag.sehir = adi.User.Sehir?.SehiarAdi;
+                ViewBag.sube = adi.User.Sube?.SubeAdi;
+            }
+            else if (adi != null)
+            {
+                ViewBag.adisoyadi = adi.Isimsiz.HasValue
+                    ? "Katilimci #" + adi.Isimsiz.Value
+                    : "Katilimci";
+                ViewBag.kayit = adi.KayitTar;
             }
             if (ankadi != null)
             {
@@ -6455,10 +6474,10 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.UserAdi;
+                ViewBag.anketadi = adi.User?.UserAdi ?? ViewBag.adisoyadi;
             }
 
-            if (ankadi.Sinav != true)
+            if (ankadi != null && ankadi.Sinav != true)
             {
                 var soru = bul.Count(); // toplam Soru
                 var c5 = bul.Count(x => x.CevapPuan == 5);
@@ -6522,6 +6541,10 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
 
+
+            ViewBag.puan = ankadi != null ? KatilimPuaniHesapla(ankadi, bul) : 0;
+            ViewBag.soru = AnketSoruSayisi(ank.Value);
+            ViewBag.soru1 = bul.Count;
 
             return View(bul);
         }
