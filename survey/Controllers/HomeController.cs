@@ -6545,6 +6545,10 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan = ankadi != null ? KatilimPuaniHesapla(ankadi, bul) : 0;
             ViewBag.soru = AnketSoruSayisi(ank.Value);
             ViewBag.soru1 = bul.Count;
+            ViewBag.dogruSayisi = bul.Count(x => x.Cevap != null && x.Cevap.Dogru == true);
+            ViewBag.yanlisSayisi = bul.Count(x => x.Cevap != null && x.Cevap.Dogru != true);
+            ViewBag.gecmeNotu = ankadi?.SertifikaNotu;
+            ViewBag.raporTarihi = DateTime.Now;
 
             return View(bul);
         }

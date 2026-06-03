@@ -2,199 +2,690 @@
 @{
     Layout = "~/Views/Shared/_AnketLayout.cshtml";
 
+    var cevaplar = (Model ?? Enumerable.Empty<survey.Models.Havuz>())
+        .OrderBy(x => x.Soru?.SoruSira ?? 0)
+        .ThenBy(x => x.SoruID ?? 0)
+        .ToList();
+
+    var sinavMi = ViewBag.sinav == true;
+    var puan = Convert.ToDouble(ViewBag.puan ?? 0);
+    var puanYuzde = Math.Max(0, Math.Min(100, puan));
+    var puanYuzdeCss = puanYuzde.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    var toplamSoru = Convert.ToInt32(ViewBag.soru ?? 0);
+    var cevaplananSoru = Convert.ToInt32(ViewBag.soru1 ?? cevaplar.Count);
+    var dogruSayisi = Convert.ToInt32(ViewBag.dogruSayisi ?? cevaplar.Count(x => x.Cevap?.Dogru == true));
+    var yanlisSayisi = Convert.ToInt32(ViewBag.yanlisSayisi ?? cevaplar.Count(x => x.Cevap != null && x.Cevap.Dogru != true));
+    var eksikSayisi = Math.Max(0, toplamSoru - cevaplananSoru);
+    var gecmeNotu = ViewBag.gecmeNotu == null ? 0 : Convert.ToDouble(ViewBag.gecmeNotu);
+    var sonucVar = sinavMi && gecmeNotu > 0;
+    var basarili = sonucVar && puan >= gecmeNotu;
+    var sonucMetni = sinavMi
+        ? (sonucVar ? (basarili ? "Başarılı" : "Gelişim gerekli") : "Tamamlandı")
+        : "Değerlendirildi";
+    var sonucClass = sinavMi
+        ? (sonucVar ? (basarili ? "is-pass" : "is-fail") : "is-neutral")
+        : "is-neutral";
+    var raporTarihi = ViewBag.raporTarihi as DateTime?;
+    var degerlendirmeTarihi = ViewBag.kayit as DateTime?;
+    var calismaTuru = sinavMi ? "Sınav sonuç raporu" : "Anket sonuç raporu";
+    var profilAlanlari = new[]
+    {
+        new { Etiket = "Departman", Deger = Convert.ToString(ViewBag.departman) },
+        new { Etiket = "Ünvan", Deger = Convert.ToString(ViewBag.unvan) },
+        new { Etiket = "Yaka", Deger = Convert.ToString(ViewBag.yaka) },
+        new { Etiket = "Yöneticisi", Deger = Convert.ToString(ViewBag.yonetici) },
+        new { Etiket = "Şehir", Deger = Convert.ToString(ViewBag.sehir) },
+        new { Etiket = "Şube", Deger = Convert.ToString(ViewBag.sube) },
+        new { Etiket = "Eğitim", Deger = Convert.ToString(ViewBag.egitim) },
+        new { Etiket = "Cinsiyet", Deger = Convert.ToString(ViewBag.cinsiyet) }
+    }.Where(x => !string.IsNullOrWhiteSpace(x.Deger)).ToList();
 }
 
-<script src="~/Scripts/jquery-3.7.1.js"></script>
-<script src="~/Scripts/chart.js"></script>
-<div class="col-lg-12" style="overflow: auto">
+<style>
+    :root {
+        --report-ink: #172033;
+        --report-muted: #667085;
+        --report-line: #d9e1ea;
+        --report-soft: #f5f7fa;
+        --report-panel: #ffffff;
+        --report-accent: #2457d6;
+        --report-pass: #16825d;
+        --report-fail: #d03b3b;
+        --report-warn: #b7791f;
+    }
 
-    <table class="table" border="1">
-        <tr>
-            <th colspan="2"><h2 class="text-uppercase">@ViewBag.adi</h2></th>
-        </tr>
-        <tr>
-            <td>
-                <table class="table-bordered" border="1">
-                    <tr>
-                        <td colspan="2" style="color:navy">Adı Soyadı</td>
-                        <td colspan="2"><h5 class="text-uppercase">@ViewBag.adisoyadi</h5></td>
-                    </tr>
-                    <tr>
-                        <td style="color:navy">Yaka</td>
-                        <td>@ViewBag.yaka</td>
-                        <td style="color:navy">Yöneticisi</td>
-                        <td>@ViewBag.yonetici</td>
-                    </tr>
+    body {
+        background: #eef2f6;
+        color: var(--report-ink);
+    }
 
-                    <tr>
-                        <td style="color:navy">Ünvan</td>
-                        <td>@ViewBag.unvan</td>
-                        <td style="color:navy">Departman</td>
-                        <td>@ViewBag.departman</td>
+    .result-page {
+        max-width: 1180px;
+        margin: 26px auto 42px;
+        padding: 0 18px;
+    }
 
-                    </tr>
-                    <tr>
-                        <td style="color:navy">İşe Başlama Tarihi</td>
-                        <td>@ViewBag.giris</td>
-                        <td style="color:navy">Değerlendirme Tarihi</td>
-                        <td>@ViewBag.kayit</td>
+    .result-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 14px;
+    }
 
-                    </tr>
-                    <tr>
-                        <td style="color:navy">Eğitim</td>
-                        <td>@ViewBag.egitim</td>
-                        <td style="color:navy">Cinsiyet</td>
-                        <td>@ViewBag.cinsiyet</td>
+    .result-toolbar-title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
 
-                    </tr>
-                    <tr>
-                        <td style="color:navy">Sorulan Soru</td>
-                        <td>@ViewBag.soru</td>
-                        <td style="color:navy">Cevaplanan Soru</td>
-                        <td>@ViewBag.soru1</td>
+    .result-toolbar-title span {
+        color: var(--report-muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
 
-                    </tr>
-                    <tr>
-                        <td style="color:navy">Şehir</td>
-                        <td>@ViewBag.sehir</td>
-                        <td style="color:navy">Şube</td>
-                        <td>@ViewBag.sube</td>
+    .result-toolbar-title strong {
+        font-size: 18px;
+        font-weight: 800;
+    }
 
-                    </tr>
+    .result-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
 
-                </table>
-            </td>
-            <td align="right">
-                <table border="1">
-                    <tr>
-                        <td align="center">
-                            <h3 align="center">PUAN</h3>
-                            <h3 style="color:red">@String.Format("{0:n2}", ViewBag.puan)</h3>
+    .result-action {
+        border: 1px solid var(--report-line);
+        background: var(--report-panel);
+        color: var(--report-ink);
+        min-height: 40px;
+        border-radius: 8px;
+        padding: 0 14px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 8px 18px rgba(23, 32, 51, .08);
+        cursor: pointer;
+    }
 
-                            @if (ViewBag.sinav != true && ViewBag.puan >= 0 && ViewBag.puan <= 20)
-                            {
-                                <h3>HİÇ MEMNUN DEĞİL</h3>
-                            }
-                            @if (ViewBag.sinav != true && ViewBag.puan >= 21 && ViewBag.puan <= 40)
-                            {
-                                <h3>MEMNUN DEĞİL</h3>
-                            }
-                            @if (ViewBag.sinav != true && ViewBag.puan >= 41 && ViewBag.puan <= 60)
-                            {
-                                <h3>KISMEN MEMNUN</h3>
-                            }
-                            @if (ViewBag.sinav != true && ViewBag.puan >= 61 && ViewBag.puan <= 80)
-                            {
-                                <h3>MEMNUN</h3>
-                            }
-                            @if (ViewBag.sinav != true && ViewBag.puan >= 81 && ViewBag.puan <= 100)
-                            {
-                                <h3>ÇOK MEMNUN</h3>
-                            }
-                        </td>
-                        <td>
-                            <canvas id="myChart" style="width:300px; height:160px"></canvas>
-                        </td>
+    .result-action.primary {
+        background: var(--report-accent);
+        border-color: var(--report-accent);
+        color: #fff;
+    }
 
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</div>
-    <div class="col-lg-12" style="overflow: auto">
+    .result-sheet {
+        background: var(--report-panel);
+        border: 1px solid var(--report-line);
+        border-radius: 8px;
+        box-shadow: 0 20px 45px rgba(23, 32, 51, .10);
+        overflow: hidden;
+    }
 
-        <table class="table">
-            <tr>
-                <td><b style="color:darkblue">SORU</b></td>
-                <td><b style="color:darkblue">VERİLEN CEVAP</b></td>
-                @if (ViewBag.sinav != true)
-                {
-                    <td><b style="color:darkblue">PUAN</b></td>
-                }
-                else
-                {
-                    <td><b style="color:darkblue">CEVAP</b></td>
-                }
-            </tr>
+    .report-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 28px;
+        padding: 32px;
+        border-bottom: 1px solid var(--report-line);
+        background: linear-gradient(135deg, #ffffff 0%, #f7f9fc 100%);
+    }
 
-            @foreach (var item in Model.OrderBy(x => x.Soru.SoruSira))
-            {
-                <tr>
+    .report-kicker {
+        color: var(--report-accent);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
 
-                    <td style="font-size: xx-small">@Html.Raw(item.Soru.SoruAdi)</td>
-                    <td style="font-size: xx-small">@Html.DisplayFor(modelItem => item.Cevap.CevapAdi)</td>
-                    <td>
-                        @if (ViewBag.sinav != true)
-                        {
-                            @Html.DisplayFor(modelItem => item.Cevap.CevapPuan)
-                        }
-                        else
-                        {
+    .report-title {
+        margin: 0;
+        font-size: 30px;
+        line-height: 1.15;
+        font-weight: 850;
+        color: var(--report-ink);
+        text-transform: uppercase;
+    }
 
+    .report-subtitle {
+        margin: 12px 0 0;
+        color: var(--report-muted);
+        font-size: 14px;
+        max-width: 680px;
+    }
 
-                            if (item.Cevap == null || item.Cevap.Dogru != true)
-                            {
-                                <h6 style="color:red">Yanlış</h6>
-                            }
-                            else
-                            {
-                                <h6 style="color:green">Doğru</h6>
+    .identity-line {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 18px;
+    }
 
-                            }
-                        }
-                    </td>
-                </tr>
-            }
-        </table>
+    .identity-name {
+        font-size: 20px;
+        font-weight: 850;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        border: 1px solid var(--report-line);
+        background: #fff;
+    }
+
+    .status-pill.is-pass {
+        color: var(--report-pass);
+        border-color: rgba(22, 130, 93, .22);
+        background: rgba(22, 130, 93, .08);
+    }
+
+    .status-pill.is-fail {
+        color: var(--report-fail);
+        border-color: rgba(208, 59, 59, .24);
+        background: rgba(208, 59, 59, .08);
+    }
+
+    .status-pill.is-neutral {
+        color: var(--report-accent);
+        border-color: rgba(36, 87, 214, .22);
+        background: rgba(36, 87, 214, .08);
+    }
+
+    .score-panel {
+        border: 1px solid var(--report-line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 20px;
+        align-self: start;
+    }
+
+    .score-label {
+        color: var(--report-muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .score-value {
+        font-size: 56px;
+        line-height: 1;
+        margin-top: 10px;
+        font-weight: 900;
+        color: var(--report-ink);
+    }
+
+    .score-value small {
+        font-size: 22px;
+        color: var(--report-muted);
+    }
+
+    .score-track {
+        height: 10px;
+        background: #e8edf4;
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 18px 0 12px;
+    }
+
+    .score-fill {
+        height: 100%;
+        width: @puanYuzdeCss%;
+        background: linear-gradient(90deg, #2457d6, #16a36d);
+    }
+
+    .score-note {
+        color: var(--report-muted);
+        font-size: 13px;
+    }
+
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        padding: 22px 32px;
+        background: var(--report-soft);
+        border-bottom: 1px solid var(--report-line);
+    }
+
+    .metric {
+        background: #fff;
+        border: 1px solid var(--report-line);
+        border-radius: 8px;
+        padding: 14px;
+    }
+
+    .metric span {
+        display: block;
+        color: var(--report-muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 24px;
+        line-height: 1;
+    }
+
+    .report-section {
+        padding: 26px 32px;
+        border-bottom: 1px solid var(--report-line);
+    }
+
+    .section-title {
+        margin: 0 0 16px;
+        font-size: 16px;
+        font-weight: 850;
+    }
+
+    .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .profile-item {
+        border: 1px solid var(--report-line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+        min-height: 70px;
+    }
+
+    .profile-item span {
+        display: block;
+        color: var(--report-muted);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .profile-item strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 14px;
+        line-height: 1.3;
+    }
+
+    .empty-profile {
+        color: var(--report-muted);
+        border: 1px dashed var(--report-line);
+        border-radius: 8px;
+        padding: 16px;
+        background: #fff;
+    }
+
+    .answers-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid var(--report-line);
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .answers-table th,
+    .answers-table td {
+        padding: 13px 14px;
+        border-bottom: 1px solid var(--report-line);
+        vertical-align: top;
+        font-size: 13px;
+    }
+
+    .answers-table th {
+        background: #f7f9fc;
+        color: var(--report-muted);
+        font-size: 11px;
+        font-weight: 850;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .answers-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .question-cell {
+        min-width: 360px;
+        color: var(--report-ink);
+    }
+
+    .answer-cell {
+        color: #344054;
+    }
+
+    .result-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .result-badge.pass {
+        color: var(--report-pass);
+        background: rgba(22, 130, 93, .10);
+    }
+
+    .result-badge.fail {
+        color: var(--report-fail);
+        background: rgba(208, 59, 59, .10);
+    }
+
+    .result-badge.neutral {
+        color: var(--report-accent);
+        background: rgba(36, 87, 214, .10);
+    }
+
+    .signature-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        padding-top: 18px;
+    }
+
+    .signature-box {
+        min-height: 86px;
+        border: 1px solid var(--report-line);
+        border-radius: 8px;
+        padding: 14px;
+    }
+
+    .signature-box span {
+        color: var(--report-muted);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .signature-line {
+        border-top: 1px solid #9aa4b2;
+        margin-top: 42px;
+    }
+
+    @@media (max-width: 900px) {
+        .report-head,
+        .metric-grid,
+        .profile-grid,
+        .signature-row {
+            grid-template-columns: 1fr;
+        }
+
+        .result-toolbar {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .result-actions {
+            justify-content: flex-start;
+        }
+
+        .question-cell {
+            min-width: 220px;
+        }
+    }
+
+    @@media print {
+        @@page {
+            size: A4;
+            margin: 12mm;
+        }
+
+        body {
+            background: #fff !important;
+        }
+
+        .result-page {
+            margin: 0;
+            padding: 0;
+            max-width: none;
+        }
+
+        .result-toolbar,
+        .page-wrapper > .text-center.mt-4 {
+            display: none !important;
+        }
+
+        .result-sheet {
+            border: 0;
+            box-shadow: none;
+            border-radius: 0;
+            overflow: visible;
+        }
+
+        .report-head,
+        .metric-grid,
+        .report-section {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .score-panel,
+        .metric,
+        .profile-item,
+        .signature-box {
+            break-inside: avoid;
+        }
+
+        .answers-table tr {
+            break-inside: avoid;
+        }
+
+        .answers-table th,
+        .answers-table td {
+            padding: 9px 10px;
+            font-size: 11px;
+        }
+
+        .report-section.answers {
+            break-before: auto;
+        }
+    }
+</style>
+
+<div class="result-page">
+    <div class="result-toolbar">
+        <div class="result-toolbar-title">
+            <span>Personel dosyası çıktısı</span>
+            <strong>@ViewBag.adi</strong>
+        </div>
+        <div class="result-actions">
+            <button type="button" class="result-action" onclick="history.back()">
+                <i class="fa fa-arrow-left"></i>
+                Geri
+            </button>
+            <button type="button" class="result-action primary" onclick="window.print()">
+                <i class="fa fa-print"></i>
+                Yazdır / PDF
+            </button>
+        </div>
     </div>
-    <script>
 
-                            const ctx = document.getElementById('myChart');
-                            new Chart(ctx, {
-                                type: 'bar',
-                                data: {
-                                    labels: ['Puan',],
-                                    datasets: [{
-                                    label: 'Genel',
-                                    data: [@(String.Format("{0:n2}", ViewBag.puan).Trim().Replace(',', '.'))],
-                                    backgroundColor: [
-                                    'rgba(0,123,255)',   // Mavi tonu
-                                    'rgba(232,62,140)',  // pembe tonu
-                                    'rgba(220,53,69)',   // Sarı tonu
-                                    'rgba(241,194,50)',  // Sarı tonu
-                                    'rgba(253,126,20)',  // turuncu tonu
-                                    'rgba(220,53,69)',   // Kırmızı
-                                    'rgba(40,167,69)',   // Yeşil tonu
-                                    'rgba(23,162,184)',  // Mavi tonu
-                                    'rgba(52,58,64)',    // Gri tonu
-                                    'rgba(22,83,126)',   // Mavi tonu
-                                    'rgba(116,71,0)',    // Kahve tonu
-                                    'rgba(111,66,193)',  // Mor tonu
-                                    'rgba(213,166,189)', // pembe tonu
-                                    'rgba(215,72,62)',   // Kırmızı
-                                    'rgba(246,178,107)', // turuncu tonu
-                                    'rgba(32,201,151)',  // açık yeşil tonu
-                                    'rgba(127,96,0)',    // Kahve tonu
-                                    'rgba(102,16,242)',  // Mor tonu
+    <article class="result-sheet">
+        <header class="report-head">
+            <div>
+                <div class="report-kicker">Aslana Survey Studio</div>
+                <h1 class="report-title">@ViewBag.adi</h1>
+                <p class="report-subtitle">@calismaTuru - personel dosyasına eklenmek üzere hazırlanmış değerlendirme özeti.</p>
+                <div class="identity-line">
+                    <span class="identity-name">@ViewBag.adisoyadi</span>
+                    <span class="status-pill @sonucClass">@sonucMetni</span>
+                </div>
+            </div>
 
-                                    ],
-                                    borderWidth: 1
-                                    }]
-                                    },
-                                    options: {
-                                    indexAxis: 'x', // Y eksenini kullanarak yatay gösterim belirliyoruz
-                                    scales: {
-                                    y: {
-                                    beginAtZero: true
-                                    }
-                                    }
-                                    }
-                            });
+            <aside class="score-panel">
+                <div class="score-label">Genel puan</div>
+                <div class="score-value">@String.Format("{0:n2}", puan)<small>/100</small></div>
+                <div class="score-track" aria-hidden="true">
+                    <div class="score-fill"></div>
+                </div>
+                <div class="score-note">
+                    @if (sinavMi && gecmeNotu > 0)
+                    {
+                        <span>Geçme notu: @String.Format("{0:n0}", gecmeNotu)</span>
+                    }
+                    else
+                    {
+                        <span>Değerlendirme tamamlandı</span>
+                    }
+                </div>
+            </aside>
+        </header>
 
+        <section class="metric-grid" aria-label="Sonuç özeti">
+            <div class="metric">
+                <span>Cevaplanan</span>
+                <strong>@cevaplananSoru / @toplamSoru</strong>
+            </div>
+            @if (sinavMi)
+            {
+                <div class="metric">
+                    <span>Doğru</span>
+                    <strong>@dogruSayisi</strong>
+                </div>
+                <div class="metric">
+                    <span>Yanlış</span>
+                    <strong>@yanlisSayisi</strong>
+                </div>
+                <div class="metric">
+                    <span>Eksik</span>
+                    <strong>@eksikSayisi</strong>
+                </div>
+            }
+            else
+            {
+                <div class="metric">
+                    <span>Puan</span>
+                    <strong>@String.Format("{0:n2}", puan)</strong>
+                </div>
+                <div class="metric">
+                    <span>Eksik</span>
+                    <strong>@eksikSayisi</strong>
+                </div>
+                <div class="metric">
+                    <span>Durum</span>
+                    <strong>@sonucMetni</strong>
+                </div>
+            }
+        </section>
 
-    </script>
+        <section class="report-section">
+            <h2 class="section-title">Kayıt Bilgileri</h2>
+            <div class="profile-grid">
+                <div class="profile-item">
+                    <span>Değerlendirme tarihi</span>
+                    <strong>@(degerlendirmeTarihi.HasValue ? degerlendirmeTarihi.Value.ToString("dd.MM.yyyy HH:mm") : "-")</strong>
+                </div>
+                <div class="profile-item">
+                    <span>Rapor tarihi</span>
+                    <strong>@(raporTarihi.HasValue ? raporTarihi.Value.ToString("dd.MM.yyyy HH:mm") : DateTime.Now.ToString("dd.MM.yyyy HH:mm"))</strong>
+                </div>
+                <div class="profile-item">
+                    <span>Çalışma türü</span>
+                    <strong>@(sinavMi ? "Sınav" : "Anket")</strong>
+                </div>
+                <div class="profile-item">
+                    <span>Sonuç</span>
+                    <strong>@sonucMetni</strong>
+                </div>
+            </div>
+        </section>
 
+        <section class="report-section">
+            <h2 class="section-title">Katılımcı Bilgileri</h2>
+            @if (profilAlanlari.Any())
+            {
+                <div class="profile-grid">
+                    @foreach (var alan in profilAlanlari)
+                    {
+                        <div class="profile-item">
+                            <span>@alan.Etiket</span>
+                            <strong>@alan.Deger</strong>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-profile">Bu katılım kayıtlı personel profiliyle eşleşmedi. Rapor katılımcı kodu üzerinden oluşturuldu.</div>
+            }
+        </section>
 
+        <section class="report-section answers">
+            <h2 class="section-title">Cevap Dökümü</h2>
+            <table class="answers-table">
+                <thead>
+                    <tr>
+                        <th style="width:58px">#</th>
+                        <th>Soru</th>
+                        <th>Verilen cevap</th>
+                        <th style="width:130px">Sonuç</th>
+                        <th style="width:100px">Puan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!cevaplar.Any())
+                    {
+                        <tr>
+                            <td colspan="5">Cevap kaydı bulunamadı.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        var sira = 1;
+                        foreach (var item in cevaplar)
+                        {
+                            var dogru = item.Cevap?.Dogru == true;
+                            var sonucBadge = sinavMi ? (dogru ? "pass" : "fail") : "neutral";
+                            var sonucText = sinavMi ? (dogru ? "Doğru" : "Yanlış") : "Puanlandı";
+                            <tr>
+                                <td>@sira</td>
+                                <td class="question-cell">@Html.Raw(item.Soru?.SoruAdi ?? "-")</td>
+                                <td class="answer-cell">@((item.Cevap?.CevapAdi) ?? "-")</td>
+                                <td><span class="result-badge @sonucBadge">@sonucText</span></td>
+                                <td>@String.Format("{0:n2}", item.CevapPuan ?? 0)</td>
+                            </tr>
+                            sira++;
+                        }
+                    }
+                </tbody>
+            </table>
+        </section>
 
-
+        <section class="report-section">
+            <h2 class="section-title">Onay</h2>
+            <div class="signature-row">
+                <div class="signature-box">
+                    <span>İK / Yetkili</span>
+                    <div class="signature-line"></div>
+                </div>
+                <div class="signature-box">
+                    <span>Çalışan / Aday</span>
+                    <div class="signature-line"></div>
+                </div>
+            </div>
+        </section>
+    </article>
+</div>
