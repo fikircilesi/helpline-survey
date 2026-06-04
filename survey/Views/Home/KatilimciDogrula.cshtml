@@ -1,0 +1,480 @@
+@model survey.Controllers.HomeController.KatilimciDogrulamaFormu
+@{
+    ViewBag.Title = "Katılımcı Doğrulama";
+    Layout = null;
+
+    var anketAdi = (ViewBag.AnketAdi as string) ?? "Çalışma";
+    var bilgiFormu = ViewBag.BilgiFormu is bool bilgi && bilgi;
+    var kayitliZorunlu = ViewBag.KayitliZorunlu is bool kayitli && kayitli;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Aslana Survey Studio | Katılımcı Doğrulama</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="icon" href="~/files/assets/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" type="text/css" href="~/files/bower_components/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="~/files/assets/icon/themify-icons/themify-icons.css">
+    <style>
+        :root {
+            --ink: #152033;
+            --muted: #667085;
+            --line: #dce6f2;
+            --teal: #15b8a6;
+            --indigo: #4257e8;
+            --panel: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            font-family: "Segoe UI", Arial, sans-serif;
+            background:
+                linear-gradient(135deg, rgba(21, 184, 166, .11) 0 17%, transparent 17% 100%),
+                linear-gradient(155deg, transparent 0 55%, rgba(66, 87, 232, .10) 55% 100%),
+                repeating-linear-gradient(90deg, rgba(21, 32, 51, .035) 0 1px, transparent 1px 76px),
+                repeating-linear-gradient(0deg, rgba(21, 32, 51, .03) 0 1px, transparent 1px 76px),
+                linear-gradient(180deg, #ffffff 0%, #f7fbff 48%, #edf5ff 100%);
+        }
+
+        a,
+        a:hover {
+            text-decoration: none;
+        }
+
+        .participant-shell {
+            width: min(1080px, calc(100% - 34px));
+            min-height: 100vh;
+            margin: 0 auto;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 24px;
+            padding: 24px 0 42px;
+        }
+
+        .participant-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .participant-logo img {
+            width: 226px;
+            max-width: 66vw;
+            height: auto;
+            display: block;
+        }
+
+        .participant-back {
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 15px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            color: #1f2d44;
+            background: rgba(255, 255, 255, .78);
+            font-weight: 800;
+        }
+
+        .participant-main {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 430px;
+            align-items: center;
+            gap: 44px;
+        }
+
+        .participant-story {
+            min-width: 0;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 18px;
+            padding: 8px 12px;
+            color: #174a43;
+            border: 1px solid rgba(21, 184, 166, .28);
+            border-radius: 999px;
+            background: rgba(21, 184, 166, .10);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .participant-title {
+            max-width: 640px;
+            margin: 0;
+            color: #121b2d;
+            font-size: 48px;
+            line-height: 1.06;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .participant-title span {
+            color: var(--indigo);
+        }
+
+        .participant-text {
+            max-width: 600px;
+            margin: 18px 0 0;
+            color: #536174;
+            font-size: 17px;
+            line-height: 1.72;
+            font-weight: 500;
+        }
+
+        .proof-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            max-width: 650px;
+            margin-top: 30px;
+        }
+
+        .proof-item {
+            min-height: 82px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .72);
+        }
+
+        .proof-item i {
+            color: var(--indigo);
+            font-size: 18px;
+        }
+
+        .proof-item strong {
+            display: block;
+            margin-top: 8px;
+            color: #19253a;
+            font-size: 13px;
+        }
+
+        .proof-item span {
+            display: block;
+            margin-top: 4px;
+            color: #69778b;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .access-panel {
+            border: 1px solid rgba(132, 151, 176, .30);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: 0 28px 80px rgba(49, 73, 118, .18);
+            overflow: hidden;
+        }
+
+        .panel-top {
+            padding: 20px 20px 0;
+        }
+
+        .panel-mode {
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px;
+            border-radius: 8px;
+            color: #fff;
+            background: #152033;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .identity-form {
+            padding: 20px;
+        }
+
+        .form-title {
+            margin: 0;
+            color: #142033;
+            font-size: 24px;
+            font-weight: 900;
+        }
+
+        .form-copy {
+            margin: 8px 0 18px;
+            color: #687789;
+            line-height: 1.55;
+            font-size: 13px;
+        }
+
+        .work-name {
+            margin-bottom: 16px;
+            padding: 13px 14px;
+            border: 1px solid #e5edf7;
+            border-radius: 8px;
+            background: #fbfdff;
+            color: #182338;
+            font-weight: 900;
+        }
+
+        .alert-line {
+            margin-bottom: 14px;
+            padding: 11px 12px;
+            border: 1px solid rgba(255, 107, 93, .30);
+            border-radius: 8px;
+            color: #9c2f25;
+            background: rgba(255, 107, 93, .10);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .form-field {
+            margin-bottom: 12px;
+        }
+
+        .form-field label {
+            display: block;
+            margin-bottom: 7px;
+            color: #344054;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .form-field input {
+            width: 100%;
+            min-height: 46px;
+            border: 1px solid #d9e3f0;
+            border-radius: 8px;
+            outline: none;
+            padding: 0 13px;
+            color: #172033;
+            background: #fbfdff;
+            transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+        }
+
+        .form-field input:focus {
+            border-color: rgba(66, 87, 232, .68);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(66, 87, 232, .11);
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            min-height: 50px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 4px;
+            border: 0;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, #152033, #4257e8);
+            box-shadow: 0 16px 34px rgba(66, 87, 232, .20);
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .panel-footer {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1px;
+            border-top: 1px solid #e5edf7;
+            background: #e5edf7;
+        }
+
+        .mini-proof {
+            min-height: 72px;
+            padding: 13px;
+            background: #fbfdff;
+        }
+
+        .mini-proof i {
+            color: var(--teal);
+            font-size: 18px;
+        }
+
+        .mini-proof span {
+            display: block;
+            margin-top: 8px;
+            color: #617084;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        @@media (max-width: 1000px) {
+            .participant-main {
+                grid-template-columns: 1fr;
+                gap: 28px;
+            }
+
+            .access-panel {
+                order: -1;
+                width: min(560px, 100%);
+            }
+        }
+
+        @@media (max-width: 680px) {
+            .participant-shell {
+                width: min(100% - 22px, 1080px);
+                padding-top: 16px;
+            }
+
+            .participant-nav {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .participant-back {
+                width: 100%;
+            }
+
+            .participant-title {
+                font-size: 36px;
+            }
+
+            .proof-grid,
+            .field-grid,
+            .panel-footer {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="participant-shell">
+        <nav class="participant-nav">
+            <a class="participant-logo" href="@Url.Action("Giris", "Home")" aria-label="Aslana Survey Studio ana sayfa">
+                <img src="@Url.Content("~/Content/img/evalio-logo-dark.svg")" alt="Aslana Survey Studio">
+            </a>
+            <a class="participant-back" href="@Url.Action("Giris", "Home", new { panel = "participant" })">
+                <i class="ti-arrow-left"></i>
+                Katılım paneline dön
+            </a>
+        </nav>
+
+        <section class="participant-main">
+            <div class="participant-story">
+                <div class="eyebrow">
+                    <i class="ti-shield"></i>
+                    Güvenli katılım doğrulama
+                </div>
+                <h1 class="participant-title">
+                    Sonucunuz doğru kişiye <span>güvenli şekilde</span> bağlansın.
+                </h1>
+                <p class="participant-text">
+                    Bu çalışma kimlikli takip ile yayınlandı. Başlamadan önce katılımcı bilginizi doğrulayarak sınav, anket ve sertifika sonucunun size ait olmasını sağlarız.
+                </p>
+
+                <div class="proof-grid">
+                    <div class="proof-item">
+                        <i class="ti-id-badge"></i>
+                        <strong>Kimlik eşleşmesi</strong>
+                        <span>Sonuçlar katılımcı kaydıyla izlenir.</span>
+                    </div>
+                    <div class="proof-item">
+                        <i class="ti-check-box"></i>
+                        <strong>Tekrarlı takip</strong>
+                        <span>Aynı kişi sonradan sonucuna dönebilir.</span>
+                    </div>
+                    <div class="proof-item">
+                        <i class="ti-cup"></i>
+                        <strong>Sertifika akışı</strong>
+                        <span>Başarı kaydı doğru kişiye yazılır.</span>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="access-panel">
+                <div class="panel-top">
+                    <span class="panel-mode">
+                        <i class="ti-lock"></i>
+                        @(kayitliZorunlu ? "Kayıtlı katılımcı" : "Bilgi formu")
+                    </span>
+                </div>
+
+                @using (Html.BeginForm("KatilimciDogrula", "Home", FormMethod.Post, new { @class = "identity-form", autocomplete = "on" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.HiddenFor(x => x.Token)
+
+                    <h2 class="form-title">Katılımcı doğrulama</h2>
+                    <p class="form-copy">
+                        @(kayitliZorunlu
+                            ? "Sistemde kayıtlı TC / katılımcı numaranızı girin; uygunluk kontrolünden sonra çalışmaya başlayın."
+                            : "Başlamadan önce kısa bilgilerinizi yazın; sonuçlarınız bu kayıt üzerinden takip edilsin.")
+                    </p>
+
+                    <div class="work-name">@anketAdi</div>
+
+                    @if (ViewBag.Uyari != null)
+                    {
+                        <div class="alert-line">@ViewBag.Uyari</div>
+                    }
+
+                    @if (bilgiFormu)
+                    {
+                        <div class="form-field">
+                            <label for="AdSoyad">Ad soyad</label>
+                            @Html.TextBoxFor(x => x.AdSoyad, new { id = "AdSoyad", required = "required", maxlength = "50", placeholder = "Adınız ve soyadınız" })
+                        </div>
+                    }
+
+                    <div class="form-field">
+                        <label for="TcKimlikNo">TC / katılımcı numarası</label>
+                        @Html.TextBoxFor(x => x.TcKimlikNo, new { id = "TcKimlikNo", maxlength = "50", placeholder = kayitliZorunlu ? "Kayıtlı TC / numara" : "Varsa TC / numara" })
+                    </div>
+
+                    @if (bilgiFormu)
+                    {
+                        <div class="field-grid">
+                            <div class="form-field">
+                                <label for="Eposta">E-posta</label>
+                                @Html.TextBoxFor(x => x.Eposta, new { id = "Eposta", type = "email", maxlength = "50", placeholder = "ornek@mail.com" })
+                            </div>
+                            <div class="form-field">
+                                <label for="Telefon">Telefon</label>
+                                @Html.TextBoxFor(x => x.Telefon, new { id = "Telefon", type = "tel", maxlength = "50", placeholder = "05xx xxx xx xx" })
+                            </div>
+                        </div>
+                    }
+
+                    <button type="submit" class="submit-btn">
+                        <i class="ti-control-play"></i>
+                        Çalışmaya Başla
+                    </button>
+                }
+
+                <div class="panel-footer">
+                    <div class="mini-proof">
+                        <i class="ti-shield"></i>
+                        <span>Güvenli doğrulama</span>
+                    </div>
+                    <div class="mini-proof">
+                        <i class="ti-write"></i>
+                        <span>Sonuç takibi</span>
+                    </div>
+                    <div class="mini-proof">
+                        <i class="ti-medall"></i>
+                        <span>Sertifika uyumu</span>
+                    </div>
+                </div>
+            </aside>
+        </section>
+    </main>
+</body>
+</html>

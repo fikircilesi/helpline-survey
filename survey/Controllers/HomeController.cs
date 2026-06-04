@@ -97,6 +97,15 @@ namespace survey.Controllers
             public Dictionary<int, int> DogruCevaplar { get; set; } = new Dictionary<int, int>();
         }
 
+        public class KatilimciDogrulamaFormu
+        {
+            public string Token { get; set; }
+            public string TcKimlikNo { get; set; }
+            public string AdSoyad { get; set; }
+            public string Eposta { get; set; }
+            public string Telefon { get; set; }
+        }
+
         private void CaptchaYenile()
         {
             var birinci = RandomNumberGenerator.GetInt32(2, 10);
@@ -151,6 +160,11 @@ namespace survey.Controllers
                 return new RecaptchaDogrulamaSonucu { Basarili = true };
             }
 
+            if (LocalhostGelistirmeOrtamiMi())
+            {
+                return new RecaptchaDogrulamaSonucu { Basarili = true };
+            }
+
             var token = Request.Form["g-recaptcha-response"].FirstOrDefault();
             if (string.IsNullOrWhiteSpace(token))
             {
@@ -159,11 +173,6 @@ namespace survey.Controllers
                     Basarili = false,
                     Mesaj = "Ben robot değilim kutusunu işaretleyin."
                 };
-            }
-
-            if (LocalhostGelistirmeOrtamiMi())
-            {
-                return new RecaptchaDogrulamaSonucu { Basarili = true };
             }
 
             var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
@@ -236,19 +245,19 @@ namespace survey.Controllers
                 return "Google reCAPTCHA doğrulaması başarısız oldu. Kutuyu tekrar işaretleyin.";
             }
 
-            if (hataKodlari.Contains("timeout-or-duplicate"))
+            if (hataKodlari.Contains("missing-input-response"))
             {
-                return "reCAPTCHA süresi doldu. Kutuyu tekrar işaretleyin.";
+                return "Ben robot değilim kutusunu işaretleyin.";
             }
 
-            if (hataKodlari.Contains("invalid-input-secret"))
+            if (hataKodlari.Contains("timeout-or-duplicate") || hataKodlari.Contains("invalid-input-response"))
             {
-                return "reCAPTCHA gizli anahtarı geçersiz. appsettings.json içindeki SecretKey kontrol edilmeli.";
+                return "reCAPTCHA doğrulaması süresi doldu veya geçersizleşti. Kutuyu tekrar işaretleyip yeniden deneyin. Kod: " + string.Join(", ", hataKodlari);
             }
 
-            if (hataKodlari.Contains("invalid-input-response") || hataKodlari.Contains("missing-input-response"))
+            if (hataKodlari.Contains("invalid-input-secret") || hataKodlari.Contains("missing-input-secret"))
             {
-                return "reCAPTCHA cevabı Google tarafından kabul edilmedi. Site Key ve Secret Key eşleşmesini, localhost domain ayarını kontrol edin. Kod: " + string.Join(", ", hataKodlari);
+                return "reCAPTCHA gizli anahtarı geçersiz. appsettings.json içindeki SecretKey kontrol edilmeli. Kod: " + string.Join(", ", hataKodlari);
             }
 
             return "Google reCAPTCHA doğrulaması başarısız oldu: " + string.Join(", ", hataKodlari);
@@ -595,9 +604,13 @@ namespace survey.Controllers
             }
         }
 
-        public ActionResult Giris()
+        public ActionResult Giris(string panel = null)
         {
             Session.Clear();
+            if (string.Equals(panel, "participant", StringComparison.OrdinalIgnoreCase))
+            {
+                ViewBag.ActiveAuthPanel = "participant";
+            }
             CaptchaYenile();
             return View();
         }
@@ -953,9 +966,7 @@ namespace survey.Controllers
 
         public ActionResult AnketGiris()
         {
-            Session.Clear();
-            ViewBag.kod = DateTime.Now.ToString("fffffff");
-            return View();
+            return RedirectToAction("Giris", "Home", new { panel = "participant" });
 
         }
         [ValidateAntiForgeryToken(), HttpPost]
@@ -965,18 +976,7 @@ namespace survey.Controllers
 
             if (obj != null && obj.UserTc == objUser && obj.Pasif != true)
             {
-                FormsAuthentication.SetAuthCookie(obj.UserAdi, false);
-                Session["id"] = obj.UserId;
-                Session["adi"] = obj.UserAdi;
-                Session["tc"] = obj.UserTc;
-
-                // ip adresini almak
-                string ip = GetClientIp();
-                if (string.IsNullOrEmpty(ip))
-                {
-                    ip = GetClientIp();
-                }
-                Session["ipadres"] = ip;
+                KatilimciOturumuAc(obj);
 
                 return RedirectToAction("AnketGirisIndex", "Home", new { id = obj.UserId });
             }
@@ -9859,17 +9859,20 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 if (!sessionUserId.HasValue)
                 {
-                    TempData["Mesaj"] = "Bu calisma kayitli katilimcilara ozel. Lutfen katilimci hesabi ile giris yapin.";
-                    return RedirectToAction("Giris", "Home");
+                    return RedirectToAction("KatilimciDogrula", "Home", new { token });
                 }
 
                 if (!KayitliKatilimciCalismayaUygunMu(anket, sessionUserId.Value, out var uygunlukMesaji))
                 {
                     TempData["Mesaj"] = uygunlukMesaji;
-                    return RedirectToAction("Giris", "Home");
+                    return RedirectToAction("KatilimciDogrula", "Home", new { token });
                 }
 
                 publicUserId = sessionUserId.Value;
+            }
+            else if (katilimYontemi == KatilimYontemiBilgiFormu && !sessionUserId.HasValue)
+            {
+                return RedirectToAction("KatilimciDogrula", "Home", new { token });
             }
             else if (sessionUserId.HasValue && KayitliKatilimciCalismayaUygunMu(anket, sessionUserId.Value, out _))
             {
@@ -10014,6 +10017,184 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
             return null;
+        }
+
+        private static string KatilimciKimlikTemizle(string value)
+        {
+            return Regex.Replace((value ?? string.Empty).Trim(), @"\s+", string.Empty);
+        }
+
+        private static string KatilimciMetinTemizle(string value)
+        {
+            return (value ?? string.Empty).Trim();
+        }
+
+        private void KatilimciOturumuAc(User user)
+        {
+            if (user == null)
+            {
+                return;
+            }
+
+            Session.Clear();
+            FormsAuthentication.SetAuthCookie(user.UserAdi ?? user.UserTc ?? user.UserMail ?? ("Katılımcı " + user.UserId), false);
+            Session["id"] = user.UserId;
+            Session["adi"] = user.UserAdi;
+            Session["tc"] = user.UserTc;
+            Session["ipadres"] = GetClientIp();
+        }
+
+        private ActionResult KatilimciDogrulamaView(Anket anket, string token, KatilimciDogrulamaFormu form = null, string uyari = null)
+        {
+            var katilimYontemi = KatilimYontemiGetir(anket.AnketId);
+            ViewBag.AnketAdi = anket.AnketAdi;
+            ViewBag.KatilimYontemi = katilimYontemi;
+            ViewBag.BilgiFormu = katilimYontemi == KatilimYontemiBilgiFormu;
+            ViewBag.KayitliZorunlu = katilimYontemi == KatilimYontemiKayitli || katilimYontemi == KatilimYontemiKisiyeOzel;
+            ViewBag.Uyari = uyari;
+
+            form ??= new KatilimciDogrulamaFormu();
+            form.Token = token;
+            return View("KatilimciDogrula", form);
+        }
+
+        public ActionResult KatilimciDogrula(string token)
+        {
+            var anketId = AnketIdFromKatilimToken(token);
+            if (!anketId.HasValue)
+            {
+                TempData["Mesaj"] = "Katılım bağlantısı geçersiz ya da yenilenmiş.";
+                return RedirectToAction("Giris", "Home");
+            }
+
+            var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
+            if (anket == null || anket.Pasif == true)
+            {
+                TempData["Mesaj"] = "Bu çalışma yayında değil.";
+                return RedirectToAction("Giris", "Home");
+            }
+
+            var katilimYontemi = KatilimYontemiGetir(anket.AnketId);
+            if (katilimYontemi == KatilimYontemiHerkeseAcik)
+            {
+                return RedirectToAction("Katilim", "Home", new { token });
+            }
+
+            return KatilimciDogrulamaView(anket, token);
+        }
+
+        [ValidateAntiForgeryToken(), HttpPost]
+        public ActionResult KatilimciDogrula(KatilimciDogrulamaFormu form)
+        {
+            form ??= new KatilimciDogrulamaFormu();
+            form.Token = KatilimciMetinTemizle(form.Token);
+
+            var anketId = AnketIdFromKatilimToken(form.Token);
+            if (!anketId.HasValue)
+            {
+                TempData["Mesaj"] = "Katılım bağlantısı geçersiz ya da yenilenmiş.";
+                return RedirectToAction("Giris", "Home");
+            }
+
+            var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
+            if (anket == null || anket.Pasif == true)
+            {
+                TempData["Mesaj"] = "Bu çalışma yayında değil.";
+                return RedirectToAction("Giris", "Home");
+            }
+
+            var katilimYontemi = KatilimYontemiGetir(anket.AnketId);
+            var bilgiFormu = katilimYontemi == KatilimYontemiBilgiFormu;
+            var kayitliZorunlu = katilimYontemi == KatilimYontemiKayitli || katilimYontemi == KatilimYontemiKisiyeOzel;
+            if (!bilgiFormu && !kayitliZorunlu)
+            {
+                return RedirectToAction("Katilim", "Home", new { token = form.Token });
+            }
+
+            var tcKimlikNo = KatilimciKimlikTemizle(form.TcKimlikNo);
+            var adSoyad = KatilimciMetinTemizle(form.AdSoyad);
+            var eposta = KatilimciMetinTemizle(form.Eposta);
+            var telefon = KatilimciMetinTemizle(form.Telefon);
+
+            if (string.IsNullOrWhiteSpace(tcKimlikNo) && kayitliZorunlu)
+            {
+                return KatilimciDogrulamaView(anket, form.Token, form, "Lütfen kayıtlı TC / katılımcı numaranızı yazın.");
+            }
+
+            if (bilgiFormu && string.IsNullOrWhiteSpace(adSoyad))
+            {
+                return KatilimciDogrulamaView(anket, form.Token, form, "Lütfen ad soyad bilginizi yazın.");
+            }
+
+            if (bilgiFormu && string.IsNullOrWhiteSpace(tcKimlikNo) && string.IsNullOrWhiteSpace(eposta))
+            {
+                return KatilimciDogrulamaView(anket, form.Token, form, "Katılımı takip edebilmek için TC / katılımcı numarası veya e-posta alanlarından en az birini yazın.");
+            }
+
+            var user = !string.IsNullOrWhiteSpace(tcKimlikNo)
+                ? db.User.FirstOrDefault(x => x.UserTc == tcKimlikNo && x.Pasif != true)
+                : null;
+
+            if (user == null && !string.IsNullOrWhiteSpace(eposta))
+            {
+                user = db.User.FirstOrDefault(x => x.UserMail == eposta && x.Pasif != true);
+            }
+
+            if (user == null && kayitliZorunlu)
+            {
+                return KatilimciDogrulamaView(anket, form.Token, form, "Bu bilgiyle kayıtlı katılımcı bulunamadı. Lütfen TC / katılımcı numarasını kontrol edin.");
+            }
+
+            if (user == null && bilgiFormu)
+            {
+                user = new User
+                {
+                    UserAdi = adSoyad,
+                    UserTc = string.IsNullOrWhiteSpace(tcKimlikNo) ? null : tcKimlikNo,
+                    UserMail = string.IsNullOrWhiteSpace(eposta) ? null : eposta,
+                    UserTelefon = string.IsNullOrWhiteSpace(telefon) ? null : telefon,
+                    Pasif = false,
+                    KayitTarihi = DateTime.Now
+                };
+
+                db.User.Add(user);
+                db.SaveChanges();
+            }
+            else if (user != null && bilgiFormu)
+            {
+                var degisti = false;
+                if (!string.IsNullOrWhiteSpace(adSoyad) && string.IsNullOrWhiteSpace(user.UserAdi))
+                {
+                    user.UserAdi = adSoyad;
+                    degisti = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(eposta) && string.IsNullOrWhiteSpace(user.UserMail))
+                {
+                    user.UserMail = eposta;
+                    degisti = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(telefon) && string.IsNullOrWhiteSpace(user.UserTelefon))
+                {
+                    user.UserTelefon = telefon;
+                    degisti = true;
+                }
+
+                if (degisti)
+                {
+                    db.Entry(user).State = EntityState.Modified;
+                    db.SaveChanges();
+                }
+            }
+
+            if (!KayitliKatilimciCalismayaUygunMu(anket, user.UserId, out var uygunlukMesaji))
+            {
+                return KatilimciDogrulamaView(anket, form.Token, form, uygunlukMesaji);
+            }
+
+            KatilimciOturumuAc(user);
+            return RedirectToAction("Katilim", "Home", new { token = form.Token });
         }
 
         private bool KayitliKatilimciCalismayaUygunMu(Anket anket, int userId, out string mesaj)

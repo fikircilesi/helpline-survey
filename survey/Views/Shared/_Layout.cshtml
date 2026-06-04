@@ -60,13 +60,34 @@
 
         .pcoded-header .navbar-logo {
             width: var(--studio-sidebar-width);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
         }
 
         .navbar-logo .brand-logo {
-            width: 156px;
-            max-width: calc(100% - 76px);
-            height: 42px;
-            object-fit: contain;
+            width: 196px !important;
+            max-width: 196px !important;
+            height: 44px !important;
+            object-fit: contain !important;
+            object-position: left center;
+            display: block !important;
+        }
+
+        .navbar-logo .studio-brand-link {
+            min-width: 0;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: flex-start;
+            flex: 1 1 auto;
+            margin-left: 8px;
+            overflow: hidden;
+        }
+
+        .navbar-logo .mobile-menu,
+        .navbar-logo .mobile-options {
+            flex: 0 0 auto;
         }
 
         .studio-sidebar-inner {
@@ -414,7 +435,7 @@
                         <a class="mobile-menu" id="mobile-collapse" href="#!">
                             <i class="feather icon-menu"></i>
                         </a>
-                        <a href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                        <a class="studio-brand-link" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
                             <img class="img-fluid brand-logo" src="~/Content/img/evalio-logo.svg" alt="Aslana Survey Studio" />
                         </a>
                         <a class="mobile-options">

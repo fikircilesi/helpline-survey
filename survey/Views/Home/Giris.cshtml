@@ -638,6 +638,13 @@
             box-shadow: 0 20px 40px rgba(66, 87, 232, .24);
         }
 
+        .submit-btn:disabled {
+            opacity: .58;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .form-foot {
             display: flex;
             align-items: center;
@@ -789,7 +796,7 @@
     </style>
     @if (recaptchaAktif)
     {
-        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+        <script src="https://www.google.com/recaptcha/api.js?onload=onLoginRecaptchaReady&render=explicit" defer></script>
     }
 </head>
 
@@ -801,10 +808,10 @@
                     <img src="@Url.Content("~/Content/img/evalio-logo-dark.svg")" alt="Aslana Survey Studio">
                 </a>
                 <div class="nav-actions">
-                    <a class="nav-link-btn" href="@Url.Action("AnketGiris", "Home")">
+                    <button type="button" class="nav-link-btn" data-open-panel="participant">
                         <i class="ti-user"></i>
                         Katılımcı Girişi
-                    </a>
+                    </button>
                     <button type="button" class="nav-link-btn" data-open-panel="participant">
                         <i class="ti-search"></i>
                         Katılım Kodum Var
@@ -962,11 +969,7 @@
                         @if (recaptchaAktif)
                         {
                             <div class="recaptcha-box">
-                                <div class="g-recaptcha"
-                                     data-sitekey="@recaptchaSiteKey"
-                                     data-callback="onLoginRecaptchaVerified"
-                                     data-expired-callback="onLoginRecaptchaExpired"
-                                     data-error-callback="onLoginRecaptchaExpired"></div>
+                                <div id="loginRecaptcha" class="g-recaptcha" data-sitekey="@recaptchaSiteKey"></div>
                             </div>
                         }
                         else
@@ -1162,13 +1165,44 @@
             alert.style.display = '';
         }
 
+        function setLoginSubmitState(enabled) {
+            const submitButton = document.querySelector('[data-panel="login"] .submit-btn');
+            if (submitButton && document.getElementById('loginRecaptcha')) {
+                submitButton.disabled = !enabled;
+            }
+        }
+
+        let loginRecaptchaWidgetId = null;
+
+        window.onLoginRecaptchaReady = function () {
+            if (!window.grecaptcha || loginRecaptchaWidgetId !== null) return;
+
+            const recaptcha = document.getElementById('loginRecaptcha');
+            if (!recaptcha) return;
+
+            setLoginSubmitState(false);
+            loginRecaptchaWidgetId = window.grecaptcha.render(recaptcha, {
+                sitekey: recaptcha.dataset.sitekey,
+                callback: window.onLoginRecaptchaVerified,
+                'expired-callback': window.onLoginRecaptchaExpired,
+                'error-callback': window.onLoginRecaptchaError
+            });
+        };
+
         window.onLoginRecaptchaVerified = function () {
             const alert = document.getElementById('loginAlert');
             if (alert) alert.style.display = 'none';
+            setLoginSubmitState(true);
         };
 
         window.onLoginRecaptchaExpired = function () {
+            setLoginSubmitState(false);
             setLoginAlert('reCAPTCHA süresi doldu. Lütfen kutuyu tekrar işaretleyin.');
+        };
+
+        window.onLoginRecaptchaError = function () {
+            setLoginSubmitState(false);
+            setLoginAlert('reCAPTCHA yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
         };
 
         (function () {
@@ -1197,11 +1231,21 @@
 
             const loginForm = document.querySelector('[data-panel="login"]');
             if (loginForm) {
+                if (loginForm.querySelector('.g-recaptcha')) {
+                    setLoginSubmitState(false);
+                }
+
                 loginForm.addEventListener('submit', event => {
                     const recaptchaBox = loginForm.querySelector('.g-recaptcha');
-                    if (!recaptchaBox || !window.grecaptcha) return;
+                    if (!recaptchaBox) return;
 
-                    if (!window.grecaptcha.getResponse()) {
+                    if (!window.grecaptcha || loginRecaptchaWidgetId === null) {
+                        event.preventDefault();
+                        setLoginAlert('reCAPTCHA henüz hazır değil. Sayfayı yenileyip tekrar deneyin.');
+                        return;
+                    }
+
+                    if (!window.grecaptcha.getResponse(loginRecaptchaWidgetId)) {
                         event.preventDefault();
                         setLoginAlert('Ben robot değilim kutusunu işaretleyin.');
                     }

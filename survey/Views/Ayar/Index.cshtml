@@ -5,107 +5,206 @@
 @section HeadExtra {
     <style>
         .settings-workspace {
-            padding: 26px 18px 42px;
+            color: #142033;
         }
 
-        .settings-header {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 18px;
-            margin-bottom: 18px;
+        .settings-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 22px;
+            padding: 28px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, rgba(11, 18, 32, .96), rgba(24, 52, 68, .94));
+            box-shadow: 0 18px 48px rgba(21, 34, 50, .14);
+            overflow: hidden;
         }
 
         .settings-kicker {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            min-height: 28px;
+            min-height: 30px;
             padding: 0 11px;
-            border: 1px solid #d7dee9;
-            border-radius: 8px;
-            color: #55647a;
-            background: #fff;
-            font-size: 12px;
+            margin-bottom: 14px;
+            border: 1px solid rgba(255, 255, 255, .22);
+            border-radius: 999px;
+            color: rgba(255, 255, 255, .78);
+            background: rgba(255, 255, 255, .08);
             font-weight: 700;
+            font-size: 12px;
         }
 
         .settings-title {
-            margin: 10px 0 0;
-            color: #172033;
-            font-size: 28px;
-            font-weight: 800;
+            margin: 0;
+            color: #fff;
+            font-size: 32px;
+            font-weight: 900;
+            line-height: 1.18;
             letter-spacing: 0;
         }
 
         .settings-subtitle {
-            margin: 7px 0 0;
-            color: #667085;
-            font-size: 14px;
-            line-height: 1.5;
+            max-width: 720px;
+            margin: 10px 0 0;
+            color: rgba(255, 255, 255, .72);
+            font-size: 15px;
+            line-height: 1.6;
         }
 
-        .settings-shell {
-            background: #fff;
-            border: 1px solid #e6ebf2;
+        .settings-hero-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .settings-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 0 16px;
+            border: 1px solid rgba(255, 255, 255, .24);
             border-radius: 8px;
-            padding: 18px;
-            box-shadow: 0 18px 42px rgba(16, 24, 40, 0.06);
+            color: #fff;
+            background: rgba(255, 255, 255, .1);
+            font-weight: 800;
+            font-size: 13px;
+            transition: transform .18s ease, background .18s ease;
         }
 
-        .settings-section + .settings-section {
-            margin-top: 22px;
-            padding-top: 20px;
-            border-top: 1px solid #edf1f6;
+        .settings-btn:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, .18);
+            text-decoration: none;
+        }
+
+        .settings-btn.primary {
+            color: #0b1220;
+            border-color: transparent;
+            background: #8df0c7;
+            box-shadow: 0 16px 34px rgba(56, 211, 159, .24);
+        }
+
+        .settings-btn.primary:hover {
+            color: #0b1220;
+        }
+
+        .settings-overview {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .settings-stat {
+            min-height: 92px;
+            padding: 16px;
+            border: 1px solid #e8edf5;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(20, 32, 51, .06);
+        }
+
+        .settings-stat i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            background: #19a7ce;
+        }
+
+        .settings-stat:nth-child(2) i { background: #38a169; }
+        .settings-stat:nth-child(3) i { background: #f26b4f; }
+        .settings-stat:nth-child(4) i { background: #7559d9; }
+
+        .settings-stat strong {
+            display: block;
+            margin-top: 11px;
+            color: #101827;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .settings-stat span {
+            display: block;
+            margin-top: 3px;
+            color: #667085;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .settings-section {
+            margin-top: 20px;
+        }
+
+        .settings-section-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
         }
 
         .settings-section-title {
-            margin: 0 0 12px;
-            color: #344054;
+            margin: 0;
+            color: #101827;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .settings-section-note {
+            margin: 4px 0 0;
+            color: #667085;
             font-size: 13px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+            line-height: 1.45;
         }
 
         .settings-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
         }
 
         .settings-card {
-            min-height: 116px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            border: 1px solid #e4e9f1;
-            border-radius: 8px;
+            position: relative;
+            min-height: 104px;
+            display: grid;
+            grid-template-columns: 42px minmax(0, 1fr) 22px;
+            align-items: center;
+            gap: 12px;
             padding: 16px;
+            border: 1px solid #e8edf5;
+            border-radius: 8px;
             color: #172033;
-            background: #fbfcfe;
-            transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+            background: #fff;
+            box-shadow: 0 12px 28px rgba(20, 32, 51, .06);
+            transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
         }
 
         .settings-card:hover,
         .settings-card:focus {
             color: #172033;
-            border-color: #8bdcbe;
-            box-shadow: 0 16px 30px rgba(22, 199, 181, 0.12);
+            border-color: rgba(141, 240, 199, .9);
+            box-shadow: 0 18px 38px rgba(21, 34, 50, .10);
             transform: translateY(-2px);
             text-decoration: none;
         }
 
-        .settings-card-top {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
         .settings-icon {
-            width: 38px;
-            height: 38px;
+            width: 42px;
+            height: 42px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -115,179 +214,238 @@
             font-size: 18px;
         }
 
-        .settings-arrow {
-            color: #98a2b3;
-            font-size: 17px;
-        }
+        .settings-card:nth-child(2) .settings-icon { color: #2563eb; background: #eff6ff; }
+        .settings-card:nth-child(3) .settings-icon { color: #c2410c; background: #fff4ed; }
+        .settings-card:nth-child(4) .settings-icon { color: #6d4edb; background: #f4f1ff; }
 
         .settings-card-title {
-            margin: 14px 0 4px;
-            color: #172033;
+            display: block;
+            color: #101827;
             font-size: 15px;
-            font-weight: 800;
+            font-weight: 900;
+            line-height: 1.25;
         }
 
         .settings-card-meta {
+            display: block;
+            margin-top: 5px;
             color: #667085;
             font-size: 12px;
             font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .settings-arrow {
+            justify-self: end;
+            color: #98a2b3;
+            font-size: 17px;
+            transition: color .18s ease, transform .18s ease;
+        }
+
+        .settings-card:hover .settings-arrow {
+            color: #17b996;
+            transform: translate(2px, -2px);
+        }
+
+        @@media (max-width: 1399px) {
+            .settings-grid,
+            .settings-overview {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
         @@media (max-width: 767px) {
-            .settings-workspace {
-                padding: 18px 12px 30px;
-            }
-
-            .settings-header {
-                display: block;
+            .settings-hero {
+                grid-template-columns: 1fr;
+                padding: 22px;
             }
 
             .settings-title {
-                font-size: 24px;
+                font-size: 27px;
             }
 
-            .settings-shell {
-                padding: 14px;
+            .settings-hero-actions {
+                justify-content: flex-start;
+            }
+
+            .settings-btn {
+                width: 100%;
+            }
+
+            .settings-grid,
+            .settings-overview {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 }
 
-<div class="settings-workspace">
-    <div class="settings-header">
+<div class="page-body settings-workspace">
+    <section class="settings-hero">
         <div>
             <span class="settings-kicker">
                 <i class="feather icon-settings"></i>
-                Aslana Survey Studio
+                Aslana Survey Studio yönetim alanı
             </span>
             <h1 class="settings-title">Ayarlar</h1>
-            <p class="settings-subtitle">Kullanıcı, organizasyon ve sistem tanımları</p>
+            <p class="settings-subtitle">Kullanıcı, katılımcı, organizasyon ve sistem tanımlarını tek ekranda düzenleyin.</p>
+        </div>
+        <div class="settings-hero-actions">
+            <a class="settings-btn" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                <i class="feather icon-grid"></i>
+                Gösterge Paneli
+            </a>
+            <a class="settings-btn primary" href="@Url.Action("UserIndex", "Ayar", new { id = Session["id"] })">
+                <i class="feather icon-users"></i>
+                Kullanıcılar
+            </a>
+        </div>
+    </section>
+
+    <div class="settings-overview">
+        <div class="settings-stat">
+            <i class="feather icon-users"></i>
+            <strong>Erişim</strong>
+            <span>Kullanıcı ve personel hesapları</span>
+        </div>
+        <div class="settings-stat">
+            <i class="feather icon-briefcase"></i>
+            <strong>Organizasyon</strong>
+            <span>Rol, birim ve sorumlu yapısı</span>
+        </div>
+        <div class="settings-stat">
+            <i class="feather icon-map-pin"></i>
+            <strong>Lokasyon</strong>
+            <span>Bölge, şehir ve şube tanımları</span>
+        </div>
+        <div class="settings-stat">
+            <i class="feather icon-cpu"></i>
+            <strong>Sistem</strong>
+            <span>Studio AI ve platform ayarları</span>
         </div>
     </div>
 
-    <div class="settings-shell">
-        <section class="settings-section">
-            <h2 class="settings-section-title">Kullanıcılar</h2>
-            <div class="settings-grid">
-                <a class="settings-card" href="@Url.Action("UserIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-users"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Kullanıcı Tanımları</span>
-                        <span class="settings-card-meta">Erişim</span>
-                    </span>
-                </a>
-                <a class="settings-card" href="@Url.Action("PersonelIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-user-check"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Personel Tanımları</span>
-                        <span class="settings-card-meta">Katılımcılar</span>
-                    </span>
-                </a>
+    <section class="settings-section">
+        <div class="settings-section-head">
+            <div>
+                <h2 class="settings-section-title">Kullanıcı ve Erişim</h2>
+                <p class="settings-section-note">Panel kullanıcıları ve katılımcı profilleri.</p>
             </div>
-        </section>
+        </div>
+        <div class="settings-grid">
+            <a class="settings-card" href="@Url.Action("UserIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-users"></i></span>
+                <span>
+                    <span class="settings-card-title">Kullanıcı Tanımları</span>
+                    <span class="settings-card-meta">Yetki ve panel erişimi</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+            <a class="settings-card" href="@Url.Action("PersonelIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-user-check"></i></span>
+                <span>
+                    <span class="settings-card-title">Personel Tanımları</span>
+                    <span class="settings-card-meta">Katılımcı ve hedef kitle</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+        </div>
+    </section>
 
-        <section class="settings-section">
-            <h2 class="settings-section-title">Organizasyon</h2>
-            <div class="settings-grid">
-                <a class="settings-card" href="@Url.Action("UnvanIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-award"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Ünvan Tanımları</span>
-                        <span class="settings-card-meta">Rol</span>
-                    </span>
-                </a>
-                <a class="settings-card" href="@Url.Action("DepartmanIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-briefcase"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Departman Tanımları</span>
-                        <span class="settings-card-meta">Birim</span>
-                    </span>
-                </a>
-                <a class="settings-card" href="@Url.Action("BolumIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-layers"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Bölüm Tanımları</span>
-                        <span class="settings-card-meta">Yapı</span>
-                    </span>
-                </a>
-                <a class="settings-card" href="@Url.Action("YoneticiIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-shield"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Yönetici Tanımları</span>
-                        <span class="settings-card-meta">Sorumlular</span>
-                    </span>
-                </a>
+    <section class="settings-section">
+        <div class="settings-section-head">
+            <div>
+                <h2 class="settings-section-title">Organizasyon</h2>
+                <p class="settings-section-note">Çalışmaların doğru departman, rol ve sorumlu yapısına bağlanması.</p>
             </div>
-        </section>
+        </div>
+        <div class="settings-grid">
+            <a class="settings-card" href="@Url.Action("UnvanIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-award"></i></span>
+                <span>
+                    <span class="settings-card-title">Ünvan Tanımları</span>
+                    <span class="settings-card-meta">Rol ve görev adları</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+            <a class="settings-card" href="@Url.Action("DepartmanIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-briefcase"></i></span>
+                <span>
+                    <span class="settings-card-title">Departman Tanımları</span>
+                    <span class="settings-card-meta">Birim kırılımı</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+            <a class="settings-card" href="@Url.Action("BolumIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-layers"></i></span>
+                <span>
+                    <span class="settings-card-title">Bölüm Tanımları</span>
+                    <span class="settings-card-meta">Alt organizasyon yapısı</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+            <a class="settings-card" href="@Url.Action("YoneticiIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-shield"></i></span>
+                <span>
+                    <span class="settings-card-title">Yönetici Tanımları</span>
+                    <span class="settings-card-meta">Sorumlu kişi eşleşmeleri</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+        </div>
+    </section>
 
-        <section class="settings-section">
-            <h2 class="settings-section-title">Lokasyon</h2>
-            <div class="settings-grid">
-                <a class="settings-card" href="@Url.Action("BolgeIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-map"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Bölge Tanımları</span>
-                        <span class="settings-card-meta">Alan</span>
-                    </span>
-                </a>
-                <a class="settings-card" href="@Url.Action("SehirIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-map-pin"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Şehir Tanımları</span>
-                        <span class="settings-card-meta">Konum</span>
-                    </span>
-                </a>
-                <a class="settings-card" href="@Url.Action("SubeIndex", "Ayar", new { id = Session["id"] })">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-home"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Şube Tanımları</span>
-                        <span class="settings-card-meta">Tesis</span>
-                    </span>
-                </a>
+    <section class="settings-section">
+        <div class="settings-section-head">
+            <div>
+                <h2 class="settings-section-title">Lokasyon</h2>
+                <p class="settings-section-note">Anket ve sınav sonuçlarını tesis, şehir veya bölgeye göre ayırın.</p>
             </div>
-        </section>
+        </div>
+        <div class="settings-grid">
+            <a class="settings-card" href="@Url.Action("BolgeIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-map"></i></span>
+                <span>
+                    <span class="settings-card-title">Bölge Tanımları</span>
+                    <span class="settings-card-meta">Alan ve satış bölgesi</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+            <a class="settings-card" href="@Url.Action("SehirIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-map-pin"></i></span>
+                <span>
+                    <span class="settings-card-title">Şehir Tanımları</span>
+                    <span class="settings-card-meta">Konum listesi</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+            <a class="settings-card" href="@Url.Action("SubeIndex", "Ayar", new { id = Session["id"] })">
+                <span class="settings-icon"><i class="feather icon-home"></i></span>
+                <span>
+                    <span class="settings-card-title">Şube Tanımları</span>
+                    <span class="settings-card-meta">Tesis ve lokasyon</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+        </div>
+    </section>
 
-        <section class="settings-section">
-            <h2 class="settings-section-title">Sistem</h2>
-            <div class="settings-grid">
-                <a class="settings-card" href="@Url.Action("AiAyar", "Ayar")">
-                    <span class="settings-card-top">
-                        <span class="settings-icon"><i class="feather icon-cpu"></i></span>
-                        <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
-                    </span>
-                    <span>
-                        <span class="settings-card-title">Yapay Zeka Ayarları</span>
-                        <span class="settings-card-meta">Studio AI</span>
-                    </span>
-                </a>
+    <section class="settings-section">
+        <div class="settings-section-head">
+            <div>
+                <h2 class="settings-section-title">Sistem</h2>
+                <p class="settings-section-note">Platform davranışı ve yapay zeka destekli kurulum ayarları.</p>
             </div>
-        </section>
-    </div>
+        </div>
+        <div class="settings-grid">
+            <a class="settings-card" href="@Url.Action("AiAyar", "Ayar")">
+                <span class="settings-icon"><i class="feather icon-cpu"></i></span>
+                <span>
+                    <span class="settings-card-title">Yapay Zeka Ayarları</span>
+                    <span class="settings-card-meta">Studio AI bağlantısı</span>
+                </span>
+                <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+            </a>
+        </div>
+    </section>
 </div>
