@@ -1026,9 +1026,16 @@ namespace survey.Controllers
             ViewBag.Uyari = "Tc No Kontrol Ediniz";
             return View(objUser);
         }
-        public ActionResult GirisCikis()
+        public async Task<ActionResult> GirisCikis()
         {
+            await OturumuKapatAsync();
             return RedirectToAction("Giris", "Home");
+        }
+
+        public async Task<ActionResult> KatilimciCikis()
+        {
+            await OturumuKapatAsync();
+            return RedirectToAction("Giris", "Home", new { panel = "participant" });
         }
         public ActionResult Index()
         {
@@ -10009,6 +10016,14 @@ Yalnizca su JSON semasinda cevap ver:
             }
         }
 
+        private async Task OturumuKapatAsync()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            Session.Clear();
+            Response.Cookies.Delete(KatilimciKoduCookieAdi);
+            Response.Cookies.Delete(".ASPXAUTH");
+        }
+
         private int? SessionUserId()
         {
             if (Session["id"] != null && int.TryParse(Session["id"].ToString(), out var sessionUserId))
@@ -10017,6 +10032,21 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
             return null;
+        }
+
+        private static bool KatilimKoduVarMi(int? kod)
+        {
+            return kod.HasValue && kod.Value > 0;
+        }
+
+        private int KatilimKimligiCoz(int? user, int? kod)
+        {
+            if (KatilimKoduVarMi(kod))
+            {
+                return kod.Value;
+            }
+
+            return SessionUserId() ?? user.GetValueOrDefault();
         }
 
         private static string KatilimciKimlikTemizle(string value)
@@ -10381,15 +10411,15 @@ Yalnizca su JSON semasinda cevap ver:
 
         public ActionResult KatilimPortal(int? kod, int? user)
         {
-            if (Session["id"] == null && kod == null && user == null)
+            if (!KatilimKoduVarMi(kod) && !SessionUserId().HasValue)
             {
-                return RedirectToAction("Giris", "Home", null);
+                return RedirectToAction("Giris", "Home", new { panel = "participant" });
             }
 
-            var sessionUserId = kod.HasValue ? null : SessionUserId();
-            var portalUserId = user ?? sessionUserId;
-            var effectiveUseId = ResolveKatilimUseId(portalUserId, kod);
-            KatilimciKoduHatirla(kod ?? portalUserId);
+            var sessionUserId = KatilimKoduVarMi(kod) ? null : SessionUserId();
+            var portalUserId = KatilimKoduVarMi(kod) ? null : sessionUserId;
+            var effectiveUseId = KatilimKimligiCoz(portalUserId, kod);
+            KatilimciKoduHatirla(kod);
 
             var katilimAnketIds = new List<int>();
             IQueryable<Havuz> havuzKimlikQuery = db.Havuz.Where(x => false);
@@ -10516,12 +10546,12 @@ Yalnizca su JSON semasinda cevap ver:
         [ValidateAntiForgeryToken]
         public ActionResult KatilimTamamla(int anketId, int? kod, int? user)
         {
-            if (Session["id"] == null && kod == null && user == null)
+            if (!KatilimKoduVarMi(kod) && !SessionUserId().HasValue)
             {
                 return Json(new { success = false, message = "Katılım bilgisi bulunamadı." });
             }
 
-            var effectiveUseId = ResolveKatilimUseId(user, kod);
+            var effectiveUseId = KatilimKimligiCoz(user, kod);
             var izleme = db.Izledim.FirstOrDefault(x => x.AnketId == anketId && x.UseId == effectiveUseId);
 
             if (izleme == null)
@@ -10680,13 +10710,13 @@ Yalnizca su JSON semasinda cevap ver:
 
         public ActionResult AnketGirisCreate(int id, int? kod, int? user)
         {
-            if (Session["id"] == null && kod == null)
-                return RedirectToAction("Giris", "Home", null);
+            if (!KatilimKoduVarMi(kod) && !SessionUserId().HasValue)
+                return RedirectToAction("Giris", "Home", new { panel = "participant" });
 
             var ank = db.Anket.FirstOrDefault(x => x.AnketId == id);
             if (ank == null) return NotFound();
 
-            var effectiveUseId = ResolveKatilimUseId(user, kod);
+            var effectiveUseId = KatilimKimligiCoz(user, kod);
             if (!AnketKatilimaAcikMi(id, out var yayinMesaji))
             {
                 TempData["Mesaj"] = yayinMesaji;
@@ -10828,19 +10858,11 @@ Yalnizca su JSON semasinda cevap ver:
         }
         public ActionResult AnketGirisCreate2(int id, int? kod, int? user)
         {
-            if (Session["id"] == null && kod == null)
+            if (!KatilimKoduVarMi(kod) && !SessionUserId().HasValue)
             {
-                return RedirectToAction("Giris", "Home", null);
+                return RedirectToAction("Giris", "Home", new { panel = "participant" });
             }
-            int effectiveUseId = user.GetValueOrDefault();
-            if (effectiveUseId <= 0 && Session["id"] != null && int.TryParse(Session["id"].ToString(), out var sessionUseId))
-            {
-                effectiveUseId = sessionUseId;
-            }
-            if (effectiveUseId <= 0 && kod.HasValue)
-            {
-                effectiveUseId = kod.Value;
-            }
+            int effectiveUseId = KatilimKimligiCoz(user, kod);
             if (effectiveUseId <= 0)
             {
                 effectiveUseId = 1;
@@ -10927,7 +10949,8 @@ Yalnizca su JSON semasinda cevap ver:
         public ActionResult AnketGirisCreate2(Havuz hav, int? user)
         {
             // 1) Kullanıcı doğrulama
-            if (Session["id"] == null && hav.Isimsiz == null)
+            var publicKod = hav.Isimsiz.HasValue && hav.Isimsiz.Value > 0;
+            if (!publicKod && !SessionUserId().HasValue)
                 return Json(new { success = false, message = "Oturum bulunamadı" });
 
             // 2) İzleme kontrolü
@@ -10941,8 +10964,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return Json(new { success = false, expired = true, message = yayinMesaji });
             }
 
-            var publicKod = hav.Isimsiz.HasValue && hav.Isimsiz.Value > 0;
-            var effectiveUseId = ResolveKatilimUseId(user, hav.Isimsiz);
+            var effectiveUseId = KatilimKimligiCoz(user, publicKod ? hav.Isimsiz : null);
             var izl = db.Izledim.FirstOrDefault(x => x.AnketId == hav.AnketId && x.UseId == effectiveUseId);
             if (izl == null)
             {
@@ -11038,13 +11060,13 @@ Yalnizca su JSON semasinda cevap ver:
         public ActionResult AnketGirisCreate1(int id, int? kod, int? user)
         {
 
-            if (Session["id"] == null && kod == null)
+            if (!KatilimKoduVarMi(kod) && !SessionUserId().HasValue)
             {
-                return RedirectToAction("Giris", "Home", null);
+                return RedirectToAction("Giris", "Home", new { panel = "participant" });
             }
 
             var sr = db.AnketGrup.Where(x => x.AnketId == id);
-            var effectiveUseId = ResolveKatilimUseId(user, kod);
+            var effectiveUseId = KatilimKimligiCoz(user, kod);
             var izl = db.Izledim.Any(x => x.UseId == effectiveUseId && x.AnketId == id);
             var mevcutIzleme = db.Izledim.FirstOrDefault(x => x.AnketId == id && x.UseId == effectiveUseId);
 
@@ -11101,15 +11123,12 @@ Yalnizca su JSON semasinda cevap ver:
         [HttpPost]
         public ActionResult Izledim(Izledim izl, int? kod, int? user)
         {
-            var effectiveUserId = user.GetValueOrDefault();
-            if (effectiveUserId <= 0 && izl.UseId.HasValue && izl.UseId.Value > 0)
+            if (!KatilimKoduVarMi(kod) && !SessionUserId().HasValue)
             {
-                effectiveUserId = izl.UseId.Value;
+                return RedirectToAction("Giris", "Home", new { panel = "participant" });
             }
-            if (effectiveUserId <= 0 && Session["id"] != null && int.TryParse(Session["id"].ToString(), out var sessionUserId))
-            {
-                effectiveUserId = sessionUserId;
-            }
+
+            var effectiveUserId = KatilimKimligiCoz(user, kod);
             if (effectiveUserId <= 0)
             {
                 effectiveUserId = 1;

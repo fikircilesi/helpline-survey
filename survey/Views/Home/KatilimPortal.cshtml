@@ -92,6 +92,11 @@
         font-weight: 800;
     }
 
+    .participant-side {
+        display: grid;
+        gap: 10px;
+    }
+
     .participant-alert {
         margin: 16px 0 0;
         padding: 13px 15px;
@@ -267,6 +272,12 @@
         padding-block: 8px;
     }
 
+    .portal-btn.exit {
+        color: #9f1239;
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
+    }
+
     .empty-state {
         padding: 30px;
         border: 1px dashed #cbd5e1;
@@ -288,6 +299,7 @@
         }
 
         .participant-code,
+        .participant-side,
         .work-actions,
         .portal-btn {
             width: 100%;
@@ -309,9 +321,12 @@
                 uygun olduğunuzda sertifikanızı açıp yazdırabilirsiniz. Bu kodu saklayın; farklı cihazdan geldiğinizde aynı çalışmalarınıza bu kodla ulaşabilirsiniz.
             </p>
         </div>
-        <div class="participant-code">
-            <strong>@(Model.Kod?.ToString() ?? routeUser?.ToString() ?? "-")</strong>
-            <span>Katılım kodu</span>
+        <div class="participant-side">
+            <div class="participant-code">
+                <strong>@(Model.Kod?.ToString() ?? routeUser?.ToString() ?? "-")</strong>
+                <span>Katılım kodu</span>
+            </div>
+            <a class="portal-btn exit" href="@Url.Action("KatilimciCikis", "Home")">Çıkış</a>
         </div>
     </section>
 
