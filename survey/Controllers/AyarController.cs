@@ -1592,10 +1592,12 @@ namespace survey.Controllers
                     DeliveryMethod = SmtpDeliveryMethod.Network
 
                 };
+#pragma warning disable SYSLIB0014
                 ServicePointManager.ServerCertificateValidationCallback = delegate (object s, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
                 {
                     return true;
                 };
+#pragma warning restore SYSLIB0014
 
                 sm.Send(msg);
                 db.SaveChanges();

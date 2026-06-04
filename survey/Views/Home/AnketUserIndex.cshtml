@@ -333,13 +333,20 @@
         background: #fff;
     }
 
-    .answers-table {
+    .answers-table-wrap {
         width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
+        overflow-x: auto;
         border: 1px solid var(--report-line);
         border-radius: 8px;
-        overflow: hidden;
+        background: #fff;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .answers-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
         background: #fff;
     }
 
@@ -349,6 +356,10 @@
         border-bottom: 1px solid var(--report-line);
         vertical-align: top;
         font-size: 13px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        white-space: normal;
     }
 
     .answers-table th {
@@ -365,23 +376,64 @@
     }
 
     .question-cell {
-        min-width: 360px;
+        min-width: 0;
         color: var(--report-ink);
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .answer-cell {
         color: #344054;
+        min-width: 0;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .cell-text {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .cell-text * {
+        max-width: 100%;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .result-badge {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
+        max-width: 100%;
         min-height: 26px;
         padding: 0 10px;
         border-radius: 999px;
         font-size: 12px;
         font-weight: 800;
         white-space: nowrap;
+    }
+
+    .answers-table th:first-child,
+    .answers-table td:first-child,
+    .answers-table th:nth-child(4),
+    .answers-table td:nth-child(4),
+    .answers-table th:nth-child(5),
+    .answers-table td:nth-child(5) {
+        white-space: nowrap;
+    }
+
+    .answers-table td:nth-child(4),
+    .answers-table td:nth-child(5) {
+        text-align: left;
+        vertical-align: top;
     }
 
     .result-badge.pass {
@@ -443,7 +495,11 @@
         }
 
         .question-cell {
-            min-width: 220px;
+            min-width: 0;
+        }
+
+        .answers-table {
+            min-width: 720px;
         }
     }
 
@@ -497,6 +553,10 @@
         .answers-table td {
             padding: 9px 10px;
             font-size: 11px;
+        }
+
+        .answers-table-wrap {
+            overflow: visible;
         }
 
         .report-section.answers {
@@ -635,43 +695,52 @@
 
         <section class="report-section answers">
             <h2 class="section-title">Cevap Dökümü</h2>
-            <table class="answers-table">
-                <thead>
-                    <tr>
-                        <th style="width:58px">#</th>
-                        <th>Soru</th>
-                        <th>Verilen cevap</th>
-                        <th style="width:130px">Sonuç</th>
-                        <th style="width:100px">Puan</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!cevaplar.Any())
-                    {
+            <div class="answers-table-wrap">
+                <table class="answers-table">
+                    <colgroup>
+                        <col style="width:6%" />
+                        <col style="width:40%" />
+                        <col style="width:34%" />
+                        <col style="12%" />
+                        <col style="8%" />
+                    </colgroup>
+                    <thead>
                         <tr>
-                            <td colspan="5">Cevap kaydı bulunamadı.</td>
+                            <th>#</th>
+                            <th>Soru</th>
+                            <th>Verilen cevap</th>
+                            <th>Sonuç</th>
+                            <th>Puan</th>
                         </tr>
-                    }
-                    else
-                    {
-                        var sira = 1;
-                        foreach (var item in cevaplar)
+                    </thead>
+                    <tbody>
+                        @if (!cevaplar.Any())
                         {
-                            var dogru = item.Cevap?.Dogru == true;
-                            var sonucBadge = sinavMi ? (dogru ? "pass" : "fail") : "neutral";
-                            var sonucText = sinavMi ? (dogru ? "Doğru" : "Yanlış") : "Puanlandı";
                             <tr>
-                                <td>@sira</td>
-                                <td class="question-cell">@Html.Raw(item.Soru?.SoruAdi ?? "-")</td>
-                                <td class="answer-cell">@((item.Cevap?.CevapAdi) ?? "-")</td>
-                                <td><span class="result-badge @sonucBadge">@sonucText</span></td>
-                                <td>@String.Format("{0:n2}", item.CevapPuan ?? 0)</td>
+                                <td colspan="5">Cevap kaydı bulunamadı.</td>
                             </tr>
-                            sira++;
                         }
-                    }
-                </tbody>
-            </table>
+                        else
+                        {
+                            var sira = 1;
+                            foreach (var item in cevaplar)
+                            {
+                                var dogru = item.Cevap?.Dogru == true;
+                                var sonucBadge = sinavMi ? (dogru ? "pass" : "fail") : "neutral";
+                                var sonucText = sinavMi ? (dogru ? "Doğru" : "Yanlış") : "Puanlandı";
+                                <tr>
+                                    <td>@sira</td>
+                                    <td class="question-cell"><div class="cell-text">@Html.Raw(item.Soru?.SoruAdi ?? "-")</div></td>
+                                    <td class="answer-cell"><div class="cell-text">@((item.Cevap?.CevapAdi) ?? "-")</div></td>
+                                    <td><span class="result-badge @sonucBadge">@sonucText</span></td>
+                                    <td>@String.Format("{0:n2}", item.CevapPuan ?? 0)</td>
+                                </tr>
+                                sira++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section class="report-section">

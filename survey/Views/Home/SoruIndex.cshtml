@@ -78,7 +78,7 @@
                                 <span class="bank-muted">#@item.SoruId</span>
                             </td>
                             <td><span class="bank-pill">@kategori</span></td>
-                            <td><span class="bank-pill soft">@grup</span></td>
+                            <td><span class="bank-pill soft bank-option-pill">@grup</span></td>
                             <td>@(item.SoruSira?.ToString() ?? "-")</td>
                             <td><strong>@number(item.SoruPuan)</strong></td>
                         </tr>
@@ -105,7 +105,7 @@
     .bank-hero p { max-width: 780px; margin: 0; color: #53627a; font-size: 15px; line-height: 1.7; font-weight: 650; }
     .bank-chip-row, .bank-actions, .bank-row-actions { display: flex; flex-wrap: wrap; gap: 10px; }
     .bank-chip-row { margin-top: 20px; }
-    .bank-chip-row span, .bank-pill, .bank-muted { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; background: #eef5ff; color: #24436d; font-size: 12px; font-weight: 850; padding: 8px 11px; }
+    .bank-chip-row span, .bank-pill, .bank-muted { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; border-radius: 999px; background: #eef5ff; color: #24436d; font-size: 12px; font-weight: 850; padding: 8px 11px; }
     .bank-chip-row i { color: #11a99b; }
     .bank-actions { justify-content: flex-end; align-content: flex-start; min-width: 310px; }
     .bank-btn, .bank-icon-btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cfe0f6; border-radius: 10px; background: #fff; color: #071832; font-weight: 900; text-decoration: none; padding: 0 16px; transition: transform .16s ease, box-shadow .16s ease; }
@@ -118,13 +118,14 @@
     .bank-search input:focus { border-color: #3562f4; box-shadow: 0 0 0 3px rgba(53,98,244,.12); }
     .bank-table-card { margin-top: 18px; overflow: hidden; }
     .bank-table-scroll { overflow-x: auto; }
-    .bank-table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    .bank-table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 980px; }
     .bank-table th { background: #f7fbff; color: #20314d; font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .03em; padding: 15px 14px; border-bottom: 1px solid #d6e2f3; }
-    .bank-table td { padding: 14px; border-bottom: 1px solid #e6edf7; vertical-align: middle; font-weight: 700; }
+    .bank-table td { min-width: 0; padding: 14px; border-bottom: 1px solid #e6edf7; vertical-align: middle; font-weight: 700; }
     .bank-table tbody tr:hover { background: #fbfdff; }
     .bank-primary-text { max-width: 680px; color: #071832; font-size: 15px; font-weight: 850; line-height: 1.45; }
     .bank-muted { margin-top: 7px; padding: 5px 9px; color: #687892; background: #f2f6fb; }
     .bank-pill.soft { color: #3b4a67; background: #f5f7fb; }
+    .bank-option-pill { display: block; width: fit-content; max-width: 100%; border-radius: 14px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; word-break: break-word; text-align: left; }
     .bank-icon-btn { width: 38px; min-height: 38px; padding: 0; color: #1763df; }
     .bank-icon-btn.danger { color: #d9364f; border-color: #ffd1d8; background: #fff7f8; }
     .bank-empty { display: grid; place-items: center; gap: 6px; padding: 42px; color: #64748b; text-align: center; }

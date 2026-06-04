@@ -774,10 +774,12 @@
             <p>İK, eğitim ve kalite ekipleri soru bankasından sürükleyerek dakikalar içinde değerlendirme hazırlayabilir.</p>
         </div>
         <div class="wizard-actions">
-            <button type="button" class="wiz-btn" id="loadDraftBtn"><i class="feather icon-rotate-ccw"></i> Taslağı Yükle</button>
+            <button type="button" class="wiz-btn" id="loadDraftBtn"><i class="feather icon-rotate-ccw"></i> Son Taslağı Yükle</button>
             <button type="button" class="wiz-btn" id="saveDraftBtn"><i class="feather icon-save"></i> Taslak Kaydet</button>
-            <button type="button" class="wiz-btn teal" id="exportDraftBtn"><i class="feather icon-download"></i> JSON Al</button>
+            <button type="button" class="wiz-btn" id="importDraftBtn"><i class="feather icon-upload"></i> JSON İçe Aktar</button>
+            <button type="button" class="wiz-btn teal" id="exportDraftBtn"><i class="feather icon-download"></i> JSON Dışa Aktar</button>
             <button type="button" class="wiz-btn primary" id="publishPreviewBtn"><i class="feather icon-send"></i> Yayına Hazırla</button>
+            <input type="file" id="importDraftInput" accept="application/json,.json" hidden />
         </div>
     </div>
 
@@ -1852,6 +1854,58 @@
                     button.innerHTML = '<i class="feather icon-send"></i> Yayına Hazırla';
                 }
             }
+
+            function applyDraftJson(raw, successMessage) {
+                let draft;
+                try {
+                    draft = JSON.parse(raw || "");
+                } catch (error) {
+                    showToast("JSON taslağı okunamadı. Dosya formatını kontrol edin.");
+                    return false;
+                }
+
+                if (!draft || typeof draft !== "object" || !Array.isArray(draft.questions)) {
+                    showToast("Bu dosya geçerli bir değerlendirme taslağı değil.");
+                    return false;
+                }
+
+                draft.mode = normalizeModeValue(draft.mode || state.mode);
+                draft.title = typeof draft.title === "string" ? draft.title : state.title;
+                draft.owner = typeof draft.owner === "string" ? draft.owner : state.owner;
+                draft.duration = Number.isFinite(Number(draft.duration)) ? Number(draft.duration) : state.duration;
+                draft.passScore = Number.isFinite(Number(draft.passScore)) ? Number(draft.passScore) : state.passScore;
+                draft.randomQuestions = draft.randomQuestions !== false;
+                draft.randomAnswers = draft.randomAnswers === true;
+                draft.certificate = draft.certificate === true;
+                draft.audience = Array.isArray(draft.audience) && draft.audience.length ? draft.audience : ["all"];
+                draft.questions = draft.questions
+                    .filter(question => question && typeof question === "object")
+                    .map(question => ({
+                        ...question,
+                        id: question.id || "q_" + Math.random().toString(36).slice(2, 9),
+                        type: typeCatalog[question.type] ? question.type : "multiple",
+                        answers: Array.isArray(question.answers)
+                            ? question.answers
+                                .filter(answer => answer && typeof answer === "object")
+                                .map(answer => ({
+                                    ...answer,
+                                    id: answer.id || "a_" + Math.random().toString(36).slice(2, 8),
+                                    text: String(answer.text || "")
+                                }))
+                            : []
+                    }));
+
+                if (!draft.questions.length) {
+                    showToast("Taslakta aktarılacak soru bulunamadı.");
+                    return false;
+                }
+
+                Object.assign(state, draft);
+                renderAll();
+                showToast(successMessage);
+                return true;
+            }
+
             function wireEvents() {
                 refs.toolList.addEventListener("dragstart", event => {
                     const card = event.target.closest("[data-new-type]");
@@ -2031,9 +2085,27 @@
                         showToast("Kayıtlı taslak bulunamadı.");
                         return;
                     }
-                    Object.assign(state, JSON.parse(raw));
-                    renderAll();
-                    showToast("Taslak yüklendi.");
+                    applyDraftJson(raw, "Son taslak yüklendi.");
+                });
+
+                document.getElementById("importDraftBtn").addEventListener("click", () => {
+                    document.getElementById("importDraftInput").click();
+                });
+
+                document.getElementById("importDraftInput").addEventListener("change", async event => {
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) return;
+
+                    try {
+                        const raw = await file.text();
+                        if (applyDraftJson(raw, "JSON taslağı içe aktarıldı.")) {
+                            localStorage.setItem(storageKey, JSON.stringify(state));
+                        }
+                    } catch (error) {
+                        showToast("JSON dosyası okunamadı.");
+                    } finally {
+                        event.target.value = "";
+                    }
                 });
 
                 document.getElementById("exportDraftBtn").addEventListener("click", () => {
@@ -2043,6 +2115,7 @@
                     link.download = "degerlendirme-taslagi.json";
                     link.click();
                     URL.revokeObjectURL(link.href);
+                    showToast("JSON taslağı indirildi.");
                 });
 
                 document.getElementById("publishPreviewBtn").addEventListener("click", publishAssessment);

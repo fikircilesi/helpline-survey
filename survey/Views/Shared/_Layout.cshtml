@@ -16,8 +16,10 @@
     <link rel="stylesheet" href="~/files/bower_components/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/files/assets/icon/feather/css/feather.css" />
     <link rel="stylesheet" href="~/files/assets/icon/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="~/files/assets/icon/themify-icons/themify-icons.css" />
     <link rel="stylesheet" href="~/files/assets/css/style.css" />
     <link rel="stylesheet" href="~/files/assets/css/component.css" />
+    <link rel="stylesheet" href="~/css/studio-legacy.css" asp-append-version="true" />
 
     <!-- Kaldırılanlar / varsayılan kapalı:
          - jquery.mCustomScrollbar.css
@@ -26,6 +28,11 @@
     -->
     <!-- Performans: ağır içeriklere görünürlük bazlı render -->
     <style>
+        :root {
+            --studio-sidebar-width: 272px;
+            --studio-header-height: 64px;
+        }
+
         /* Native scroll kullan, custom scrollbar kapalı */
         html, body {
             overscroll-behavior-y: none;
@@ -44,11 +51,134 @@
             display: none !important;
         }
 
+        .pcoded-header,
+        .pcoded-header .navbar-wrapper,
+        .pcoded-header .navbar-logo {
+            min-height: var(--studio-header-height);
+            height: var(--studio-header-height);
+        }
+
+        .pcoded-header .navbar-logo {
+            width: var(--studio-sidebar-width);
+        }
+
         .navbar-logo .brand-logo {
-            width: 214px;
-            max-width: calc(100% - 68px);
-            height: 48px;
+            width: 156px;
+            max-width: calc(100% - 76px);
+            height: 42px;
             object-fit: contain;
+        }
+
+        .studio-sidebar-inner {
+            min-height: calc(100vh - var(--studio-header-height));
+            display: flex;
+            flex-direction: column;
+            padding: 18px 14px;
+        }
+
+        .studio-menu-label {
+            margin: 4px 10px 14px;
+            color: rgba(255, 255, 255, .52);
+            font-size: 14px;
+            letter-spacing: .02em;
+        }
+
+        .studio-menu {
+            flex: 1 1 auto;
+            display: grid;
+            align-content: start;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .studio-menu details {
+            margin: 0;
+        }
+
+        .studio-menu summary {
+            list-style: none;
+        }
+
+        .studio-menu summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .studio-menu-link,
+        .studio-menu-summary {
+            min-height: 44px;
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) 16px;
+            align-items: center;
+            column-gap: 12px;
+            padding: 5px 8px;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, .86);
+            cursor: pointer;
+            transition: background .18s ease, color .18s ease;
+        }
+
+        .studio-menu-link:hover,
+        .studio-menu-summary:hover,
+        .studio-menu details[open] > .studio-menu-summary {
+            color: #fff;
+            background: rgba(255, 255, 255, .08);
+        }
+
+        .studio-menu-icon {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .studio-menu-icon.blue { background: #2196f3; }
+        .studio-menu-icon.rose { background: #ff7588; }
+        .studio-menu-icon.green { background: #16d39a; }
+
+        .studio-menu-text {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .studio-menu-chevron {
+            justify-self: end;
+            transition: transform .18s ease;
+        }
+
+        .studio-menu details[open] .studio-menu-chevron {
+            transform: rotate(90deg);
+        }
+
+        .studio-submenu {
+            display: grid;
+            gap: 4px;
+            margin: 4px 0 8px 48px;
+        }
+
+        .studio-submenu a {
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            border-radius: 7px;
+            color: rgba(255, 255, 255, .68);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .studio-submenu a:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, .08);
         }
 
         .pcoded-inner-navbar.main-menu {
@@ -132,6 +262,131 @@
             background: rgba(123, 230, 190, 0.2);
             transform: translateY(-1px);
         }
+
+        @@media (min-width: 992px) {
+            #pcoded[theme-layout="vertical"] .pcoded-overlay-box {
+                pointer-events: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                z-index: -1 !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar {
+                width: var(--studio-sidebar-width) !important;
+                top: var(--studio-header-height) !important;
+                min-height: calc(100vh - var(--studio-header-height));
+                transform: none !important;
+                left: 0 !important;
+                overflow: visible;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .main-menu,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-inner-navbar,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-left-item {
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0 !important;
+                margin-left: 0 !important;
+                transform: none !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-navigatio-lavel,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-item,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .sidebar-account,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .sidebar-user-card,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .sidebar-user-name,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .sidebar-user-role {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                transform: none !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-main-container {
+                width: calc(100% - var(--studio-sidebar-width)) !important;
+                margin-left: var(--studio-sidebar-width) !important;
+                margin-top: var(--studio-header-height) !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-content {
+                width: 100% !important;
+                margin-left: 0 !important;
+                overflow-x: hidden;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-header .navbar-container {
+                margin-left: var(--studio-sidebar-width) !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-micon,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-mtext {
+                opacity: 1 !important;
+                position: static !important;
+                visibility: visible !important;
+                transform: none !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-micon {
+                display: inline-flex !important;
+                width: 32px !important;
+                min-width: 32px !important;
+                height: 32px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+                color: #fff;
+                flex: 0 0 32px;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-mtext {
+                display: block !important;
+                min-width: 0;
+                margin: 0 !important;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-item > li > a {
+                display: grid !important;
+                grid-template-columns: 32px minmax(0, 1fr) 16px;
+                align-items: center;
+                column-gap: 12px;
+                min-height: 44px;
+                padding: 0 18px !important;
+                color: rgba(255, 255, 255, .86) !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-item > li.pcoded-hasmenu > a:after {
+                position: static !important;
+                grid-column: 3;
+                justify-self: end;
+                margin: 0 !important;
+                transform: none !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-item > li > a:hover,
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-item > li.pcoded-trigger > a {
+                color: #fff !important;
+                background: rgba(255, 255, 255, .08);
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-submenu {
+                padding-left: 48px;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-submenu a {
+                display: block !important;
+                min-height: 36px;
+                color: rgba(255, 255, 255, .72) !important;
+            }
+
+            #pcoded[theme-layout="vertical"] .pcoded-navbar .pcoded-submenu .pcoded-mtext {
+                display: block !important;
+            }
+        }
     </style>
 
     @RenderSection("HeadExtra", required: false)
@@ -148,14 +403,14 @@
 }
 
 <body>
-    <div id="pcoded" class="pcoded">
+    <div id="pcoded" class="pcoded nocollapsed" theme-layout="vertical" vertical-placement="left" vertical-layout="wide" vertical-effect="shrink" vertical-nav-type="expanded" pcoded-device-type="desktop" vnavigation-view="view1" nav-type="st2" fream-type="theme1" layout-type="light">
         <div class="pcoded-overlay-box"></div>
         <div class="pcoded-container navbar-wrapper">
 
             <!-- HEADER -->
-            <nav class="navbar header-navbar pcoded-header">
+            <nav class="navbar header-navbar pcoded-header nocollapsed" pcoded-header-position="fixed" header-theme="theme1">
                 <div class="navbar-wrapper">
-                    <div class="navbar-logo">
+                    <div class="navbar-logo" logo-theme="theme1">
                         <a class="mobile-menu" id="mobile-collapse" href="#!">
                             <i class="feather icon-menu"></i>
                         </a>
@@ -185,46 +440,41 @@
                 <div class="pcoded-wrapper">
 
                     <!-- SIDEBAR (hafifletildi) -->
-                    <nav class="pcoded-navbar">
-                        <div class="pcoded-inner-navbar main-menu">
-                            <div class="pcoded-navigatio-lavel">Menü</div>
-                            <ul class="pcoded-item pcoded-left-item">
+                    <nav class="pcoded-navbar" pcoded-navbar-position="fixed" pcoded-header-position="fixed" navbar-theme="theme1" active-item-theme="theme1" sub-item-theme="theme2" active-item-style="style0">
+                        <div class="studio-sidebar-inner">
+                            <div class="studio-menu-label">Menü</div>
+                            <ul class="studio-menu">
                                 <li>
-                                    <a href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
-                                        <span class="pcoded-micon"><i class="feather icon-home"></i></span>
-                                        <span class="pcoded-mtext">Gösterge Paneli</span>
+                                    <a class="studio-menu-link" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
+                                        <span class="studio-menu-icon blue"><i class="feather icon-home"></i></span>
+                                        <span class="studio-menu-text">Gösterge Paneli</span>
+                                        <span></span>
                                     </a>
                                 </li>
-                                <li class="pcoded-hasmenu">
-                                    <a href="javascript:void(0)">
-                                        <span class="pcoded-micon"><i class="feather icon-package"></i></span>
-                                        <span class="pcoded-mtext">Anket İşlemleri</span>
-                                    </a>
-                                    <ul class="pcoded-submenu">
-                                        <li>
-                                            <a title="Sihirbaz ile sınav, anket veya işe alım değerlendirmesi oluştur" href="@Url.Action("AssessmentWizard", "Home", new { id = Session["id"] })">
-                                                <span class="pcoded-mtext">Yeni Sihirbaz</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a title="Anket Yönetim İşlemleri" href="@Url.Action("AnketAdIndex", "Home", new { id = Session["id"] })">
-                                                <span class="pcoded-mtext">Anket Yönetimi</span>
-                                            </a>
-                                        </li>
-                                    </ul>
+                                <li>
+                                    <details>
+                                        <summary class="studio-menu-summary">
+                                            <span class="studio-menu-icon rose"><i class="feather icon-package"></i></span>
+                                            <span class="studio-menu-text">Anket İşlemleri</span>
+                                            <i class="studio-menu-chevron feather icon-chevron-right"></i>
+                                        </summary>
+                                        <div class="studio-submenu">
+                                            <a title="Sihirbaz ile sınav, anket veya işe alım değerlendirmesi oluştur" href="@Url.Action("AssessmentWizard", "Home", new { id = Session["id"] })">Yeni Sihirbaz</a>
+                                            <a title="Anket Yönetim İşlemleri" href="@Url.Action("AnketAdIndex", "Home", new { id = Session["id"] })">Anket Yönetimi</a>
+                                        </div>
+                                    </details>
                                 </li>
-                                <li class="pcoded-hasmenu">
-                                    <a href="javascript:void(0)">
-                                        <span class="pcoded-micon"><i class="feather icon-credit-card"></i></span>
-                                        <span class="pcoded-mtext">Raporlar</span>
-                                    </a>
-                                    <ul class="pcoded-submenu">
-                                        <li>
-                                            <a title="Raporlar" href="@Url.Action("AnketIndex", "Home", new { id = Session["id"] })">
-                                                <span class="pcoded-mtext">Anket Raporları</span>
-                                            </a>
-                                        </li>
-                                    </ul>
+                                <li>
+                                    <details>
+                                        <summary class="studio-menu-summary">
+                                            <span class="studio-menu-icon green"><i class="feather icon-credit-card"></i></span>
+                                            <span class="studio-menu-text">Raporlar</span>
+                                            <i class="studio-menu-chevron feather icon-chevron-right"></i>
+                                        </summary>
+                                        <div class="studio-submenu">
+                                            <a title="Raporlar" href="@Url.Action("AnketIndex", "Home", new { id = Session["id"] })">Anket Raporları</a>
+                                        </div>
+                                    </details>
                                 </li>
                             </ul>
                             <div class="sidebar-account">
@@ -290,6 +540,42 @@
     <script src="~/files/assets/js/pcoded.min.js"></script>
     <script src="~/files/assets/js/vartical-layout.min.js"></script>
     <script src="~/files/assets/js/script.js" asp-append-version="true"></script>
+    <script src="~/js/studio-legacy.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            function setAttrIfDifferent(element, name, value) {
+                if (element.getAttribute(name) !== value) {
+                    element.setAttribute(name, value);
+                }
+            }
+
+            function studioDesktopLayout() {
+                var pcoded = document.getElementById("pcoded");
+                if (!pcoded || !window.matchMedia("(min-width: 992px)").matches) {
+                    return;
+                }
+
+                setAttrIfDifferent(pcoded, "pcoded-device-type", "desktop");
+                setAttrIfDifferent(pcoded, "vertical-nav-type", "expanded");
+                setAttrIfDifferent(pcoded, "vertical-layout", "wide");
+                pcoded.classList.add("nocollapsed");
+                pcoded.classList.remove("iscollapsed");
+
+                var header = document.querySelector(".pcoded-header");
+                if (header) {
+                    header.classList.add("nocollapsed");
+                    header.classList.remove("iscollapsed");
+                    setAttrIfDifferent(header, "pcoded-header-position", "fixed");
+                }
+            }
+
+            window.addEventListener("load", studioDesktopLayout);
+            window.addEventListener("resize", studioDesktopLayout);
+            setTimeout(studioDesktopLayout, 100);
+            setTimeout(studioDesktopLayout, 500);
+            setTimeout(studioDesktopLayout, 1200);
+        })();
+    </script>
 
     <!-- Sayfa bazlı scriptler -->
     @RenderSection("Scripts", required: false)
