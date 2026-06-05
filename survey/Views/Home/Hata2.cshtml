@@ -1,25 +1,13 @@
 @{
-    ViewBag.Title = "Hata";
+    ViewBag.Title = "Çalışma silinemiyor";
     Layout = "~/Views/Shared/_AnketLayout.cshtml";
+
+    ViewData["NoticeEyebrow"] = "Silme engellendi";
+    ViewData["NoticeTitle"] = "Çalışma silinemiyor";
+    ViewData["NoticeLead"] = "Bu çalışmaya bağlı soru grupları var.";
+    ViewData["NoticeMessage"] = "Önce çalışmanın soru grubu eşleşmelerini kaldırın. Bağlantılar temizlendikten sonra çalışmayı tekrar silebilirsiniz.";
+    ViewData["NoticeIcon"] = "fa fa-link";
+    ViewData["NoticeActionText"] = "Geri dön";
 }
 
-<!DOCTYPE html>
-
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title></title>
-</head>
-<body>
-    <hgroup>
-        <h1 style="color:red">Hata.</h1>
-        <h2 style="color:blue">Soru grupları tanımlanmış.</h2>
-        <h2 style="color:blue">Önce tanımlanmış soru gruplarını kaldırın.</h2>
-    </hgroup>
-
-
-    <div class="btn-group">
-        <a class="btn btn-primary btn-outline-primary icofont icofont-check-circled" href="previous.html" onClick="history.back();return false;">Tamam</a>
-    </div>
-</body>
-</html>
+@await Html.PartialAsync("_ActionNotice")

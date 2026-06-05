@@ -11,6 +11,7 @@
     var captchaSoru = (ViewBag.CaptchaSoru as string) ?? "?";
     var verifyEmail = (ViewBag.VerifyEmail as string) ?? string.Empty;
     var recaptchaAktif = ViewBag.RecaptchaAktif is bool recaptchaValue && recaptchaValue;
+    var captchaAtlandi = ViewBag.CaptchaAtlandi is bool captchaAtlandiValue && captchaAtlandiValue;
     var recaptchaSiteKey = (ViewBag.RecaptchaSiteKey as string) ?? string.Empty;
 }
 
@@ -22,7 +23,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="description" content="Sınav, anket, eğitim ve sertifika yayınlama platformu">
-    <link rel="icon" href="~/files/assets/images/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="~/Content/img/aslana-favicon.png" type="image/png">
     <link rel="stylesheet" type="text/css" href="~/files/bower_components/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="~/files/assets/icon/themify-icons/themify-icons.css">
     <link rel="stylesheet" type="text/css" href="~/files/assets/icon/icofont/css/icofont.css">
@@ -99,7 +100,111 @@
         .brand-lockup {
             display: inline-flex;
             align-items: center;
+            gap: 14px;
             min-width: 0;
+            padding: 10px 18px 10px 14px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, .16);
+            border-radius: 18px;
+            background: linear-gradient(135deg, #142133 0%, #26384f 100%);
+            box-shadow: 0 18px 42px rgba(21, 32, 51, .18);
+            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+        }
+
+        .brand-lockup:hover {
+            color: #fff;
+            border-color: rgba(125, 244, 199, .38);
+            box-shadow: 0 22px 50px rgba(21, 32, 51, .24);
+            transform: translateY(-1px);
+        }
+
+        .brand-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 72px;
+            width: 72px;
+            height: 54px;
+        }
+
+        .brand-logo-sketch {
+            display: block;
+            width: 72px;
+            height: 54px;
+            overflow: visible;
+            filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .2));
+        }
+
+        .brand-logo-sketch path,
+        .brand-logo-sketch line,
+        .brand-logo-sketch rect {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .brand-logo-sketch .survey-sheet,
+        .brand-logo-sketch .survey-fold {
+            stroke: rgba(255, 255, 255, .94);
+            stroke-width: 3.2;
+        }
+
+        .brand-logo-sketch .survey-form-line {
+            stroke: rgba(255, 255, 255, .82);
+            stroke-width: 2.5;
+        }
+
+        .brand-logo-sketch .survey-box.mint {
+            stroke: #7df4c7;
+        }
+
+        .brand-logo-sketch .survey-box.blue {
+            stroke: #38bdf8;
+        }
+
+        .brand-logo-sketch .survey-box.coral {
+            stroke: #fb7185;
+        }
+
+        .brand-logo-sketch .survey-check-shadow {
+            stroke: rgba(251, 113, 133, .26);
+            stroke-width: 7;
+        }
+
+        .brand-logo-sketch .survey-check {
+            stroke: url(#entrySurveyCheckGradient);
+            stroke-width: 4.5;
+        }
+
+        .brand-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            line-height: 1;
+            text-align: left;
+        }
+
+        .brand-copy strong {
+            display: block;
+            margin: 0;
+            color: #fff;
+            font-size: 36px;
+            font-weight: 850;
+            letter-spacing: 0;
+            text-transform: lowercase;
+            white-space: nowrap;
+        }
+
+        .brand-copy span {
+            display: block;
+            margin: 3px 0 0;
+            color: rgba(255, 255, 255, .76);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0;
+            white-space: nowrap;
         }
 
         .brand-lockup img {
@@ -742,6 +847,28 @@
                 flex-direction: column;
             }
 
+            .brand-lockup {
+                max-width: 100%;
+                padding: 9px 13px 9px 11px;
+                gap: 10px;
+                border-radius: 16px;
+            }
+
+            .brand-mark,
+            .brand-logo-sketch {
+                flex-basis: 58px;
+                width: 58px;
+                height: 44px;
+            }
+
+            .brand-copy strong {
+                font-size: 28px;
+            }
+
+            .brand-copy span {
+                font-size: 12px;
+            }
+
             .nav-actions {
                 width: 100%;
                 justify-content: flex-start;
@@ -805,7 +932,31 @@
         <div class="entry-shell">
             <nav class="entry-nav">
                 <a class="brand-lockup" href="@Url.Action("Giris", "Home")" aria-label="Aslana Survey Studio ana sayfa">
-                    <img src="@Url.Content("~/Content/img/evalio-logo-dark.svg")" alt="Aslana Survey Studio">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg class="brand-logo-sketch" viewBox="0 0 88 64" focusable="false">
+                            <defs>
+                                <linearGradient id="entrySurveyCheckGradient" x1="56" y1="50" x2="84" y2="29" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#ff8a7a" />
+                                    <stop offset=".58" stop-color="#ff6b6b" />
+                                    <stop offset="1" stop-color="#fb7185" />
+                                </linearGradient>
+                            </defs>
+                            <path class="survey-sheet" d="M16.7 7.2 C20.8 4.3 39.7 4.5 49.8 5.5 C54.1 5.9 65.6 18.6 68.5 25.2 C70.5 29.6 69.5 49.6 67.4 55 C66.1 58.6 61.5 60.2 52.1 59.8 C40.6 59.4 23.5 60.1 17.5 58.4 C12.4 56.9 10.8 52.6 11 46.2 C11.3 34.1 10.6 14.9 16.7 7.2 Z" />
+                            <path class="survey-fold" d="M50.2 6.5 C49.8 12.5 49.9 21.2 52.8 24 C55.7 26.8 63 26.4 68.4 25.8" />
+                            <rect class="survey-box mint" x="24" y="18.2" width="8" height="8" rx="1.5" />
+                            <line class="survey-form-line" x1="40.3" y1="22.2" x2="54.8" y2="22.2" />
+                            <rect class="survey-box blue" x="24" y="31.4" width="8" height="8" rx="1.5" />
+                            <line class="survey-form-line" x1="40.3" y1="35.4" x2="53.3" y2="35.4" />
+                            <rect class="survey-box coral" x="24" y="44.6" width="8" height="8" rx="1.5" />
+                            <line class="survey-form-line" x1="40.3" y1="48.6" x2="49.7" y2="48.6" />
+                            <path class="survey-check-shadow" d="M55.7 49.1 C59.2 52.5 62.3 55.2 64.8 58 C69.2 49.9 74.6 40.7 83.2 32" />
+                            <path class="survey-check" d="M55.7 49.1 C59.2 52.5 62.3 55.2 64.8 58 C69.2 49.9 74.6 40.7 83.2 32" />
+                        </svg>
+                    </span>
+                    <span class="brand-copy">
+                        <strong>survey</strong>
+                        <span>by Aslana Teknoloji</span>
+                    </span>
                 </a>
                 <div class="nav-actions">
                     <button type="button" class="nav-link-btn" data-open-panel="participant">
@@ -972,7 +1123,7 @@
                                 <div id="loginRecaptcha" class="g-recaptcha" data-sitekey="@recaptchaSiteKey"></div>
                             </div>
                         }
-                        else
+                        else if (!captchaAtlandi)
                         {
                             <div class="captcha-box">
                                 <div class="captcha-question">@captchaSoru</div>

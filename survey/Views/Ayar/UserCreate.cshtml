@@ -3,14 +3,15 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Yeni Kayıt</h2>
-
 @using (Html.BeginForm())
 {
     @Html.AntiForgeryToken()
 
-    <div class="form-horizontal">
-        <hr />
+    <div class="form-horizontal settings-form-panel settings-user-form-panel">
+        <div class="settings-form-heading">
+            <h4>YENİ KATILIMCI KAYDI</h4>
+        </div>
+        <div class="settings-form-body">
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
     <div class="form-group">
@@ -20,7 +21,7 @@
             @Html.ValidationMessageFor(model => model.KayitTarihi, "", new { @class = "text-danger" })
         </div>
         <div class="col-md-10">
-            <b>Kullanıcı Adı</b>
+            <b>Katılımcı Adı</b>
             @Html.EditorFor(model => model.UserAdi, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
             @Html.ValidationMessageFor(model => model.UserAdi, "", new { @class = "text-danger" })
         </div>
@@ -92,8 +93,11 @@
         </div>
 
 
-    </div>
-        <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("UnvanIndex", "Ayar")">Geri</a>
-        <input type="submit" style="background-color:blue; color:white" class="btn btn-default" value="Kayıt" />
+        </div>
+        <div class="settings-form-actions">
+            <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("UserIndex", "Ayar")">Geri</a>
+            <input type="submit" style="background-color:blue; color:white" class="btn btn-default" value="Kayıt" />
+        </div>
+        </div>
     </div>
 }

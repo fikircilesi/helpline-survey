@@ -1,50 +1,22 @@
-@model IEnumerable<survey.Models.Personel>
+@model IEnumerable<survey.Models.PersonelListeSatiri>
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<div class="panel">
+
+<div class="panel settings-list-panel">
     <div>
-        <h4>KULLANICI LİSTESİ</h4>
+        <h4>PERSONEL LİSTESİ</h4>
     </div>
     <div class="panel-body">
-
         <table class="table">
             <tr>
                 <td></td>
-                <th>
-                    Kullanıcı Adı
-                </th>
-                <th>
-                    Tc
-                </th>
-                <th>
-                    Pasif
-                </th>
-                <th>
-                    Ünvanı
-                </th>
-                <th>
-                    Mail
-                </th>
-                <th>
-                    Telefon
-                </th>
-                <th>
-                    Adres
-                </th>
-                <th>
-                    Kullanıcı Adı
-                </th>
-                <th>
-                    Şifre
-                </th>
-                <th>
-                    Pasif
-                </th>
-                <th>
-                    Admin
-                </th>
+                <th>Personel Adı</th>
+                <th>Giriş Kullanıcı Adı</th>
+                <th>Durum</th>
+                <th>Yetki</th>
+                <th>Son Giriş</th>
             </tr>
 
             @foreach (var item in Model)
@@ -52,60 +24,38 @@
                 <tr>
                     <td>
                         <a class="fa fa-pencil" title="Personel düzenleme" href="@Url.Action("PersonelEdit", "Ayar", new { id = item.PersonelId })"></a>
-                        <a class="fa fa-trash-o" title="Personel sil" href="@Url.Action("PersonelDelete", "Ayar", new { id = item.PersonelId})"></a>
+                        <a class="fa fa-trash-o" title="Personel sil" href="@Url.Action("PersonelDelete", "Ayar", new { id = item.PersonelId })"></a>
                     </td>
-
+                    <td>@item.PersonelAdi</td>
+                    <td>@item.KullaniciAdi</td>
                     <td>
-                        @item.KullaniciAdi
-                    </td>
-                    <td>
-                        @item.Tc
-                    </td>
-                    <td>
-                        @if (item.Pasif != true)
+                        @if (item.HesapAktif)
                         {
-                            <b style="color:darkgreen">Aktif</b>
+                            <span class="settings-status-badge active">Aktif</span>
                         }
                         else
                         {
-                            <b style="color: darkgrey">Pasif</b>
-
+                            <span class="settings-status-badge passive">Pasif</span>
                         }
                     </td>
                     <td>
-                        @item.Unvan.UnvanAdi
+                        @if (item.Yetkili)
+                        {
+                            <span class="settings-status-badge admin">Yönetici</span>
+                        }
+                        else
+                        {
+                            <span class="settings-status-badge neutral">Personel</span>
+                        }
                     </td>
-                    <td>
-                        @item.Mail
-                    </td>
-                    <td>
-                        @item.Telefon
-                    </td>
-                    <td>
-                        @item.Adres
-                    </td>
-                    <td>
-                        @item.KullaniciAdi
-                    </td>
-                    <td>
-                        @item.Sifre
-                    </td>
-                    <td>
-                        @item.Pasif
-                    </td>
-                    <td>
-                        @item.Admin
-                    </td>
-
+                    <td>@(item.SonGirisTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                 </tr>
             }
-
         </table>
         <div class="col-lg-9"></div>
         <div class="col-lg-3">
             <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
-            <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("UserCreate", "Ayar")">Yeni</a>
+            <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("PersonelCreate", "Ayar")">Yeni</a>
         </div>
-
     </div>
 </div>

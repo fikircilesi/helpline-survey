@@ -1,0 +1,84 @@
+@using System
+@using System.Collections.Generic
+@{
+    var eyebrow = Convert.ToString(ViewData["DeleteEyebrow"]);
+    if (string.IsNullOrWhiteSpace(eyebrow)) { eyebrow = "Silme onayı"; }
+
+    var title = Convert.ToString(ViewData["DeleteTitle"]);
+    if (string.IsNullOrWhiteSpace(title)) { title = "Bu kayıt silinsin mi?"; }
+
+    var description = Convert.ToString(ViewData["DeleteDescription"]);
+    if (string.IsNullOrWhiteSpace(description)) { description = "Bu işlem seçili kaydı sistemden kaldırır."; }
+
+    var itemLabel = Convert.ToString(ViewData["DeleteItemLabel"]);
+    if (string.IsNullOrWhiteSpace(itemLabel)) { itemLabel = "Seçili kayıt"; }
+
+    var itemName = Convert.ToString(ViewData["DeleteItemName"]);
+    if (string.IsNullOrWhiteSpace(itemName)) { itemName = "Kayıt bilgisi bulunamadı"; }
+
+    var warning = Convert.ToString(ViewData["DeleteWarning"]);
+    if (string.IsNullOrWhiteSpace(warning)) { warning = "Bu işlem geri alınamaz. Devam etmeden önce doğru kaydı seçtiğinizden emin olun."; }
+
+    var backUrl = Convert.ToString(ViewData["DeleteBackUrl"]);
+    if (string.IsNullOrWhiteSpace(backUrl)) { backUrl = "previous.html"; }
+
+    var backText = Convert.ToString(ViewData["DeleteBackText"]);
+    if (string.IsNullOrWhiteSpace(backText)) { backText = "Vazgeç"; }
+
+    var submitText = Convert.ToString(ViewData["DeleteSubmitText"]);
+    if (string.IsNullOrWhiteSpace(submitText)) { submitText = "Sil"; }
+
+    var icon = Convert.ToString(ViewData["DeleteIcon"]);
+    if (string.IsNullOrWhiteSpace(icon)) { icon = "fa fa-trash-o"; }
+
+    var hiddenFields = ViewData["DeleteHiddenFields"] as IEnumerable<KeyValuePair<string, string>>;
+}
+
+@await Html.PartialAsync("_DeleteConfirmStyles")
+
+<div class="delete-confirm-page">
+    <section class="delete-confirm-card">
+        <div class="delete-confirm-hero">
+            <div class="delete-confirm-icon"><i class="@icon"></i></div>
+            <div>
+                <span class="delete-confirm-eyebrow">@eyebrow</span>
+                <h1>@title</h1>
+            </div>
+        </div>
+
+        <div class="delete-confirm-body">
+            <p>@description</p>
+
+            <div class="delete-confirm-item">
+                <span>@itemLabel</span>
+                <strong>@itemName</strong>
+            </div>
+
+            <div class="delete-confirm-warning">
+                <i class="fa fa-exclamation-triangle"></i>
+                <span>@warning</span>
+            </div>
+
+            @using (Html.BeginForm())
+            {
+                @Html.AntiForgeryToken()
+                if (hiddenFields != null)
+                {
+                    foreach (var field in hiddenFields)
+                    {
+                        <input type="hidden" name="@field.Key" value="@field.Value" />
+                    }
+                }
+
+                <div class="delete-confirm-actions">
+                    <a class="delete-confirm-btn" href="@backUrl">
+                        <i class="fa fa-arrow-left"></i> @backText
+                    </a>
+                    <button type="submit" class="delete-confirm-btn danger">
+                        <i class="fa fa-trash-o"></i> @submitText
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
+</div>

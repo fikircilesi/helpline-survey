@@ -9,12 +9,12 @@
     <script src="~/files/assets/js/jquery.dataTables.min.js"></script>
 </head>
 
-<div class="panel">
+<div class="panel settings-list-panel settings-user-list-panel">
     <div class="col-lg-9"></div>
     <div class="col-lg-3">
         <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
         <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("UserCreate", "Ayar")">Yeni</a>
-        <h4>KULLANICI LİSTESİ</h4>
+        <h4>KATILIMCI LİSTESİ</h4>
 
     </div>
 
@@ -25,7 +25,7 @@
                     <td hidden>Id</td>
                     <td></td>
                     <th>
-                        Kullanıcı Adı
+                        Katılımcı Adı
                     </th>
                     <th>
                         Tc
@@ -76,8 +76,8 @@
                             @item.UserId
                         </td>
                         <td>
-                            <a class="fa fa-pencil" title="Ünvan düzenleme" href="@Url.Action("UserEdit", "Ayar", new { id = item.UserId })"></a>
-                            <a class="fa fa-trash-o" title="Ünvan sil" href="@Url.Action("UserDelete", "Ayar", new { id = item.UserId})"></a>
+                            <a class="fa fa-pencil" title="Katılımcı düzenleme" href="@Url.Action("UserEdit", "Ayar", new { id = item.UserId })"></a>
+                            <a class="fa fa-trash-o" title="Katılımcı sil" href="@Url.Action("UserDelete", "Ayar", new { id = item.UserId})"></a>
                         </td>
 
                         <td>

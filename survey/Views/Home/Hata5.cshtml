@@ -1,24 +1,14 @@
 @{
-    ViewBag.Title = "Hata";
+    ViewBag.Title = "Süre doldu";
     Layout = "~/Views/Shared/_AnketLayout.cshtml";
+
+    ViewData["NoticeEyebrow"] = "Sınav süresi";
+    ViewData["NoticeTitle"] = "Sınav süreniz doldu";
+    ViewData["NoticeLead"] = "Bu oturum için yanıt süresi tamamlandı.";
+    ViewData["NoticeMessage"] = "Yeni bir deneme veya süre uzatma gerekiyorsa çalışmayı yöneten yetkiliyle iletişime geçin.";
+    ViewData["NoticeIcon"] = "fa fa-clock-o";
+    ViewData["NoticeTone"] = "info";
+    ViewData["NoticeActionText"] = "Tamam";
 }
 
-<!DOCTYPE html>
-
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title></title>
-</head>
-<body>
-    <hgroup>
-        <h1 style="color:red">Bilgi.</h1>
-        <h2 style="color:blue">Sınav Süreniz Dolmuş</h2>
-    </hgroup>
-
-
-    <div class="btn-group">
-        <a class="btn btn-primary btn-outline-primary icofont icofont-check-circled" href="previous.html" onClick="history.back();return false;">Tamam</a>
-    </div>
-</body>
-</html>
+@await Html.PartialAsync("_ActionNotice")

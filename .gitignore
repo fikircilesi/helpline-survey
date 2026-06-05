@@ -52,6 +52,9 @@ Uploads/
 wwwroot/uploads/
 wwwroot/Uploads/
 
+# Local data-protection keys
+survey/App_Data/DataProtectionKeys/
+
 # Restored or generated package folders
 node_modules/
 packages/

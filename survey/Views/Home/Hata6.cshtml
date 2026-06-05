@@ -1,24 +1,15 @@
 @{
-    ViewBag.Title = "Hata";
+    ViewBag.Title = "Sonuçlar hazır değil";
     Layout = "~/Views/Shared/_AnketLayout.cshtml";
+
+    ViewData["NoticeEyebrow"] = "Sonuç ekranı";
+    ViewData["NoticeTitle"] = "Sonuçlar henüz gösterilemiyor";
+    ViewData["NoticeLead"] = "Sınav süresi tamamlanmadan sonuç ekranı açılmaz.";
+    ViewData["NoticeMessage"] = "Süre dolduğunda sonuçlar otomatik olarak erişilebilir olur. Bu pencereyi kapatıp sınav akışına dönebilirsiniz.";
+    ViewData["NoticeIcon"] = "fa fa-hourglass-half";
+    ViewData["NoticeTone"] = "info";
+    ViewData["NoticeActionText"] = "Pencereyi kapat";
+    ViewData["NoticeCloseWindow"] = true;
 }
 
-<!DOCTYPE html>
-
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title></title>
-</head>
-<body>
-    <hgroup>
-        <h1 style="color:red">Bilgi.</h1>
-        <h2 style="color:blue">Sınav Süreniz Dolmadığı için Sonuçları gösteremiyoruz.</h2>
-    </hgroup>
-
-
-    <div class="btn-group">
-        <a class="btn btn-primary btn-outline-primary icofont icofont-check-circled" href="javascript:void(0);" onClick="window.close();">Tamam</a>
-    </div>
-</body>
-</html>
+@await Html.PartialAsync("_ActionNotice")

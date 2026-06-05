@@ -29,6 +29,43 @@
             color: var(--wiz-ink);
         }
 
+        .wizard-command-center {
+            position: relative;
+            margin-bottom: 16px;
+            padding: 18px;
+            border: 1px solid rgba(188, 208, 235, .84);
+            border-radius: 10px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(239, 247, 255, .92) 48%, rgba(238, 252, 248, .9)),
+                #fff;
+            box-shadow: 0 20px 42px rgba(30, 42, 62, .08);
+            overflow: hidden;
+        }
+
+        .wizard-command-center::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 4px;
+            background: linear-gradient(90deg, #1d67e8, #00a9a5, #ffb84d, #d93662, #6f42c1);
+        }
+
+        .wizard-command-center::after {
+            content: "";
+            position: absolute;
+            inset: 4px 0 auto auto;
+            width: 42%;
+            height: 100%;
+            background:
+                repeating-linear-gradient(135deg, rgba(29, 103, 232, .045) 0 1px, transparent 1px 18px);
+            pointer-events: none;
+        }
+
+        .wizard-command-center > * {
+            position: relative;
+            z-index: 1;
+        }
+
         .wizard-topbar {
             display: grid;
             grid-template-columns: minmax(260px, 1fr) auto;
@@ -37,10 +74,34 @@
             margin-bottom: 16px;
         }
 
+        .wizard-title {
+            display: grid;
+            grid-template-columns: 46px minmax(0, 1fr);
+            gap: 12px;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .wizard-title-icon {
+            width: 46px;
+            height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            color: #fff;
+            background: linear-gradient(135deg, #1d67e8, #00a9a5);
+            box-shadow: 0 12px 24px rgba(29, 103, 232, .20);
+        }
+
+        .wizard-title-icon i {
+            font-size: 20px;
+        }
+
         .wizard-title h2 {
             margin: 0 0 4px;
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 25px;
+            font-weight: 850;
             letter-spacing: 0;
         }
 
@@ -55,19 +116,32 @@
             gap: 8px;
             flex-wrap: wrap;
             justify-content: flex-end;
+            align-items: center;
         }
 
         .wiz-btn {
-            border: 1px solid var(--wiz-line);
-            border-radius: 6px;
+            --btn-color: var(--wiz-blue);
+            --btn-soft: rgba(29, 103, 232, .10);
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border: 1px solid rgba(188, 203, 224, .92);
+            border-radius: 8px;
             padding: 9px 13px;
             background: #fff;
             color: var(--wiz-ink);
-            font-weight: 600;
+            font-weight: 800;
             font-size: 13px;
             line-height: 1;
             cursor: pointer;
-            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+            white-space: nowrap;
+            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease;
+        }
+
+        .wiz-btn i {
+            font-size: 14px;
         }
 
         .wiz-btn:disabled {
@@ -78,77 +152,182 @@
         }
         .wiz-btn:hover {
             transform: translateY(-1px);
-            border-color: #aebbd0;
-            box-shadow: 0 8px 22px rgba(30, 42, 62, .10);
+            border-color: rgba(29, 103, 232, .36);
+            background: var(--btn-soft);
+            box-shadow: 0 9px 22px rgba(30, 42, 62, .10);
         }
 
         .wiz-btn.primary {
+            --btn-color: var(--wiz-blue);
+            --btn-soft: rgba(29, 103, 232, .15);
             background: var(--wiz-blue);
             color: #fff;
             border-color: var(--wiz-blue);
+            box-shadow: 0 12px 24px rgba(29, 103, 232, .20);
         }
 
         .wiz-btn.teal {
+            --btn-color: var(--wiz-teal);
+            --btn-soft: rgba(0, 169, 165, .15);
             background: var(--wiz-teal);
             color: #fff;
             border-color: var(--wiz-teal);
+            box-shadow: 0 12px 24px rgba(0, 169, 165, .18);
+        }
+
+        .wizard-actions .wiz-btn:nth-child(1) {
+            --btn-color: #3b82f6;
+            --btn-soft: rgba(59, 130, 246, .10);
+        }
+
+        .wizard-actions .wiz-btn:nth-child(2) {
+            --btn-color: #6f42c1;
+            --btn-soft: rgba(111, 66, 193, .12);
+        }
+
+        .wizard-actions .wiz-btn:nth-child(3) {
+            --btn-color: #f97316;
+            --btn-soft: rgba(249, 115, 22, .12);
+        }
+
+        .wizard-actions .wiz-btn:not(.primary):not(.teal) i {
+            color: var(--btn-color);
         }
 
         .wizard-steps {
             display: grid;
             grid-template-columns: repeat(5, minmax(120px, 1fr));
-            gap: 8px;
+            gap: 10px;
             margin-bottom: 14px;
         }
 
         .wizard-step {
-            border: 1px solid var(--wiz-line);
-            border-radius: 6px;
-            background: #fff;
-            padding: 10px 12px;
+            --step-color: var(--wiz-blue);
+            --step-soft: rgba(29, 103, 232, .10);
+            position: relative;
+            min-height: 66px;
+            display: grid;
+            grid-template-columns: 38px minmax(0, 1fr);
+            grid-template-rows: auto auto;
+            gap: 2px 10px;
+            align-items: center;
+            border: 1px solid rgba(202, 214, 232, .9);
+            border-radius: 8px;
+            background: linear-gradient(135deg, #fff, rgba(255, 255, 255, .88));
+            padding: 11px 12px;
             cursor: pointer;
-            transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+            overflow: hidden;
+            text-align: left;
+            transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease, background .16s ease;
+        }
+
+        .wizard-step::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            background: var(--step-color);
+        }
+
+        .wizard-step:hover {
+            transform: translateY(-1px);
+            border-color: color-mix(in srgb, var(--step-color) 42%, #cad6e8);
+            box-shadow: 0 13px 28px rgba(30, 42, 62, .10);
+            background: linear-gradient(135deg, #fff, var(--step-soft));
+        }
+
+        .step-type {
+            --step-color: #1d67e8;
+            --step-soft: rgba(29, 103, 232, .10);
+        }
+
+        .step-questions {
+            --step-color: #00a9a5;
+            --step-soft: rgba(0, 169, 165, .12);
+        }
+
+        .step-audience {
+            --step-color: #ff8a00;
+            --step-soft: rgba(255, 184, 77, .16);
+        }
+
+        .step-certificate {
+            --step-color: #6f42c1;
+            --step-soft: rgba(111, 66, 193, .12);
+        }
+
+        .step-preview {
+            --step-color: #d93662;
+            --step-soft: rgba(217, 54, 98, .10);
+        }
+
+        .step-icon {
+            grid-row: 1 / 3;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: var(--step-color);
+            background: var(--step-soft);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .62);
+        }
+
+        .step-icon i {
+            font-size: 16px;
         }
 
         .wizard-step strong {
             display: block;
-            font-size: 12px;
+            font-size: 11px;
             color: var(--wiz-muted);
-            font-weight: 700;
+            font-weight: 900;
+            line-height: 1;
         }
 
-        .wizard-step span {
+        .wizard-step .step-text {
             display: block;
-            margin-top: 3px;
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 850;
+            line-height: 1.2;
+            color: #152033;
         }
 
         .wizard-step.active {
-            border-color: var(--wiz-blue);
-            box-shadow: inset 0 3px 0 var(--wiz-blue), 0 10px 24px rgba(29, 103, 232, .10);
+            border-color: color-mix(in srgb, var(--step-color) 54%, #cad6e8);
+            background: linear-gradient(135deg, #fff, var(--step-soft));
+            box-shadow: inset 0 3px 0 var(--step-color), 0 14px 28px rgba(30, 42, 62, .10);
         }
 
         .wizard-config {
             display: grid;
             grid-template-columns: minmax(260px, 1.4fr) minmax(220px, .9fr) repeat(3, minmax(120px, .45fr));
             gap: 10px;
-            margin-bottom: 14px;
+            margin-bottom: 0;
             padding: 12px;
-            border: 1px solid var(--wiz-line);
+            border: 1px solid rgba(202, 214, 232, .9);
             border-radius: 8px;
-            background: rgba(255, 255, 255, .86);
-            box-shadow: 0 12px 30px rgba(30, 42, 62, .05);
+            background: rgba(255, 255, 255, .80);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .86);
         }
 
         .wiz-field label {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 6px;
             margin-bottom: 5px;
             font-size: 11px;
             font-weight: 800;
             color: var(--wiz-muted);
             text-transform: uppercase;
             letter-spacing: .04em;
+        }
+
+        .wiz-field label i {
+            color: var(--wiz-blue);
+            font-size: 13px;
+            text-transform: none;
         }
 
         .wiz-field input,
@@ -192,6 +371,14 @@
             font-weight: 800;
             cursor: pointer;
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .segment i {
+            font-size: 13px;
         }
 
         .segment.active {
@@ -336,12 +523,30 @@
 
         .ai-generate-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
+            align-items: end;
         }
 
         .ai-generate-grid .wide {
             grid-column: 1 / -1;
+        }
+
+        .ai-generate-grid .ai-question-type,
+        .ai-generate-actions {
+            grid-column: 1 / -1;
+        }
+
+        .ai-generate-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: -2px;
+        }
+
+        .ai-generate-btn {
+            min-height: 36px;
+            padding: 0 14px;
+            white-space: nowrap;
         }
 
         .builder-stage {
@@ -475,7 +680,7 @@
 
         .question-row {
             display: grid;
-            grid-template-columns: minmax(240px, 1fr) minmax(160px, 220px) 90px;
+            grid-template-columns: minmax(0, 1fr) minmax(150px, 220px) 90px;
             gap: 10px;
         }
 
@@ -486,13 +691,13 @@
 
         .answer-row {
             display: grid;
-            grid-template-columns: 24px minmax(160px, 1fr) 34px;
+            grid-template-columns: 24px minmax(0, 1fr) 34px;
             gap: 8px;
             align-items: center;
         }
 
         .answer-row.survey-score {
-            grid-template-columns: minmax(160px, 1fr) 86px 34px;
+            grid-template-columns: minmax(0, 1fr) 86px 34px;
         }
 
         .answer-row input[type="radio"],
@@ -549,28 +754,89 @@
             background: #f7f9fd;
         }
 
-        .preview-question {
+        .participant-flow-head {
+            padding: 10px;
             border: 1px solid var(--wiz-line);
             border-radius: 7px;
             background: #fff;
-            padding: 10px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
-        .preview-question strong {
+        .participant-flow-head strong {
             display: block;
-            margin-bottom: 7px;
+            color: var(--wiz-ink);
             font-size: 13px;
+            font-weight: 900;
+            overflow-wrap: anywhere;
         }
 
-        .preview-option {
-            display: block;
-            margin: 5px 0;
-            padding: 6px 8px;
-            border-radius: 5px;
-            background: #edf2fb;
+        .participant-flow-head span {
+            display: inline-flex;
+            margin: 8px 6px 0 0;
+            padding: 5px 8px;
+            border-radius: 999px;
+            background: #eef3fb;
             color: #38455c;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .participant-flow-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .participant-flow-step {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr);
+            gap: 9px;
+            align-items: start;
+            padding: 9px;
+            border: 1px solid var(--wiz-line);
+            border-radius: 7px;
+            background: #fff;
+        }
+
+        .participant-flow-step i {
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            background: #eaf2ff;
+            color: var(--wiz-blue);
             font-size: 12px;
+        }
+
+        .participant-flow-step strong {
+            display: block;
+            color: var(--wiz-ink);
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .participant-flow-step span {
+            display: block;
+            margin-top: 3px;
+            color: var(--wiz-muted);
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .participant-flow-note {
+            margin-top: 10px;
+            padding: 9px 10px;
+            border-radius: 7px;
+            background: #f8fbff;
+            color: var(--wiz-muted);
+            font-size: 11px;
+            font-weight: 750;
+            line-height: 1.45;
+        }
+
+        .participant-flow-note strong {
+            color: var(--wiz-ink);
         }
 
         .settings-grid {
@@ -642,41 +908,128 @@
             transform: translateX(22px);
         }
 
-        .certificate-preview {
-            position: relative;
-            min-height: 178px;
-            padding: 16px;
-            border: 1px solid #c6b36a;
+        .launch-summary {
+            padding: 12px;
+            border: 1px solid var(--wiz-line);
             border-radius: 8px;
-            background:
-                linear-gradient(135deg, rgba(201, 137, 9, .16), rgba(255, 255, 255, .1)),
-                #fffaf0;
-            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 10px 24px rgba(30, 42, 62, .05);
         }
 
-        .certificate-preview::before {
-            content: "";
-            position: absolute;
-            inset: 10px;
-            border: 1px solid rgba(201, 137, 9, .35);
-            border-radius: 6px;
-            pointer-events: none;
+        .launch-summary-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
-        .certificate-preview h4 {
-            margin: 0 0 10px;
-            color: #7c5a05;
-            font-size: 18px;
+        .launch-summary-head span {
+            display: block;
+            color: var(--wiz-ink);
+            font-size: 13px;
             font-weight: 900;
-            text-align: center;
         }
 
-        .certificate-preview p {
-            position: relative;
-            margin: 7px 0;
-            color: #4d3b0c;
-            text-align: center;
+        .launch-summary-head small {
+            display: block;
+            margin-top: 2px;
+            color: var(--wiz-muted);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .summary-status {
+            border-radius: 999px;
+            padding: 6px 9px;
+            background: #eef3fb;
+            color: var(--wiz-muted);
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .summary-status.ready {
+            background: #e9fff6;
+            color: var(--wiz-green);
+        }
+
+        .summary-status.warn {
+            background: #fff5e3;
+            color: #9a6500;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .summary-item {
+            min-width: 0;
+            padding: 9px 10px;
+            border: 1px solid #e4eaf3;
+            border-radius: 7px;
+            background: #f8fbff;
+        }
+
+        .summary-item small {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--wiz-muted);
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .summary-item strong {
+            display: block;
+            color: var(--wiz-ink);
             font-size: 12px;
+            font-weight: 900;
+            overflow-wrap: anywhere;
+        }
+
+        .summary-checklist {
+            display: grid;
+            gap: 7px;
+            margin-top: 10px;
+        }
+
+        .summary-check {
+            display: grid;
+            grid-template-columns: 22px minmax(0, 1fr);
+            gap: 8px;
+            align-items: center;
+            color: var(--wiz-muted);
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .summary-check i {
+            display: grid;
+            place-items: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: #eef3fb;
+            color: var(--wiz-muted);
+            font-size: 11px;
+        }
+
+        .summary-check.ok {
+            color: var(--wiz-ink);
+        }
+
+        .summary-check.ok i {
+            background: #e9fff6;
+            color: var(--wiz-green);
+        }
+
+        .summary-check.warn i {
+            background: #fff5e3;
+            color: #9a6500;
         }
 
         .toast-line {
@@ -735,7 +1088,7 @@
 
         @@media (max-width: 1500px) {
             .wizard-grid {
-                grid-template-columns: 270px minmax(420px, 1fr);
+                grid-template-columns: 300px minmax(420px, 1fr);
             }
 
             .preview-column {
@@ -755,8 +1108,29 @@
                 grid-template-columns: 1fr;
             }
 
+            .wizard-command-center {
+                padding: 14px;
+            }
+
+            .wizard-title {
+                grid-template-columns: 40px minmax(0, 1fr);
+            }
+
+            .wizard-title-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .wizard-actions {
+                justify-content: flex-start;
+            }
+
             .wizard-steps {
                 grid-template-columns: 1fr 1fr;
+            }
+
+            .wizard-step {
+                min-height: 62px;
             }
 
             .question-row {
@@ -768,54 +1142,79 @@
 
 <div class="wizard-token" aria-hidden="true" style="display:none">@Html.AntiForgeryToken()</div>
 <div class="wizard-shell" id="assessmentWizard">
-    <div class="wizard-topbar">
-        <div class="wizard-title">
-            <h2>Yeni Sınav / Anket Sihirbazı</h2>
-            <p>İK, eğitim ve kalite ekipleri soru bankasından sürükleyerek dakikalar içinde değerlendirme hazırlayabilir.</p>
-        </div>
-        <div class="wizard-actions">
-            <button type="button" class="wiz-btn" id="loadDraftBtn"><i class="feather icon-rotate-ccw"></i> Son Taslağı Yükle</button>
-            <button type="button" class="wiz-btn" id="saveDraftBtn"><i class="feather icon-save"></i> Taslak Kaydet</button>
-            <button type="button" class="wiz-btn" id="importDraftBtn"><i class="feather icon-upload"></i> JSON İçe Aktar</button>
-            <button type="button" class="wiz-btn teal" id="exportDraftBtn"><i class="feather icon-download"></i> JSON Dışa Aktar</button>
-            <button type="button" class="wiz-btn primary" id="publishPreviewBtn"><i class="feather icon-send"></i> Yayına Hazırla</button>
-            <input type="file" id="importDraftInput" accept="application/json,.json" hidden />
-        </div>
-    </div>
-
-    <div class="wizard-steps" aria-label="Sihirbaz adımları">
-        <button type="button" class="wizard-step active" data-step="type"><strong>01</strong><span>Değerlendirme Türü</span></button>
-        <button type="button" class="wizard-step" data-step="questions"><strong>02</strong><span>Sorular ve Akış</span></button>
-        <button type="button" class="wizard-step" data-step="audience"><strong>03</strong><span>Hedef Kitle</span></button>
-        <button type="button" class="wizard-step" data-step="certificate"><strong>04</strong><span>Sertifika</span></button>
-        <button type="button" class="wizard-step" data-step="preview"><strong>05</strong><span>Önizleme</span></button>
-    </div>
-
-    <div class="wizard-config" id="typeSection">
-        <div class="wiz-field">
-            <label for="assessmentTitle">Başlık</label>
-            <input id="assessmentTitle" type="text" maxlength="120" />
-        </div>
-        <div class="wiz-field">
-            <label>Tür</label>
-            <div class="segmented" id="modeTabs">
-                <button type="button" class="segment active" data-mode="exam">Sınav</button>
-                <button type="button" class="segment" data-mode="survey">Anket</button>
-                <button type="button" class="segment" data-mode="hiring">İşe Alım</button>
-                <button type="button" class="segment" data-mode="training">Eğitim</button>
+    <div class="wizard-command-center">
+        <div class="wizard-topbar">
+            <div class="wizard-title">
+                <span class="wizard-title-icon" aria-hidden="true"><i class="feather icon-zap"></i></span>
+                <div>
+                    <h2>Yeni Sınav / Anket Sihirbazı</h2>
+                    <p>İK, eğitim ve kalite ekipleri soru bankasından sürükleyerek dakikalar içinde değerlendirme hazırlayabilir.</p>
+                </div>
+            </div>
+            <div class="wizard-actions">
+                <button type="button" class="wiz-btn" id="loadDraftBtn"><i class="feather icon-rotate-ccw"></i> Son Taslağı Yükle</button>
+                <button type="button" class="wiz-btn" id="saveDraftBtn"><i class="feather icon-save"></i> Taslak Kaydet</button>
+                <button type="button" class="wiz-btn" id="importDraftBtn"><i class="feather icon-upload"></i> JSON İçe Aktar</button>
+                <button type="button" class="wiz-btn teal" id="exportDraftBtn"><i class="feather icon-download"></i> JSON Dışa Aktar</button>
+                <button type="button" class="wiz-btn primary" id="publishPreviewBtn"><i class="feather icon-send"></i> Yayına Hazırla</button>
+                <input type="file" id="importDraftInput" accept="application/json,.json" hidden />
             </div>
         </div>
-        <div class="wiz-field">
-            <label for="durationInput">Süre</label>
-            <input id="durationInput" type="number" min="0" max="240" />
+
+        <div class="wizard-steps" aria-label="Sihirbaz adımları">
+            <button type="button" class="wizard-step step-type active" data-step="type">
+                <span class="step-icon" aria-hidden="true"><i class="feather icon-sliders"></i></span>
+                <strong>01</strong>
+                <span class="step-text">Değerlendirme Türü</span>
+            </button>
+            <button type="button" class="wizard-step step-questions" data-step="questions">
+                <span class="step-icon" aria-hidden="true"><i class="feather icon-list"></i></span>
+                <strong>02</strong>
+                <span class="step-text">Sorular ve Akış</span>
+            </button>
+            <button type="button" class="wizard-step step-audience" data-step="audience">
+                <span class="step-icon" aria-hidden="true"><i class="feather icon-users"></i></span>
+                <strong>03</strong>
+                <span class="step-text">Hedef Kitle</span>
+            </button>
+            <button type="button" class="wizard-step step-certificate" data-step="certificate">
+                <span class="step-icon" aria-hidden="true"><i class="feather icon-award"></i></span>
+                <strong>04</strong>
+                <span class="step-text">Sertifika</span>
+            </button>
+            <button type="button" class="wizard-step step-preview" data-step="preview">
+                <span class="step-icon" aria-hidden="true"><i class="feather icon-eye"></i></span>
+                <strong>05</strong>
+                <span class="step-text">Önizleme</span>
+            </button>
         </div>
-        <div class="wiz-field">
-            <label for="passScoreInput">Geçme Notu</label>
-            <input id="passScoreInput" type="number" min="0" max="100" />
-        </div>
-        <div class="wiz-field">
-            <label for="ownerInput">Sahip</label>
-            <input id="ownerInput" type="text" maxlength="80" />
+
+        <div class="wizard-config" id="typeSection">
+            <div class="wiz-field">
+                <label for="assessmentTitle"><i class="feather icon-edit-3"></i> Başlık</label>
+                <input id="assessmentTitle" type="text" maxlength="120" />
+            </div>
+            <div class="wiz-field">
+                <label><i class="feather icon-grid"></i> Tür</label>
+                <div class="segmented" id="modeTabs">
+                    <button type="button" class="segment active" data-mode="exam"><i class="feather icon-award"></i> Sınav</button>
+                    <button type="button" class="segment" data-mode="survey"><i class="feather icon-check-square"></i> Anket</button>
+                    <button type="button" class="segment" data-mode="hiring"><i class="feather icon-briefcase"></i> İşe Alım</button>
+                    <button type="button" class="segment" data-mode="training"><i class="feather icon-book-open"></i> Eğitim</button>
+                </div>
+            </div>
+            <div class="wiz-field">
+                <label for="durationInput"><i class="feather icon-clock"></i> Süre</label>
+                <input id="durationInput" type="number" min="0" max="240" />
+            </div>
+            <div class="wiz-field">
+                <label for="passScoreInput"><i class="feather icon-target"></i> Geçme Notu</label>
+                <input id="passScoreInput" type="number" min="0" max="100" />
+            </div>
+            <div class="wiz-field">
+                <label for="ownerInput"><i class="feather icon-user-check"></i> Sahip</label>
+                <input id="ownerInput" type="text" maxlength="80" />
+            </div>
         </div>
     </div>
 
@@ -859,7 +1258,7 @@
                                 <option value="zor">Zor</option>
                             </select>
                         </div>
-                        <div class="wiz-field">
+                        <div class="wiz-field ai-question-type">
                             <label for="aiQuestionTypeInput">Tip</label>
                             <select id="aiQuestionTypeInput">
                                 <option value="multiple">Çoktan seçmeli</option>
@@ -867,7 +1266,9 @@
                                 <option value="mixed">Karma</option>
                             </select>
                         </div>
-                        <button type="button" class="wiz-btn primary" id="generateAiBtn">AI ile Üret</button>
+                        <div class="ai-generate-actions">
+                            <button type="button" class="wiz-btn primary ai-generate-btn" id="generateAiBtn">AI ile Üret</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -893,12 +1294,12 @@
 
         <aside class="preview-column wizard-panel" id="previewSection" aria-labelledby="previewTitle">
             <div class="wizard-panel-header">
-                <h3 id="previewTitle">Canlı Önizleme</h3>
-                <small>Aday / çalışan gözüyle</small>
+                <h3 id="previewTitle">Yayın Kontrolü</h3>
+                <small>Akış ve ayarlar</small>
             </div>
             <div class="wizard-panel-body preview-stack">
                 <div class="preview-device">
-                    <div class="preview-bar"><span class="preview-dot"></span><span id="previewBarTitle">Önizleme</span></div>
+                    <div class="preview-bar"><span class="preview-dot"></span><span id="previewBarTitle">Katılımcı Akışı</span></div>
                     <div class="preview-body" id="livePreview"></div>
                 </div>
 
@@ -927,11 +1328,41 @@
                     </div>
                 </div>
 
-                <div class="certificate-preview" id="certificatePreview">
-                    <h4>Sertifika Önizleme</h4>
-                    <p><strong id="certificatePerson">Katılımcı Adı</strong></p>
-                    <p id="certificateTitle">Bu eğitimi başarıyla tamamlamıştır.</p>
-                    <p id="certificateMeta">Geçme notu: 70 - Eğitmen: İnsan Kaynakları</p>
+                <div class="launch-summary" id="launchSummary">
+                    <div class="launch-summary-head">
+                        <div>
+                            <span>Yayın Özeti</span>
+                            <small>Son kontrol</small>
+                        </div>
+                        <strong class="summary-status ready" id="summaryStatus">Hazır</strong>
+                    </div>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <small>Tür</small>
+                            <strong id="summaryMode">Sınav</strong>
+                        </div>
+                        <div class="summary-item">
+                            <small>Soru</small>
+                            <strong id="summaryQuestions">0 soru</strong>
+                        </div>
+                        <div class="summary-item">
+                            <small>Hedef</small>
+                            <strong id="summaryAudience">Herkes</strong>
+                        </div>
+                        <div class="summary-item">
+                            <small>Sertifika</small>
+                            <strong id="summaryCertificate">Aktif</strong>
+                        </div>
+                        <div class="summary-item">
+                            <small>Süre</small>
+                            <strong id="summaryDuration">Süresiz</strong>
+                        </div>
+                        <div class="summary-item">
+                            <small>Geçme</small>
+                            <strong id="summaryPassScore">70</strong>
+                        </div>
+                    </div>
+                    <div class="summary-checklist" id="summaryChecklist"></div>
                 </div>
             </div>
         </aside>
@@ -1044,9 +1475,14 @@
                 randomQuestions: document.getElementById("randomQuestionsSwitch"),
                 randomAnswers: document.getElementById("randomAnswersSwitch"),
                 certificate: document.getElementById("certificateSwitch"),
-                certificatePreview: document.getElementById("certificatePreview"),
-                certificateTitle: document.getElementById("certificateTitle"),
-                certificateMeta: document.getElementById("certificateMeta"),
+                summaryStatus: document.getElementById("summaryStatus"),
+                summaryMode: document.getElementById("summaryMode"),
+                summaryQuestions: document.getElementById("summaryQuestions"),
+                summaryAudience: document.getElementById("summaryAudience"),
+                summaryCertificate: document.getElementById("summaryCertificate"),
+                summaryDuration: document.getElementById("summaryDuration"),
+                summaryPassScore: document.getElementById("summaryPassScore"),
+                summaryChecklist: document.getElementById("summaryChecklist"),
                 audienceChips: document.getElementById("audienceChips"),
                 toast: document.getElementById("wizardToast"),
                 bulkImport: document.getElementById("bulkImport"),
@@ -1084,6 +1520,14 @@
                 const number = Number(value);
                 if (!Number.isFinite(number)) return 0;
                 return Math.max(0, Math.min(5, Math.round(number * 10) / 10));
+            }
+
+            function cleanGeneratedAnswerText(value) {
+                return String(value || "")
+                    .replace(/\s+/g, " ")
+                    .trim()
+                    .replace(/\s+(cevap|cevab[ıi]|yan[ıi]t|yan[ıi]t[ıi]|se[cç]enek)\s*$/i, "")
+                    .trim();
             }
 
             function surveyScoreForAnswer(text, index, count, explicitScore) {
@@ -1410,36 +1854,120 @@
                     </div>`;
             }
 
+            function audienceLabel() {
+                const labels = {
+                    all: "Herkes",
+                    department: "Departman",
+                    branch: "Şube",
+                    candidate: "Aday Listesi",
+                    title: "Unvan"
+                };
+                const selected = (state.audience || [])
+                    .map(value => labels[value] || value)
+                    .filter(Boolean);
+
+                if (!selected.length || selected.includes("Herkes")) {
+                    return "Herkes";
+                }
+
+                return selected.join(", ");
+            }
+
+            function answerKeyReady() {
+                if (isSurveyMode()) return true;
+
+                return state.questions.every(question => {
+                    if (question.type === "text" || question.type === "info") return true;
+                    return (question.answers || []).some(answer => answer.correct);
+                });
+            }
+
+            function renderLaunchSummary(estimated, totalPoints) {
+                const hasTitle = Boolean(String(state.title || "").trim());
+                const hasQuestions = state.questions.length > 0;
+                const hasPassScore = isSurveyMode() || Number(state.passScore || 0) > 0;
+                const hasAnswerKey = answerKeyReady();
+                const hasAudience = Array.isArray(state.audience) && state.audience.length > 0;
+
+                const checklist = [
+                    { ok: hasTitle, text: hasTitle ? "Başlık hazır" : "Başlık eksik" },
+                    { ok: hasQuestions, text: hasQuestions ? `${state.questions.length} soru hazır` : "En az bir soru gerekli" },
+                    { ok: hasPassScore, text: isSurveyMode() ? "Anket puanlaması hazır" : "Geçme notu tanımlı" },
+                    { ok: hasAnswerKey, text: hasAnswerKey ? "Cevap anahtarı tamam" : "Cevap anahtarı eksik" },
+                    { ok: hasAudience, text: hasAudience ? "Hedef kitle seçildi" : "Hedef kitle eksik" },
+                    { ok: true, text: state.certificate ? "Sertifika aktif" : "Sertifika kapalı" }
+                ];
+                const blockers = checklist.filter(item => !item.ok).length;
+
+                refs.summaryStatus.textContent = blockers ? `${blockers} eksik` : "Hazır";
+                refs.summaryStatus.className = `summary-status ${blockers ? "warn" : "ready"}`;
+                refs.summaryMode.textContent = modeLabel(state.mode);
+                refs.summaryQuestions.textContent = `${state.questions.length} soru`;
+                refs.summaryAudience.textContent = audienceLabel();
+                refs.summaryCertificate.textContent = state.certificate ? "Aktif" : "Kapalı";
+                refs.summaryDuration.textContent = Number(state.duration || 0) > 0 ? `${state.duration} dk` : "Süresiz";
+                refs.summaryPassScore.textContent = isSurveyMode() ? "0-5 puan" : `${state.passScore || 0}`;
+                refs.summaryChecklist.innerHTML = checklist.map(item => `
+                    <div class="summary-check ${item.ok ? "ok" : "warn"}">
+                        <i class="fa ${item.ok ? "fa-check" : "fa-exclamation"}"></i>
+                        <span>${escapeHtml(item.text)}</span>
+                    </div>`).join("");
+            }
+
             function renderPreview() {
                 const totalPoints = state.questions.reduce((sum, question) => sum + Number(question.points || 0), 0);
                 const estimated = Math.max(1, Math.ceil(state.questions.length * 1.4));
                 refs.questionCountPill.textContent = state.questions.length + " soru";
                 refs.scorePill.textContent = isSurveyMode() ? "0-5 cevap puanı" : "100 puan";
                 refs.estimatedPill.textContent = estimated + " dk tahmini";
-                refs.previewBarTitle.textContent = modeLabel(state.mode) + " Önizleme";
+                refs.previewBarTitle.textContent = modeLabel(state.mode) + " Akışı";
 
-                const questions = state.questions.slice(0, 4);
+                const firstQuestion = state.questions[0];
+                const resultText = isSurveyMode()
+                    ? "Cevap puanları rapora işlenecek."
+                    : `${state.passScore || 0} geçme notu ile sonuç hesaplanacak.`;
                 refs.preview.innerHTML = `
-                    <div class="preview-question">
+                    <div class="participant-flow-head">
                         <strong>${escapeHtml(state.title)}</strong>
-                        <span class="preview-option">Süre: ${state.duration || 0} dk</span>
-                        <span class="preview-option">Geçme notu: ${state.passScore || 0}</span>
+                        <span>${modeLabel(state.mode)}</span>
+                        <span>${Number(state.duration || 0) > 0 ? `${state.duration} dk` : "Süresiz"}</span>
+                        <span>${audienceLabel()}</span>
                     </div>
-                    ${questions.map((question, index) => `
-                        <div class="preview-question">
-                            <strong>${index + 1}. ${escapeHtml(question.title)}</strong>
-                            ${question.answers.slice(0, 5).map((answer, answerIndex) => {
-                                const scoreText = isSurveyMode()
-                                    ? ` (${surveyScoreForAnswer(answer.text, answerIndex, question.answers.length, answer.score)} puan)`
-                                    : "";
-                                return `<span class="preview-option">${escapeHtml(answer.text)}${scoreText}</span>`;
-                            }).join("")}
-                        </div>`).join("")}
-                    ${state.questions.length > 4 ? `<span class="preview-option">${state.questions.length - 4} soru daha...</span>` : ""}`;
+                    <div class="participant-flow-list">
+                        <div class="participant-flow-step">
+                            <i class="fa fa-user"></i>
+                            <div>
+                                <strong>Katılımcı girişi</strong>
+                                <span>${audienceLabel()} için yayınlanacak.</span>
+                            </div>
+                        </div>
+                        <div class="participant-flow-step">
+                            <i class="fa fa-list-ol"></i>
+                            <div>
+                                <strong>Soru akışı</strong>
+                                <span>${state.questions.length} soru, yaklaşık ${estimated} dk.</span>
+                            </div>
+                        </div>
+                        <div class="participant-flow-step">
+                            <i class="fa fa-bar-chart"></i>
+                            <div>
+                                <strong>Değerlendirme</strong>
+                                <span>${escapeHtml(resultText)}</span>
+                            </div>
+                        </div>
+                        <div class="participant-flow-step">
+                            <i class="fa fa-certificate"></i>
+                            <div>
+                                <strong>Sonuç</strong>
+                                <span>${state.certificate ? "Başarılı katılımcıya sertifika üretilecek." : "Sertifika üretimi kapalı."}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="participant-flow-note">
+                        <strong>İlk soru:</strong> ${escapeHtml(firstQuestion ? firstQuestion.title : "Henüz soru eklenmedi.")}
+                    </div>`;
 
-                refs.certificatePreview.style.display = state.certificate ? "block" : "none";
-                refs.certificateTitle.textContent = `${state.title} başarıyla tamamlanmıştır.`;
-                refs.certificateMeta.textContent = `Geçme notu: ${state.passScore || 0} - Yetkili: ${state.owner || "İK"}`;
+                renderLaunchSummary(estimated, totalPoints);
             }
 
             function modeLabel(mode) {
@@ -1640,10 +2168,11 @@
                         .filter(answer => answer && String(answer.text || "").trim())
                         .slice(0, 8)
                         .map((answer, index) => ({
-                            text: String(answer.text || "").trim(),
+                            text: cleanGeneratedAnswerText(answer.text),
                             correct: !isSurveyMode() && Boolean(answer.correct),
                             score: surveyScoreForAnswer(answer.text, index, item.answers.length, answer.score)
                         }))
+                        .filter(answer => answer.text)
                     : defaultAnswers(type).map((text, index) => ({ text, correct: !isSurveyMode() && index === 0, score: surveyScoreForAnswer(text, index, 4) }));
 
                 if (!answers.length) {

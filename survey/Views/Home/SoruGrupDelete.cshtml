@@ -3,27 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Soru grubu";
+    ViewData["DeleteTitle"] = "Soru grubu silinsin mi?";
+    ViewData["DeleteDescription"] = "Bu grup soru bankasından kaldırılacak. Bir çalışmada veya sonuç kırılımında kullanılıyorsa silme işlemi durdurulur.";
+    ViewData["DeleteItemLabel"] = "Soru grubu";
+    ViewData["DeleteItemName"] = Model?.SoruGrupAdi;
+    ViewData["DeleteWarning"] = "Bu işlem geri alınamaz. Önce bu grubu kullanan çalışma bağlantılarını kaldırmanız gerekebilir.";
+    ViewData["DeleteBackUrl"] = Url.Action("SoruGrupIndex", "Home");
+    ViewData["DeleteSubmitText"] = "Grubu sil";
 }
 
-<div class="panel panel-primary">
-    <div class="panel-heading panel-head; text-uppercase">
-        SORU GRUP SİL
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Soru Grup Adı</h5>
-            @Html.EditorFor(model => model.SoruGrupAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("SoruGrupIndex", "Home")">Geri</a>
-                <input type="submit" style="background-color:red; color:white" class="btn btn-default" value="Sil" />
-            }
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_DeleteConfirm")

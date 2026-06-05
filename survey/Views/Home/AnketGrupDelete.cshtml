@@ -3,30 +3,20 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Çalışma kırılımı";
+    ViewData["DeleteTitle"] = "Soru grubu bu çalışmadan kaldırılsın mı?";
+    ViewData["DeleteDescription"] = "Bu işlem soru grubunu bankadan silmez; yalnızca seçili çalışmadaki bağlantıyı kaldırır.";
+    ViewData["DeleteItemLabel"] = "Soru grubu";
+    ViewData["DeleteItemName"] = Model?.SoruGrup?.SoruGrupAdi;
+    ViewData["DeleteWarning"] = "Bu kırılıma ait katılım cevabı varsa bağlantı kaldırılmaz. Önce ilgili katılım verilerini temizleyin.";
+    ViewData["DeleteBackUrl"] = Url.Action("AnketGrupIndex", "Home", new { id = ViewBag.id, adi = ViewBag.adi });
+    ViewData["DeleteSubmitText"] = "Kırılımı kaldır";
+    ViewData["DeleteHiddenFields"] = new[]
+    {
+        new System.Collections.Generic.KeyValuePair<string, string>("ank", Convert.ToString(ViewBag.id)),
+        new System.Collections.Generic.KeyValuePair<string, string>("sr", Convert.ToString(Model?.SoruGrupId)),
+        new System.Collections.Generic.KeyValuePair<string, string>("adi", Convert.ToString(ViewBag.adi))
+    };
 }
 
-<div class="panel panel-primary">
-    <div class="panel-heading panel-head; text-uppercase">
-        SORU GRUBU KALDIRILIYOR
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Soru Grubu Adı</h5>
-            @Html.EditorFor(model => model.SoruGrup.SoruGrupAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-                <br />
-                <div>
-                    <a class="btn btn-primary btn-outline-primary fa fa-backward" href="@Url.Action("AnketGrupIndex", "Home", new {id = ViewBag.id})"> Geri</a>
-                    <input hidden name="ank" value="@ViewBag.id" />
-                    <input type="submit" class="btn btn-primary btn-outline-primary fa fa-check" value=" Tamam" />
-                </div>
-            }
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_DeleteConfirm")

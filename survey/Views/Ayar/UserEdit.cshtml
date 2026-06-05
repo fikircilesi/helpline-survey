@@ -11,11 +11,12 @@
     @Html.HiddenFor(model => model.UserId)
     @Html.HiddenFor(model => model.KayitTarihi)
 
-    <div class="panel panel-primary">
-        <div>
-            <h4>KULLANICI LİSTESİ</h4>
+    <div class="form-horizontal settings-form-panel settings-user-form-panel">
+        <div class="settings-form-heading">
+            <h4>KATILIMCI DÜZENLE</h4>
         </div>
-        <div class="panel-body">
+        <div class="settings-form-body">
+            <div class="form-group">
             @if (Model.Pasif == true)
             {
                 <div class="checkbox-color checkbox-primary">
@@ -31,7 +32,7 @@
                 </div>
             }
             <div class="col-md-10">
-                <b>Kullanıcı Adı</b>
+                <b>Katılımcı Adı</b>
                 @Html.EditorFor(model => model.UserAdi, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
                 @Html.ValidationMessageFor(model => model.UserAdi, "", new { @class = "text-danger" })
             </div>
@@ -98,8 +99,8 @@
                 @Html.ValidationMessageFor(model => model.UserSehir, "", new { @class = "text-danger" })
             </div>
 
-            <div class="col-lg-9"></div>
-            <div class="col-lg-3">
+            </div>
+            <div class="settings-form-actions">
                 <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("UserIndex", "Ayar")">Geri</a>
                 <input type="submit" style="background-color:blue; color:white" class="btn btn-default" value="Kayıt" />
             </div>

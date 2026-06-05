@@ -143,7 +143,9 @@ namespace survey.Controllers
         private void RecaptchaBilgisiniHazirla()
         {
             var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-            ViewBag.RecaptchaAktif = GoogleRecaptchaAktifMi();
+            var localhostBypass = GoogleRecaptchaAktifMi() && LocalhostGelistirmeOrtamiMi();
+            ViewBag.RecaptchaAktif = GoogleRecaptchaAktifMi() && !localhostBypass;
+            ViewBag.CaptchaAtlandi = localhostBypass;
             ViewBag.RecaptchaSiteKey = configuration["GoogleRecaptcha:SiteKey"];
         }
 
@@ -372,7 +374,8 @@ namespace survey.Controllers
             Session["id"] = personel.PersonelId;
             Session["adi"] = personel.PersonelAdi;
             Session["kuladi"] = personel.KullaniciAdi;
-            Session["admin"] = personel.Admin;
+            Session["admin"] = personel.Admin == true;
+            Session["panel"] = true;
             Session["resim"] = personel.Resim;
             Session["ipadres"] = GetClientIp();
 
@@ -400,7 +403,7 @@ namespace survey.Controllers
 
         private int? AktifCalismaAlaniId()
         {
-            var deger = Session["CalismaAlaniId"] as string;
+            var deger = Convert.ToString(Session["CalismaAlaniId"]);
             if (int.TryParse(deger, out var calismaAlaniId) && calismaAlaniId > 0)
             {
                 return calismaAlaniId;
@@ -503,6 +506,205 @@ namespace survey.Controllers
             }
 
             return new List<Anket>();
+        }
+
+        private static string BankaSqlTablo(string tablo)
+        {
+            return tablo switch
+            {
+                "Soru" => "dbo.Soru",
+                "SoruGrup" => "dbo.SoruGrup",
+                "Cevap" => "dbo.Cevap",
+                "CevapGrup" => "dbo.CevapGrup",
+                _ => throw new ArgumentOutOfRangeException(nameof(tablo), tablo, null)
+            };
+        }
+
+        private static string BankaSqlNesneAdi(string tablo)
+        {
+            return tablo switch
+            {
+                "Soru" => "dbo.Soru",
+                "SoruGrup" => "dbo.SoruGrup",
+                "Cevap" => "dbo.Cevap",
+                "CevapGrup" => "dbo.CevapGrup",
+                _ => throw new ArgumentOutOfRangeException(nameof(tablo), tablo, null)
+            };
+        }
+
+        private static string BankaSqlKolon(string kolon)
+        {
+            return kolon switch
+            {
+                "SoruId" => "[SoruId]",
+                "SoruAdi" => "[SoruAdi]",
+                "SoruGrupId" => "[SoruGrupId]",
+                "SoruGrupAdi" => "[SoruGrupAdi]",
+                "SoruGrupSira" => "[SoruGrupSira]",
+                "CevapId" => "[CevapId]",
+                "CevapAdi" => "[CevapAdi]",
+                "CevapGrupId" => "[CevapGrupId]",
+                "CevapGrupAdi" => "[CevapGrupAdi]",
+                _ => throw new ArgumentOutOfRangeException(nameof(kolon), kolon, null)
+            };
+        }
+
+        private bool BankaTablosuCalismaAlaniKolonuVarMi(string tablo)
+        {
+            try
+            {
+                return db.Database.SqlQuery<int>(
+                    "SELECT CASE WHEN COL_LENGTH(@p0, N'CalismaAlaniId') IS NULL THEN 0 ELSE 1 END",
+                    BankaSqlNesneAdi(tablo)).FirstOrDefault() == 1;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool BankaCalismaAlaniHazirla()
+        {
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!calismaAlaniId.HasValue)
+            {
+                return false;
+            }
+
+            try
+            {
+                db.Database.ExecuteSqlCommand(
+                    @"
+IF COL_LENGTH('dbo.SoruGrup', 'CalismaAlaniId') IS NULL
+    ALTER TABLE dbo.SoruGrup ADD CalismaAlaniId INT NULL;
+
+IF COL_LENGTH('dbo.Soru', 'CalismaAlaniId') IS NULL
+    ALTER TABLE dbo.Soru ADD CalismaAlaniId INT NULL;
+
+IF COL_LENGTH('dbo.CevapGrup', 'CalismaAlaniId') IS NULL
+    ALTER TABLE dbo.CevapGrup ADD CalismaAlaniId INT NULL;
+
+IF COL_LENGTH('dbo.Cevap', 'CalismaAlaniId') IS NULL
+    ALTER TABLE dbo.Cevap ADD CalismaAlaniId INT NULL;
+
+UPDATE sg
+SET CalismaAlaniId = kaynak.CalismaAlaniId
+FROM dbo.SoruGrup sg
+INNER JOIN (
+    SELECT ag.SoruGrupId, MIN(a.CalismaAlaniId) AS CalismaAlaniId
+    FROM dbo.AnketGrup ag
+    INNER JOIN dbo.Anket a ON a.AnketId = ag.AnketId
+    WHERE a.CalismaAlaniId IS NOT NULL
+    GROUP BY ag.SoruGrupId
+) kaynak ON kaynak.SoruGrupId = sg.SoruGrupId
+WHERE sg.CalismaAlaniId IS NULL;
+
+UPDATE s
+SET CalismaAlaniId = sg.CalismaAlaniId
+FROM dbo.Soru s
+INNER JOIN dbo.SoruGrup sg ON sg.SoruGrupId = s.SoruGrupId
+WHERE s.CalismaAlaniId IS NULL
+  AND sg.CalismaAlaniId IS NOT NULL;
+
+UPDATE cg
+SET CalismaAlaniId = kaynak.CalismaAlaniId
+FROM dbo.CevapGrup cg
+INNER JOIN (
+    SELECT s.CevapGrupId, MIN(s.CalismaAlaniId) AS CalismaAlaniId
+    FROM dbo.Soru s
+    WHERE s.CevapGrupId IS NOT NULL
+      AND s.CalismaAlaniId IS NOT NULL
+    GROUP BY s.CevapGrupId
+) kaynak ON kaynak.CevapGrupId = cg.CevapGrupId
+WHERE cg.CalismaAlaniId IS NULL;
+
+UPDATE c
+SET CalismaAlaniId = cg.CalismaAlaniId
+FROM dbo.Cevap c
+INNER JOIN dbo.CevapGrup cg ON cg.CevapGrupId = c.CevapGrupId
+WHERE c.CalismaAlaniId IS NULL
+  AND cg.CalismaAlaniId IS NOT NULL;
+
+UPDATE dbo.SoruGrup SET CalismaAlaniId = @p0 WHERE CalismaAlaniId IS NULL;
+UPDATE dbo.Soru SET CalismaAlaniId = @p0 WHERE CalismaAlaniId IS NULL;
+UPDATE dbo.CevapGrup SET CalismaAlaniId = @p0 WHERE CalismaAlaniId IS NULL;
+UPDATE dbo.Cevap SET CalismaAlaniId = @p0 WHERE CalismaAlaniId IS NULL;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_SoruGrup_CalismaAlaniId' AND object_id = OBJECT_ID(N'dbo.SoruGrup'))
+    CREATE INDEX IX_SoruGrup_CalismaAlaniId ON dbo.SoruGrup(CalismaAlaniId);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Soru_CalismaAlaniId' AND object_id = OBJECT_ID(N'dbo.Soru'))
+    CREATE INDEX IX_Soru_CalismaAlaniId ON dbo.Soru(CalismaAlaniId);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CevapGrup_CalismaAlaniId' AND object_id = OBJECT_ID(N'dbo.CevapGrup'))
+    CREATE INDEX IX_CevapGrup_CalismaAlaniId ON dbo.CevapGrup(CalismaAlaniId);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' AND object_id = OBJECT_ID(N'dbo.Cevap'))
+    CREATE INDEX IX_Cevap_CalismaAlaniId ON dbo.Cevap(CalismaAlaniId);",
+                    calismaAlaniId.Value);
+
+                return true;
+            }
+            catch
+            {
+                return BankaTablosuCalismaAlaniKolonuVarMi("Soru")
+                    && BankaTablosuCalismaAlaniKolonuVarMi("SoruGrup")
+                    && BankaTablosuCalismaAlaniKolonuVarMi("Cevap")
+                    && BankaTablosuCalismaAlaniKolonuVarMi("CevapGrup");
+            }
+        }
+
+        private List<T> CalismaAlaniBankaKayitlari<T>(string tablo, string siralamaKolonu) where T : class
+        {
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!calismaAlaniId.HasValue || !BankaCalismaAlaniHazirla())
+            {
+                return new List<T>();
+            }
+
+            var sql = $"SELECT * FROM {BankaSqlTablo(tablo)} WHERE CalismaAlaniId = @p0 ORDER BY {BankaSqlKolon(siralamaKolonu)}";
+            return db.Set<T>().SqlQuery(sql, calismaAlaniId.Value).ToList();
+        }
+
+        private T CalismaAlaniBankaKaydiGetir<T>(string tablo, string idKolonu, int id) where T : class
+        {
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!calismaAlaniId.HasValue || !BankaCalismaAlaniHazirla())
+            {
+                return null;
+            }
+
+            var sql = $"SELECT * FROM {BankaSqlTablo(tablo)} WHERE {BankaSqlKolon(idKolonu)} = @p0 AND CalismaAlaniId = @p1";
+            return db.Set<T>().SqlQuery(sql, id, calismaAlaniId.Value).FirstOrDefault();
+        }
+
+        private bool CalismaAlaniBankaKaydiVarMi(string tablo, string idKolonu, int? id)
+        {
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!id.HasValue || !calismaAlaniId.HasValue || !BankaCalismaAlaniHazirla())
+            {
+                return false;
+            }
+
+            var sql = $"SELECT COUNT(1) FROM {BankaSqlTablo(tablo)} WHERE {BankaSqlKolon(idKolonu)} = @p0 AND CalismaAlaniId = @p1";
+            return db.Database.SqlQuery<int>(sql, id.Value, calismaAlaniId.Value).FirstOrDefault() > 0;
+        }
+
+        private bool CalismaAlaniBankaSecimiGecerliMi(string tablo, string idKolonu, int? id)
+        {
+            return !id.HasValue || CalismaAlaniBankaKaydiVarMi(tablo, idKolonu, id);
+        }
+
+        private void CalismaAlaniBankaKaydinaBagla(string tablo, string idKolonu, int id)
+        {
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!calismaAlaniId.HasValue || !BankaCalismaAlaniHazirla())
+            {
+                return;
+            }
+
+            var sql = $"UPDATE {BankaSqlTablo(tablo)} SET CalismaAlaniId = @p0 WHERE {BankaSqlKolon(idKolonu)} = @p1";
+            db.Database.ExecuteSqlCommand(sql, calismaAlaniId.Value, id);
         }
 
         private bool CalismaAlaniAyniAnketAdiVar(string anketAdi, int? haricAnketId = null)
@@ -1261,6 +1463,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                 ? rawQuestionPoints.Select(x => (double)x).ToList()
                 : NormalizeExamPoints(rawQuestionPoints);
             var personelId = Convert.ToInt32(Session["id"]);
+            BankaCalismaAlaniHazirla();
 
             if (!isSurvey && questions.Any(x => RequiresCorrectAnswer(x) && x.Answers?.Any(a => a.Correct) != true))
             {
@@ -1335,6 +1538,11 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
 
                 foreach (var soruGrup in soruGruplari.Values)
                 {
+                    CalismaAlaniBankaKaydinaBagla("SoruGrup", "SoruGrupId", soruGrup.SoruGrupId);
+                }
+
+                foreach (var soruGrup in soruGruplari.Values)
+                {
                     db.AnketGrup.Add(new AnketGrup
                     {
                         AnketId = anket.AnketId,
@@ -1343,6 +1551,8 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                 }
 
                 var order = 1;
+                var yeniSorular = new List<Soru>();
+                var yeniCevaplar = new List<Cevap>();
                 for (var questionIndex = 0; questionIndex < publishQuestions.Count; questionIndex++)
                 {
                     var publishQuestion = publishQuestions[questionIndex];
@@ -1356,29 +1566,45 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                     };
                     db.CevapGrup.Add(cevapGrup);
                     db.SaveChanges();
+                    CalismaAlaniBankaKaydinaBagla("CevapGrup", "CevapGrupId", cevapGrup.CevapGrupId);
 
-                    db.Soru.Add(new Soru
+                    var soru = new Soru
                     {
                         SoruAdi = TrimWizardText(question.Title, "Soru", 250),
                         SoruSira = order++,
                         SoruGrupId = soruGrup.SoruGrupId,
                         CevapGrupId = cevapGrup.CevapGrupId,
                         SoruPuan = questionPoints
-                    });
+                    };
+                    db.Soru.Add(soru);
+                    yeniSorular.Add(soru);
 
                     foreach (var answer in answers)
                     {
-                        db.Cevap.Add(new Cevap
+                        var cevap = new Cevap
                         {
                             CevapAdi = TrimWizardText(answer.Text, "Cevap", 250),
                             CevapGrupId = cevapGrup.CevapGrupId,
                             Dogru = isSurvey ? (bool?)null : answer.Correct,
                             CevapPuan = isSurvey ? ClampSurveyScore(answer.Score) : (answer.Correct ? questionPoints : 0)
-                        });
+                        };
+                        db.Cevap.Add(cevap);
+                        yeniCevaplar.Add(cevap);
                     }
                 }
 
                 db.SaveChanges();
+
+                foreach (var soru in yeniSorular)
+                {
+                    CalismaAlaniBankaKaydinaBagla("Soru", "SoruId", soru.SoruId);
+                }
+
+                foreach (var cevap in yeniCevaplar)
+                {
+                    CalismaAlaniBankaKaydinaBagla("Cevap", "CevapId", cevap.CevapId);
+                }
+
                 tx.Commit();
 
                 return Json(new
@@ -1581,6 +1807,7 @@ Gorev:
 - Bu bir memnuniyet, algi veya geri bildirim anketidir; dogru cevap mantigi kullanma.
 - Her cevap secenegi icin 0 ile 5 arasinda score ver.
 - Olumlu/yuksek memnuniyet: 5; iyi: 4; orta/kismen: 3; dusuk/olumsuz: 1; bilmiyorum/uygun degil/cevap yok: 0.
+- Secenek metinleri dogal katilimci ifadeleri olsun; metnin sonuna ""cevap"", ""yanit"" veya ""secenek"" kelimesi ekleme.
 {groupInstruction}
 - Konu egitim, anket, ise alim, kurumsal prosedur, kalite, memnuniyet veya mesleki degerlendirme amaci tasimiyorsa soru uretme.
 - Selamlasma, sohbet, saka, rastgele istek, genel kultur oyunu veya konu disi metin gelirse yalnizca {{ ""title"": ""Konu disi istek"", ""questions"": [] }} JSON'u dondur.
@@ -1599,10 +1826,10 @@ Yalnizca su JSON semasinda cevap ver:
       ""points"": 10,
       ""required"": true,
       ""answers"": [
-        {{ ""text"": ""Cok olumlu cevap"", ""correct"": false, ""score"": 5 }},
-        {{ ""text"": ""Orta cevap"", ""correct"": false, ""score"": 3 }},
-        {{ ""text"": ""Olumsuz cevap"", ""correct"": false, ""score"": 1 }},
-        {{ ""text"": ""Bilmiyorum"", ""correct"": false, ""score"": 0 }}
+        {{ ""text"": ""Cok memnunum"", ""correct"": false, ""score"": 5 }},
+        {{ ""text"": ""Orta duzeyde memnunum"", ""correct"": false, ""score"": 3 }},
+        {{ ""text"": ""Memnun degilim"", ""correct"": false, ""score"": 1 }},
+        {{ ""text"": ""Fikrim yok"", ""correct"": false, ""score"": 0 }}
       ]
     }}
   ]
@@ -1849,10 +2076,11 @@ Yalnizca su JSON semasinda cevap ver:
                     .Take(8)
                     .Select((x, answerIndex) => new AssessmentWizardAnswer
                     {
-                        Text = x.Text.Trim(),
+                        Text = CleanGeneratedAnswerText(x.Text),
                         Correct = !isSurvey && x.Correct,
                         Score = isSurvey ? InferSurveyAnswerScore(x, answerIndex, item.Answers?.Count ?? 0) : x.Score
                     })
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Text))
                     .ToList() ?? new List<AssessmentWizardAnswer>();
 
                 if (!isSurvey && type == "truefalse")
@@ -1911,6 +2139,23 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
             return questions;
+        }
+
+        private static string CleanGeneratedAnswerText(string value)
+        {
+            var text = Regex.Replace(value ?? string.Empty, @"\s+", " ").Trim();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            text = Regex.Replace(
+                text,
+                "\\s+(?:cevap|cevab[\u0131i]|yan[\u0131i]t|yan[\u0131i]t[\u0131i]|se[c\u00e7]enek)\\s*$",
+                string.Empty,
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).Trim();
+
+            return TrimWizardText(text, string.Empty, 250);
         }
 
         private static double ClampSurveyScore(double? value)
@@ -2894,7 +3139,7 @@ Yalnizca su JSON semasinda cevap ver:
                 Ank = anketler,
                 Hav = db.Havuz.Where(x => anketIdleri.Contains(x.AnketId)),
                 AnkGrp = db.AnketGrup.Where(x => anketIdleri.Contains(x.AnketId)),
-                Sor = db.Soru,
+                Sor = CalismaAlaniBankaKayitlari<Soru>("Soru", "SoruAdi"),
             };
             return View(model);
         }
@@ -2909,19 +3154,28 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            List<SelectListItem> unv =
-            (from i in db.Unvan.ToList()
-             select new SelectListItem
-             {
-                 Text = i.UnvanAdi,
-                 Value = i.UnvanId.ToString(),
-             }).ToList();
-            ViewBag.Unv = unv;
+
+            var aktifPersonelId = AktifPersonelId();
+            if (!aktifPersonelId.HasValue)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (id != aktifPersonelId.Value)
+            {
+                return RedirectToAction("UserEdit", "Home", new { id = aktifPersonelId.Value });
+            }
 
             ViewBag.KayitTar = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
+            var kayit = db.Personel.FirstOrDefault(x => x.PersonelId == aktifPersonelId.Value);
+            if (kayit == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
 
-            return View(db.Personel.Where(x => x.PersonelId == id).FirstOrDefault());
+            kayit.Sifre = string.Empty;
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -2936,32 +3190,47 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+
+            var aktifPersonelId = AktifPersonelId();
+            if (!aktifPersonelId.HasValue || Personel == null || Personel.PersonelId != aktifPersonelId.Value)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
             try
             {
-                if (uploadfile != null)
+                var kayit = db.Personel.FirstOrDefault(x => x.PersonelId == aktifPersonelId.Value);
+                if (kayit == null)
+                {
+                    return RedirectToAction("Giris", "Home", null);
+                }
+
+                if (uploadfile != null && uploadfile.Length > 0)
                 {
                     string ResimAdi = Path.GetFileName(uploadfile.FileName);
                     string adres = MapPath("~/Content/Personel/" + ResimAdi);
                     uploadfile.SaveAs(adres);
-
-                    Personel.Resim = Request.Form["Resim"];
-                    Personel.Resim = ResimAdi;
-
-                    db.Entry(Personel).State = EntityState.Modified;
-                    db.SaveChanges();
-                    return RedirectToAction("Indexgosterge", "Home", new { id = Session["id"] });
+                    kayit.Resim = ResimAdi;
+                    Session["resim"] = ResimAdi;
                 }
-                else
+
+                if (!string.IsNullOrWhiteSpace(Personel.Sifre))
                 {
-                    db.Entry(Personel).State = EntityState.Modified;
-                    db.SaveChanges();
-                    return RedirectToAction("Indexgosterge", "Home", new { id = Session["id"] });
-
+                    kayit.Sifre = Personel.Sifre;
                 }
+
+                db.SaveChanges();
+                return RedirectToAction("Indexgosterge", "Home", new { id = Session["id"] });
             }
             catch
             {
-                return View();
+                var kayit = db.Personel.FirstOrDefault(x => x.PersonelId == aktifPersonelId.Value);
+                if (kayit != null)
+                {
+                    kayit.Sifre = string.Empty;
+                }
+
+                return View(kayit);
             }
 
         }
@@ -8251,10 +8520,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            ViewBag.YayinBaslangicLocal = string.Empty;
-            ViewBag.YayinBitisLocal = string.Empty;
-            ViewBag.KatilimYontemi = KatilimYontemiHerkeseAcik;
-            return View();
+            return RedirectToAction("AssessmentWizard");
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -8973,13 +9239,13 @@ Yalnizca su JSON semasinda cevap ver:
              }).ToList();
             ViewBag.Ank = an;
 
-            var aa = db.AnketGrup.Where(x => x.AnketId == id);
-            var hav =
-            (from a in db.SoruGrup
-             join c in aa on a.SoruGrupId equals c.SoruGrupId into lrs
-             from lr in lrs.DefaultIfEmpty()
-             where lr == null
-             select a).ToList();
+            var mevcutGrupIds = db.AnketGrup
+                .Where(x => x.AnketId == id && x.SoruGrupId.HasValue)
+                .Select(x => x.SoruGrupId.Value)
+                .ToList();
+            var hav = CalismaAlaniBankaKayitlari<SoruGrup>("SoruGrup", "SoruGrupSira")
+                .Where(x => !mevcutGrupIds.Contains(x.SoruGrupId))
+                .ToList();
             List<SelectListItem> sr =
             (from i in hav.OrderBy(x => x.SoruGrupSira).ToList()
              select new SelectListItem
@@ -9006,6 +9272,10 @@ Yalnizca su JSON semasinda cevap ver:
             if (!AnketCalismaAlanindaMi(dgskn.AnketId))
             {
                 return RedirectToAction("AnketAdIndex");
+            }
+            if (!CalismaAlaniBankaKaydiVarMi("SoruGrup", "SoruGrupId", dgskn.SoruGrupId))
+            {
+                return RedirectToAction("AnketGrupIndex", new { id = dgskn.AnketId, adi = adi });
             }
 
             if (db.AnketGrup.Any(x => x.SoruGrupId == dgskn.SoruGrupId && x.AnketId == dgskn.AnketId))
@@ -9051,13 +9321,13 @@ Yalnizca su JSON semasinda cevap ver:
              }).ToList();
             ViewBag.Ank = an;
 
-            var aa = db.AnketGrup.Where(x => x.AnketId == ank);
-            var hav =
-            (from a in db.SoruGrup
-             join c in aa on a.SoruGrupId equals c.SoruGrupId into lrs
-             from lr in lrs.DefaultIfEmpty()
-             where lr == null
-             select a).ToList();
+            var mevcutGrupIds = db.AnketGrup
+                .Where(x => x.AnketId == ank && x.SoruGrupId.HasValue && x.AnketGupId != id)
+                .Select(x => x.SoruGrupId.Value)
+                .ToList();
+            var hav = CalismaAlaniBankaKayitlari<SoruGrup>("SoruGrup", "SoruGrupSira")
+                .Where(x => !mevcutGrupIds.Contains(x.SoruGrupId))
+                .ToList();
             List<SelectListItem> sr =
             (from i in hav.OrderBy(x => x.SoruGrupSira).ToList()
              select new SelectListItem
@@ -9084,6 +9354,10 @@ Yalnizca su JSON semasinda cevap ver:
             if (!AnketCalismaAlanindaMi(ank) || !AnketCalismaAlanindaMi(dgskn.AnketId))
             {
                 return RedirectToAction("AnketAdIndex");
+            }
+            if (!CalismaAlaniBankaKaydiVarMi("SoruGrup", "SoruGrupId", dgskn.SoruGrupId))
+            {
+                return RedirectToAction("AnketGrupIndex", new { id = ank, adi });
             }
 
             if (db.Havuz.Any(x => x.SoruGrupId == sr && x.AnketId == ank))
@@ -9163,6 +9437,48 @@ Yalnizca su JSON semasinda cevap ver:
                 return View();
             }
         }
+        private void SoruFormListeleriniHazirla()
+        {
+            List<SelectListItem> an =
+            (from i in CalismaAlaniAnketleri().OrderBy(x => x.AnketAdi).ToList()
+             select new SelectListItem
+             {
+                 Text = i.AnketAdi,
+                 Value = i.AnketId.ToString(),
+             }).ToList();
+            ViewBag.Ank = an;
+
+            List<SelectListItem> un =
+            (from i in CalismaAlaniBankaKayitlari<CevapGrup>("CevapGrup", "CevapGrupAdi")
+             select new SelectListItem
+             {
+                 Text = i.CevapGrupAdi,
+                 Value = i.CevapGrupId.ToString(),
+             }).ToList();
+            ViewBag.Cev = un;
+
+            List<SelectListItem> sr =
+            (from i in CalismaAlaniBankaKayitlari<SoruGrup>("SoruGrup", "SoruGrupAdi")
+             select new SelectListItem
+             {
+                 Text = i.SoruGrupAdi,
+                 Value = i.SoruGrupId.ToString(),
+             }).ToList();
+            ViewBag.Sor = sr;
+        }
+
+        private void CevapFormListeleriniHazirla()
+        {
+            List<SelectListItem> un =
+            (from i in CalismaAlaniBankaKayitlari<CevapGrup>("CevapGrup", "CevapGrupAdi")
+             select new SelectListItem
+             {
+                 Text = i.CevapGrupAdi,
+                 Value = i.CevapGrupId.ToString(),
+             }).ToList();
+            ViewBag.Gur = un;
+        }
+
         public ActionResult SoruIndex()
         {
             if (Session["id"] == null)
@@ -9173,7 +9489,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.Soru);
+            return View(CalismaAlaniBankaKayitlari<Soru>("Soru", "SoruAdi"));
         }
         public ActionResult SoruCreate()
         {
@@ -9185,32 +9501,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            List<SelectListItem> an =
-            (from i in db.Anket.OrderBy(x => x.AnketAdi).ToList()
-             select new SelectListItem
-             {
-                 Text = i.AnketAdi,
-                 Value = i.AnketId.ToString(),
-             }).ToList();
-            ViewBag.Ank = an;
-
-            List<SelectListItem> un =
-            (from i in db.CevapGrup.OrderBy(x => x.CevapGrupAdi).ToList()
-             select new SelectListItem
-             {
-                 Text = i.CevapGrupAdi,
-                 Value = i.CevapGrupId.ToString(),
-             }).ToList();
-            ViewBag.Cev = un;
-
-            List<SelectListItem> sr =
-            (from i in db.SoruGrup.OrderBy(x => x.SoruGrupAdi).ToList()
-             select new SelectListItem
-             {
-                 Text = i.SoruGrupAdi,
-                 Value = i.SoruGrupId.ToString(),
-             }).ToList();
-            ViewBag.Sor = sr;
+            SoruFormListeleriniHazirla();
 
             return View();
         }
@@ -9229,14 +9520,24 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
+                if (!CalismaAlaniBankaSecimiGecerliMi("CevapGrup", "CevapGrupId", dgskn.CevapGrupId)
+                    || !CalismaAlaniBankaSecimiGecerliMi("SoruGrup", "SoruGrupId", dgskn.SoruGrupId))
+                {
+                    ModelState.AddModelError("", "Secili grup bu calisma alanina ait degil.");
+                    SoruFormListeleriniHazirla();
+                    return View(dgskn);
+                }
+
                 db.Soru.Add(dgskn);
                 db.SaveChanges();
+                CalismaAlaniBankaKaydinaBagla("Soru", "SoruId", dgskn.SoruId);
                 return RedirectToAction("SoruIndex");
 
             }
             catch
             {
-                return View();
+                SoruFormListeleriniHazirla();
+                return View(dgskn);
             }
         }
         public ActionResult SoruEdit(int id)
@@ -9249,35 +9550,15 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            List<SelectListItem> an =
-            (from i in db.Anket.OrderBy(x => x.AnketAdi).ToList()
-             select new SelectListItem
-             {
-                 Text = i.AnketAdi,
-                 Value = i.AnketId.ToString(),
-             }).ToList();
-            ViewBag.Ank = an;
+            SoruFormListeleriniHazirla();
 
-            List<SelectListItem> un =
-            (from i in db.CevapGrup.OrderBy(x => x.CevapGrupAdi).ToList()
-             select new SelectListItem
-             {
-                 Text = i.CevapGrupAdi,
-                 Value = i.CevapGrupId.ToString(),
-             }).ToList();
-            ViewBag.Cev = un;
+            var kayit = CalismaAlaniBankaKaydiGetir<Soru>("Soru", "SoruId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("SoruIndex");
+            }
 
-            List<SelectListItem> sr =
-            (from i in db.SoruGrup.OrderBy(x => x.SoruGrupAdi).ToList()
-             select new SelectListItem
-             {
-                 Text = i.SoruGrupAdi,
-                 Value = i.SoruGrupId.ToString(),
-             }).ToList();
-            ViewBag.Sor = sr;
-
-
-            return View(db.Soru.Where(x => x.SoruId == id).FirstOrDefault());
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -9294,16 +9575,27 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
+                if (!CalismaAlaniBankaKaydiVarMi("Soru", "SoruId", dgskn.SoruId)
+                    || !CalismaAlaniBankaSecimiGecerliMi("CevapGrup", "CevapGrupId", dgskn.CevapGrupId)
+                    || !CalismaAlaniBankaSecimiGecerliMi("SoruGrup", "SoruGrupId", dgskn.SoruGrupId))
+                {
+                    ModelState.AddModelError("", "Bu soru veya secili grup aktif calisma alanina ait degil.");
+                    SoruFormListeleriniHazirla();
+                    return View(dgskn);
+                }
+
                 {
                     db.Entry(dgskn).State = EntityState.Modified;
                     db.SaveChanges();
+                    CalismaAlaniBankaKaydinaBagla("Soru", "SoruId", dgskn.SoruId);
                 }
                 return RedirectToAction("SoruIndex");
 
             }
             catch
             {
-                return View();
+                SoruFormListeleriniHazirla();
+                return View(dgskn);
             }
         }
         public ActionResult SoruDelete(int id)
@@ -9316,7 +9608,13 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.Soru.Where(x => x.SoruId == id).FirstOrDefault());
+            var kayit = CalismaAlaniBankaKaydiGetir<Soru>("Soru", "SoruId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("SoruIndex");
+            }
+
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -9330,10 +9628,19 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!id.HasValue)
+            {
+                return RedirectToAction("SoruIndex");
+            }
 
             if (ModelState.IsValid)
             {
                 //havuzda kaydı mevcutsa silinmez
+                if (!CalismaAlaniBankaKaydiVarMi("Soru", "SoruId", id))
+                {
+                    return RedirectToAction("SoruIndex");
+                }
+
                 if (db.Havuz.Any(x => x.SoruID == id))
                 {
                     return RedirectToAction("Hata1", "Ayar", null);
@@ -9342,7 +9649,12 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                Soru unv = db.Soru.Where(x => x.SoruId == id).FirstOrDefault();
+                Soru unv = CalismaAlaniBankaKaydiGetir<Soru>("Soru", "SoruId", id.Value);
+                if (unv == null)
+                {
+                    return RedirectToAction("SoruIndex");
+                }
+
                 db.Soru.Remove(unv);
                 db.SaveChanges();
                 return RedirectToAction("SoruIndex");
@@ -9363,7 +9675,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.SoruGrup);
+            return View(CalismaAlaniBankaKayitlari<SoruGrup>("SoruGrup", "SoruGrupAdi"));
         }
         public ActionResult SoruGrupCreate()
         {
@@ -9394,6 +9706,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 db.SoruGrup.Add(dgskn);
                 db.SaveChanges();
+                CalismaAlaniBankaKaydinaBagla("SoruGrup", "SoruGrupId", dgskn.SoruGrupId);
                 return RedirectToAction("SoruGrupIndex");
 
             }
@@ -9413,7 +9726,13 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
-            return View(db.SoruGrup.Where(x => x.SoruGrupId == id).FirstOrDefault());
+            var kayit = CalismaAlaniBankaKaydiGetir<SoruGrup>("SoruGrup", "SoruGrupId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("SoruGrupIndex");
+            }
+
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -9430,9 +9749,16 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
+                if (!CalismaAlaniBankaKaydiVarMi("SoruGrup", "SoruGrupId", dgskn.SoruGrupId))
+                {
+                    ModelState.AddModelError("", "Bu kategori aktif calisma alanina ait degil.");
+                    return View(dgskn);
+                }
+
                 {
                     db.Entry(dgskn).State = EntityState.Modified;
                     db.SaveChanges();
+                    CalismaAlaniBankaKaydinaBagla("SoruGrup", "SoruGrupId", dgskn.SoruGrupId);
                 }
                 return RedirectToAction("SoruGrupIndex");
 
@@ -9452,7 +9778,13 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.SoruGrup.Where(x => x.SoruGrupId == id).FirstOrDefault());
+            var kayit = CalismaAlaniBankaKaydiGetir<SoruGrup>("SoruGrup", "SoruGrupId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("SoruGrupIndex");
+            }
+
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -9466,11 +9798,22 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!id.HasValue)
+            {
+                return RedirectToAction("SoruGrupIndex");
+            }
 
             if (ModelState.IsValid)
             {
                 //havuzda kaydı mevcutsa silinmez
-                if (db.Havuz.Any(x => x.SoruGrupId == id))
+                if (!CalismaAlaniBankaKaydiVarMi("SoruGrup", "SoruGrupId", id))
+                {
+                    return RedirectToAction("SoruGrupIndex");
+                }
+
+                if (db.Havuz.Any(x => x.SoruGrupId == id)
+                    || db.AnketGrup.Any(x => x.SoruGrupId == id)
+                    || db.Soru.Any(x => x.SoruGrupId == id))
                 {
                     return RedirectToAction("Hata1", "Ayar", null);
                 }
@@ -9478,7 +9821,12 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                SoruGrup unv = db.SoruGrup.Where(x => x.SoruGrupId == id).FirstOrDefault();
+                SoruGrup unv = CalismaAlaniBankaKaydiGetir<SoruGrup>("SoruGrup", "SoruGrupId", id.Value);
+                if (unv == null)
+                {
+                    return RedirectToAction("SoruGrupIndex");
+                }
+
                 db.SoruGrup.Remove(unv);
                 db.SaveChanges();
                 return RedirectToAction("SoruGrupIndex");
@@ -9499,7 +9847,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.Cevap);
+            return View(CalismaAlaniBankaKayitlari<Cevap>("Cevap", "CevapAdi"));
         }
         public ActionResult CevapCreate()
         {
@@ -9512,14 +9860,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
-            List<SelectListItem> un =
-            (from i in db.CevapGrup.OrderBy(x => x.CevapGrupAdi).ToList()
-             select new SelectListItem
-             {
-                 Text = i.CevapGrupAdi,
-                 Value = i.CevapGrupId.ToString(),
-             }).ToList();
-            ViewBag.Gur = un;
+            CevapFormListeleriniHazirla();
 
             return View();
         }
@@ -9538,14 +9879,23 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
+                if (!CalismaAlaniBankaSecimiGecerliMi("CevapGrup", "CevapGrupId", dgskn.CevapGrupId))
+                {
+                    ModelState.AddModelError("", "Secili cevap grubu bu calisma alanina ait degil.");
+                    CevapFormListeleriniHazirla();
+                    return View(dgskn);
+                }
+
                 db.Cevap.Add(dgskn);
                 db.SaveChanges();
+                CalismaAlaniBankaKaydinaBagla("Cevap", "CevapId", dgskn.CevapId);
                 return RedirectToAction("CevapIndex");
 
             }
             catch
             {
-                return View();
+                CevapFormListeleriniHazirla();
+                return View(dgskn);
             }
         }
         public ActionResult CevapEdit(int id)
@@ -9558,17 +9908,15 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            List<SelectListItem> un =
-            (from i in db.CevapGrup.OrderBy(x => x.CevapGrupAdi).ToList()
-             select new SelectListItem
-             {
-                 Text = i.CevapGrupAdi,
-                 Value = i.CevapGrupId.ToString(),
-             }).ToList();
-            ViewBag.Gur = un;
+            CevapFormListeleriniHazirla();
 
+            var kayit = CalismaAlaniBankaKaydiGetir<Cevap>("Cevap", "CevapId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("CevapIndex");
+            }
 
-            return View(db.Cevap.Where(x => x.CevapId == id).FirstOrDefault());
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -9585,16 +9933,26 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
+                if (!CalismaAlaniBankaKaydiVarMi("Cevap", "CevapId", dgskn.CevapId)
+                    || !CalismaAlaniBankaSecimiGecerliMi("CevapGrup", "CevapGrupId", dgskn.CevapGrupId))
+                {
+                    ModelState.AddModelError("", "Bu cevap veya secili cevap grubu aktif calisma alanina ait degil.");
+                    CevapFormListeleriniHazirla();
+                    return View(dgskn);
+                }
+
                 {
                     db.Entry(dgskn).State = EntityState.Modified;
                     db.SaveChanges();
+                    CalismaAlaniBankaKaydinaBagla("Cevap", "CevapId", dgskn.CevapId);
                 }
                 return RedirectToAction("CevapIndex");
 
             }
             catch
             {
-                return View();
+                CevapFormListeleriniHazirla();
+                return View(dgskn);
             }
         }
         public ActionResult CevapDelete(int id)
@@ -9607,7 +9965,13 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.Cevap.Where(x => x.CevapId == id).FirstOrDefault());
+            var kayit = CalismaAlaniBankaKaydiGetir<Cevap>("Cevap", "CevapId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("CevapIndex");
+            }
+
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -9621,10 +9985,19 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!id.HasValue)
+            {
+                return RedirectToAction("CevapIndex");
+            }
 
             if (ModelState.IsValid)
             {
                 //havuzda kaydı mevcutsa silinmez
+                if (!CalismaAlaniBankaKaydiVarMi("Cevap", "CevapId", id))
+                {
+                    return RedirectToAction("CevapIndex");
+                }
+
                 if (db.Havuz.Any(x => x.CevapId == id))
                 {
                     return RedirectToAction("Hata1", "Ayar", null);
@@ -9633,7 +10006,12 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                Cevap unv = db.Cevap.Where(x => x.CevapId == id).FirstOrDefault();
+                Cevap unv = CalismaAlaniBankaKaydiGetir<Cevap>("Cevap", "CevapId", id.Value);
+                if (unv == null)
+                {
+                    return RedirectToAction("CevapIndex");
+                }
+
                 db.Cevap.Remove(unv);
                 db.SaveChanges();
                 return RedirectToAction("CevapIndex");
@@ -9654,7 +10032,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.CevapGrup);
+            return View(CalismaAlaniBankaKayitlari<CevapGrup>("CevapGrup", "CevapGrupAdi"));
         }
         public ActionResult CevapGrupCreate()
         {
@@ -9685,6 +10063,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 db.CevapGrup.Add(dgskn);
                 db.SaveChanges();
+                CalismaAlaniBankaKaydinaBagla("CevapGrup", "CevapGrupId", dgskn.CevapGrupId);
                 return RedirectToAction("CevapGrupIndex");
 
             }
@@ -9704,7 +10083,13 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("Giris", "Home", null);
             }
 
-            return View(db.CevapGrup.Where(x => x.CevapGrupId == id).FirstOrDefault());
+            var kayit = CalismaAlaniBankaKaydiGetir<CevapGrup>("CevapGrup", "CevapGrupId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("CevapGrupIndex");
+            }
+
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -9721,9 +10106,16 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
+                if (!CalismaAlaniBankaKaydiVarMi("CevapGrup", "CevapGrupId", dgskn.CevapGrupId))
+                {
+                    ModelState.AddModelError("", "Bu cevap grubu aktif calisma alanina ait degil.");
+                    return View(dgskn);
+                }
+
                 {
                     db.Entry(dgskn).State = EntityState.Modified;
                     db.SaveChanges();
+                    CalismaAlaniBankaKaydinaBagla("CevapGrup", "CevapGrupId", dgskn.CevapGrupId);
                 }
                 return RedirectToAction("CevapGrupIndex");
 
@@ -9743,7 +10135,13 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(db.CevapGrup.Where(x => x.CevapGrupId == id).FirstOrDefault());
+            var kayit = CalismaAlaniBankaKaydiGetir<CevapGrup>("CevapGrup", "CevapGrupId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("CevapGrupIndex");
+            }
+
+            return View(kayit);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
@@ -9757,11 +10155,22 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("Giris", "Home", null);
             }
+            if (!id.HasValue)
+            {
+                return RedirectToAction("CevapGrupIndex");
+            }
 
             if (ModelState.IsValid)
             {
                 //havuzda kaydı mevcutsa silinmez
-                if (db.Havuz.Any(x => x.CevapGrupId == id))
+                if (!CalismaAlaniBankaKaydiVarMi("CevapGrup", "CevapGrupId", id))
+                {
+                    return RedirectToAction("CevapGrupIndex");
+                }
+
+                if (db.Havuz.Any(x => x.CevapGrupId == id)
+                    || db.Soru.Any(x => x.CevapGrupId == id)
+                    || db.Cevap.Any(x => x.CevapGrupId == id))
                 {
                     return RedirectToAction("Hata1", "Ayar", null);
                 }
@@ -9769,7 +10178,12 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                CevapGrup unv = db.CevapGrup.Where(x => x.CevapGrupId == id).FirstOrDefault();
+                CevapGrup unv = CalismaAlaniBankaKaydiGetir<CevapGrup>("CevapGrup", "CevapGrupId", id.Value);
+                if (unv == null)
+                {
+                    return RedirectToAction("CevapGrupIndex");
+                }
+
                 db.CevapGrup.Remove(unv);
                 db.SaveChanges();
                 return RedirectToAction("CevapGrupIndex");

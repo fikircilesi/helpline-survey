@@ -3,27 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Lokasyon tanımı";
+    ViewData["DeleteTitle"] = "Bölge silinsin mi?";
+    ViewData["DeleteDescription"] = "Bu bölge lokasyon tanımlarından kaldırılacak. Şehir, şube veya kayıtlarla ilişkisi varsa silme işlemi engellenir.";
+    ViewData["DeleteItemLabel"] = "Bölge";
+    ViewData["DeleteItemName"] = Model?.BolgeAdi;
+    ViewData["DeleteWarning"] = "Bu işlem geri alınamaz. Önce bu bölgeye bağlı şehir, şube veya kişi kayıtlarını düzenleyin.";
+    ViewData["DeleteBackUrl"] = Url.Action("BolgeIndex", "Ayar");
+    ViewData["DeleteSubmitText"] = "Bölgeyi sil";
 }
 
-<div class="panel panel-primary">
-    <div class="panel-heading panel-head; text-uppercase">
-        BÖLGE SİL
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Bölge Adı</h5>
-            @Html.EditorFor(model => model.BolgeAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("BolgeIndex", "Ayar")">Geri</a>
-                <input type="submit" style="background-color:red; color:white" class="btn btn-default" value="Sil" />
-            }
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_DeleteConfirm")

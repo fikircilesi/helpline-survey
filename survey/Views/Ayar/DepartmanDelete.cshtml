@@ -3,26 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Organizasyon tanımı";
+    ViewData["DeleteTitle"] = "Departman silinsin mi?";
+    ViewData["DeleteDescription"] = "Bu departman organizasyon tanımlarından kaldırılacak. Bağlı personel, katılımcı veya bölüm varsa sistem silmeyi durdurur.";
+    ViewData["DeleteItemLabel"] = "Departman";
+    ViewData["DeleteItemName"] = Model?.DepartmanAdi;
+    ViewData["DeleteWarning"] = "Bu işlem geri alınamaz. Önce bu departmanı kullanan kayıtları başka departmana taşıyın.";
+    ViewData["DeleteBackUrl"] = Url.Action("DepartmanIndex", "Ayar");
+    ViewData["DeleteSubmitText"] = "Departmanı sil";
 }
 
-<div class="panel">
-    <h4>DEPARTMAN SİL</h4>
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Departman Adı</h5>
-            @Html.EditorFor(model => model.DepartmanAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("DepartmanIndex", "Ayar")">Geri</a>
-                <input type="submit" style="background-color:red; color:white" class="btn btn-default" value="Sil" />
-            }
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_DeleteConfirm")

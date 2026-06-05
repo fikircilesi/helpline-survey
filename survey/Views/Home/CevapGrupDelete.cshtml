@@ -3,27 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Seçenek grubu";
+    ViewData["DeleteTitle"] = "Seçenek grubu silinsin mi?";
+    ViewData["DeleteDescription"] = "Bu seçenek grubu bankadan kaldırılacak. İçindeki seçenekler sorularda kullanılıyorsa sistem silmeyi durdurur.";
+    ViewData["DeleteItemLabel"] = "Seçenek grubu";
+    ViewData["DeleteItemName"] = Model?.CevapGrupAdi;
+    ViewData["DeleteWarning"] = "Bu işlem geri alınamaz. Önce bu grubu kullanan soru veya cevap bağlantılarını kaldırmanız gerekebilir.";
+    ViewData["DeleteBackUrl"] = Url.Action("CevapGrupIndex", "Home");
+    ViewData["DeleteSubmitText"] = "Grubu sil";
 }
 
-<div class="panel panel-primary">
-    <div class="panel-heading panel-head; text-uppercase">
-        CEVAP GRUP SİL
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Cevap Grup Adı</h5>
-            @Html.EditorFor(model => model.CevapGrupAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("CevapGrupIndex", "Home")">Geri</a>
-                <input type="submit" style="background-color:red; color:white" class="btn btn-default" value="Sil" />
-            }
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_DeleteConfirm")

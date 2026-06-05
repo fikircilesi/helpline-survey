@@ -1,0 +1,178 @@
+<style>
+    .delete-confirm-page {
+        width: min(900px, calc(100% - 32px));
+        margin: 46px auto;
+        color: #122033;
+    }
+
+    .delete-confirm-page * {
+        box-sizing: border-box;
+    }
+
+    .delete-confirm-card {
+        overflow: hidden;
+        border: 1px solid #f4c8d0;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 24px 58px rgba(113, 24, 45, .12);
+    }
+
+    .delete-confirm-hero {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 26px 30px;
+        background:
+            radial-gradient(circle at 92% 18%, rgba(255, 184, 118, .28), transparent 26%),
+            linear-gradient(135deg, #4a1422 0%, #8f2235 100%);
+        color: #fff;
+    }
+
+    .delete-confirm-icon {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 54px;
+        height: 54px;
+        border: 1px solid rgba(255, 255, 255, .28);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .12);
+        font-size: 24px;
+    }
+
+    .delete-confirm-eyebrow {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .delete-confirm-hero h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.2;
+        font-weight: 950;
+    }
+
+    .delete-confirm-body {
+        padding: 28px 30px 30px;
+    }
+
+    .delete-confirm-body p {
+        margin: 0;
+        color: #5b6a80;
+        font-size: 15px;
+        line-height: 1.65;
+        font-weight: 700;
+    }
+
+    .delete-confirm-item {
+        margin: 22px 0;
+        padding: 16px;
+        border: 1px solid #dbe5f2;
+        border-radius: 8px;
+        background: #f8fbff;
+    }
+
+    .delete-confirm-item span {
+        display: block;
+        margin-bottom: 7px;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .delete-confirm-item strong {
+        display: block;
+        color: #101827;
+        font-size: 20px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .delete-confirm-warning {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-top: 18px;
+        padding: 14px 15px;
+        border: 1px solid #ffd7a7;
+        border-radius: 8px;
+        background: #fffaf1;
+        color: #784300;
+        font-weight: 850;
+        line-height: 1.45;
+    }
+
+    .delete-confirm-warning i {
+        color: #c87900;
+    }
+
+    .delete-confirm-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .delete-confirm-btn {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid #cfe0f6;
+        border-radius: 8px;
+        background: #fff;
+        color: #143354;
+        font-weight: 950;
+        text-decoration: none;
+        padding: 0 18px;
+        cursor: pointer;
+    }
+
+    .delete-confirm-btn:hover,
+    .delete-confirm-btn:focus {
+        color: #143354;
+        text-decoration: none;
+        box-shadow: 0 10px 22px rgba(20, 51, 84, .12);
+    }
+
+    .delete-confirm-btn.danger {
+        border-color: #e5485a;
+        background: #e5485a;
+        color: #fff;
+        box-shadow: 0 12px 26px rgba(229, 72, 90, .2);
+    }
+
+    .delete-confirm-btn.danger:hover,
+    .delete-confirm-btn.danger:focus {
+        color: #fff;
+    }
+
+    @@media (max-width: 720px) {
+        .delete-confirm-page {
+            width: min(100% - 22px, 900px);
+            margin: 22px auto;
+        }
+
+        .delete-confirm-hero {
+            align-items: flex-start;
+            padding: 22px;
+        }
+
+        .delete-confirm-hero h1 {
+            font-size: 23px;
+        }
+
+        .delete-confirm-body {
+            padding: 22px;
+        }
+
+        .delete-confirm-actions {
+            display: grid;
+        }
+    }
+</style>

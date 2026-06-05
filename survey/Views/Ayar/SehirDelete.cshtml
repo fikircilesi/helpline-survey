@@ -3,27 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Lokasyon tanımı";
+    ViewData["DeleteTitle"] = "Şehir silinsin mi?";
+    ViewData["DeleteDescription"] = "Bu şehir lokasyon tanımlarından kaldırılacak. Şube veya katılımcı kayıtlarında kullanılıyorsa silme işlemi engellenir.";
+    ViewData["DeleteItemLabel"] = "Şehir";
+    ViewData["DeleteItemName"] = Model?.SehiarAdi;
+    ViewData["DeleteWarning"] = "Bu işlem geri alınamaz. Önce bu şehre bağlı kayıtları güncelleyin.";
+    ViewData["DeleteBackUrl"] = Url.Action("SehirIndex", "Ayar");
+    ViewData["DeleteSubmitText"] = "Şehri sil";
 }
 
-<div class="panel panel-primary">
-    <div class="panel-heading panel-head; text-uppercase">
-        ŞEHİR SİL
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Şehir Adı</h5>
-            @Html.EditorFor(model => model.SehiarAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("SehirIndex", "Ayar")">Geri</a>
-                <input type="submit" style="background-color:red; color:white" class="btn btn-default" value="Sil" />
-            }
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_DeleteConfirm")

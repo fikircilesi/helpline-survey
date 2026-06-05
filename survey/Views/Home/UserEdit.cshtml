@@ -413,10 +413,10 @@
         <div>
             <span class="studio-profile-kicker"><i class="ti-user"></i> Aslana Survey Studio hesabı</span>
             <h1>Hesap ayarlarını zarifçe toparlayalım.</h1>
-            <p>Profil görünümü, ünvan bilgisi ve giriş şifresi bu ekrandan güncellenir. Kullanıcı adı ve mail adresi hesap kimliği olduğu için sabit tutulur.</p>
+            <p>Profil görünümü ve giriş şifresi bu ekrandan güncellenir. Kullanıcı adı ve mail adresi hesap kimliği olduğu için sabit tutulur.</p>
         </div>
         <div class="studio-profile-badge">
-            <img src="@profilResmiUrl" alt="@personelAdi" onerror="this.onerror=null;this.src='@Url.Content("~/Content/Personel/avatar.png")';" />
+            <img id="profilHeroOnizleme" src="@profilResmiUrl" alt="@personelAdi" onerror="this.onerror=null;this.src='@Url.Content("~/Content/Personel/avatar.png")';" />
             <div>
                 <strong>@personelAdi</strong>
                 <span>@kullaniciAdi</span>
@@ -456,12 +456,6 @@
             </div>
 
             <div class="studio-form-grid">
-                <div class="studio-field studio-field-full">
-                    <label for="Unvani">Ünvan</label>
-                    @Html.DropDownListFor(m => m.Unvani, (List<SelectListItem>)ViewBag.Unv, "Seçim", new { @class = "studio-input", required = "required" })
-                    @Html.ValidationMessageFor(model => model.Unvani, "", new { @class = "text-danger" })
-                </div>
-
                 <div class="studio-field">
                     <label for="KullaniciAdiGorunum">Kullanıcı Adı</label>
                     <input id="KullaniciAdiGorunum" class="studio-input" maxlength="15" value="@kullaniciAdi" disabled />
@@ -502,6 +496,8 @@
     (function () {
         var upload = document.getElementById('uploadfile');
         var preview = document.getElementById('profilOnizleme');
+        var heroPreview = document.getElementById('profilHeroOnizleme');
+        var sidebarPreview = document.querySelector('.sidebar-user-main img');
         var fileName = document.getElementById('dosyaAdi');
         var password = document.getElementById('Sifre');
         var passwordToggle = document.getElementById('sifreGoster');
@@ -516,7 +512,14 @@
                 fileName.textContent = file.name;
 
                 if (file.type && file.type.indexOf('image/') === 0) {
-                    preview.src = URL.createObjectURL(file);
+                    var previewUrl = URL.createObjectURL(file);
+                    preview.src = previewUrl;
+                    if (heroPreview) {
+                        heroPreview.src = previewUrl;
+                    }
+                    if (sidebarPreview) {
+                        sidebarPreview.src = previewUrl;
+                    }
                 }
             });
         }

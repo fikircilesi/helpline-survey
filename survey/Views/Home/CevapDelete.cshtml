@@ -3,27 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Seçenek bankası";
+    ViewData["DeleteTitle"] = "Seçenek silinsin mi?";
+    ViewData["DeleteDescription"] = "Bu cevap seçeneği bankadan kaldırılacak. Sorular veya katılım cevapları tarafından kullanılıyorsa silme işlemi engellenir.";
+    ViewData["DeleteItemLabel"] = "Seçenek";
+    ViewData["DeleteItemName"] = Model?.CevapAdi;
+    ViewData["DeleteWarning"] = "Bu işlem geri alınamaz. Kullanımda olan seçenekleri silmeden önce bağlı kayıtları temizleyin.";
+    ViewData["DeleteBackUrl"] = Url.Action("CevapIndex", "Home");
+    ViewData["DeleteSubmitText"] = "Seçeneği sil";
 }
 
-<div class="panel panel-primary">
-    <div class="panel-heading panel-head; text-uppercase">
-        CEVAP SİL
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Cevap Adı</h5>
-            @Html.EditorFor(model => model.CevapAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("CevapIndex", "Home")">Geri</a>
-                <input type="submit" style="background-color:red; color:white" class="btn btn-default" value="Sil" />
-            }
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_DeleteConfirm")

@@ -1,0 +1,57 @@
+@using System
+@{
+    var eyebrow = Convert.ToString(ViewData["NoticeEyebrow"]);
+    if (string.IsNullOrWhiteSpace(eyebrow)) { eyebrow = "Bilgilendirme"; }
+
+    var title = Convert.ToString(ViewData["NoticeTitle"]);
+    if (string.IsNullOrWhiteSpace(title)) { title = "İşlem tamamlanamadı"; }
+
+    var lead = Convert.ToString(ViewData["NoticeLead"]);
+    if (string.IsNullOrWhiteSpace(lead)) { lead = "Bu işlem şu anda uygulanamıyor."; }
+
+    var message = Convert.ToString(ViewData["NoticeMessage"]);
+    if (string.IsNullOrWhiteSpace(message)) { message = "Lütfen önce bağlı kayıtları kontrol edin ve tekrar deneyin."; }
+
+    var icon = Convert.ToString(ViewData["NoticeIcon"]);
+    if (string.IsNullOrWhiteSpace(icon)) { icon = "fa fa-info-circle"; }
+
+    var tone = Convert.ToString(ViewData["NoticeTone"]);
+    if (string.IsNullOrWhiteSpace(tone)) { tone = "warning"; }
+
+    var actionText = Convert.ToString(ViewData["NoticeActionText"]);
+    if (string.IsNullOrWhiteSpace(actionText)) { actionText = "Tamam, geri dön"; }
+
+    var closeWindow = ViewData["NoticeCloseWindow"] is bool closeValue && closeValue;
+}
+
+@await Html.PartialAsync("_ActionNoticeStyles")
+
+<div class="action-notice-page">
+    <section class="action-notice-card @tone">
+        <div class="action-notice-hero">
+            <div class="action-notice-icon"><i class="@icon"></i></div>
+            <div>
+                <span class="action-notice-eyebrow">@eyebrow</span>
+                <h1>@title</h1>
+            </div>
+        </div>
+        <div class="action-notice-body">
+            <h2>@lead</h2>
+            <p>@message</p>
+            <div class="action-notice-actions">
+                @if (closeWindow)
+                {
+                    <a class="action-notice-btn" href="javascript:void(0);" onClick="window.close();">
+                        <i class="fa fa-check-circle"></i> @actionText
+                    </a>
+                }
+                else
+                {
+                    <a class="action-notice-btn" href="previous.html" onClick="history.back();return false;">
+                        <i class="fa fa-arrow-left"></i> @actionText
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+</div>

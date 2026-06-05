@@ -1,25 +1,13 @@
 @{
-    ViewBag.Title = "Hata";
+    ViewBag.Title = "İşlem tamamlanamadı";
     Layout = "~/Views/Shared/_AnketLayout.cshtml";
+
+    ViewData["NoticeEyebrow"] = "Soru seçimi";
+    ViewData["NoticeTitle"] = "Bu soru zaten ekli";
+    ViewData["NoticeLead"] = "Aynı soru aynı akışa tekrar eklenemiyor.";
+    ViewData["NoticeMessage"] = "Devam etmek için soru bankasından farklı bir soru seçin ya da mevcut soruyu düzenleyin.";
+    ViewData["NoticeIcon"] = "fa fa-copy";
+    ViewData["NoticeActionText"] = "Soru ekranına dön";
 }
 
-<!DOCTYPE html>
-
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title></title>
-</head>
-<body>
-    <hgroup>
-        <h1 style="color:red">Hata.</h1>
-        <h2 style="color:blue">Soru Eklenmiş.</h2>
-        <h2 style="color:blue">Başka Soru Ekleyiniz.</h2>
-    </hgroup>
-
-
-    <div class="btn-group">
-        <a class="btn btn-primary btn-outline-primary icofont icofont-check-circled" href="previous.html" onClick="history.back();return false;">Tamam</a>
-    </div>
-</body>
-</html>
+@await Html.PartialAsync("_ActionNotice")

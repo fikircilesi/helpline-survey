@@ -1,24 +1,13 @@
 @{
-    ViewBag.Title = "Hata";
+    ViewBag.Title = "Onay gerekli";
     Layout = "~/Views/Shared/_AnketLayout.cshtml";
+
+    ViewData["NoticeEyebrow"] = "Eğitim onayı";
+    ViewData["NoticeTitle"] = "Video onayı bekleniyor";
+    ViewData["NoticeLead"] = "Devam etmeden önce videoyu izlediğinizi onaylamalısınız.";
+    ViewData["NoticeMessage"] = "Eğitim akışı tamamlandığında onay kutusunu işaretleyip tekrar ilerleyebilirsiniz.";
+    ViewData["NoticeIcon"] = "fa fa-play-circle";
+    ViewData["NoticeActionText"] = "Eğitime dön";
 }
 
-<!DOCTYPE html>
-
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title></title>
-</head>
-<body>
-    <hgroup>
-        <h1 style="color:red">Hata.</h1>
-        <h2 style="color:blue">Videoyu izlediğinizi kabul etmelisiniz</h2>
-    </hgroup>
-
-
-    <div class="btn-group">
-        <a class="btn btn-primary btn-outline-primary icofont icofont-check-circled" href="previous.html" onClick="history.back();return false;">Tamam</a>
-    </div>
-</body>
-</html>
+@await Html.PartialAsync("_ActionNotice")

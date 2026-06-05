@@ -1,65 +1,467 @@
 @model survey.Models.Anket
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var katilimYontemi = Convert.ToString(ViewBag.KatilimYontemi ?? "HerkeseAcik");
+    var sinavSecili = Model?.Sinav == true;
 }
 
-<h2>Yeni Kayıt</h2>
+<div class="study-create">
+    <section class="study-create-hero">
+        <div>
+            <span class="study-create-eyebrow">Aslana Survey Studio</span>
+            <h1>Yeni çalışma</h1>
+            <p>Anket, sınav veya eğitim akışını tek ekranda başlatın. Detaylı soru, hedef kitle ve yayın ayarlarını kayıt sonrası çalışma ayarlarından tamamlayabilirsiniz.</p>
+        </div>
+        <div class="study-create-actions">
+            <a class="study-create-btn" href="@Url.Action("AnketAdIndex", "Home")">
+                <i class="fa fa-arrow-left"></i> Çalışmalara dön
+            </a>
+            <a class="study-create-btn primary" href="@Url.Action("AssessmentWizard", "Home")">
+                <i class="fa fa-magic"></i> Sihirbazla oluştur
+            </a>
+        </div>
+    </section>
 
-@using (Html.BeginForm())
-{
-    @Html.AntiForgeryToken()
+    @using (Html.BeginForm())
+    {
+        @Html.AntiForgeryToken()
 
-    <div class="form-horizontal">
-        <hr />
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-
-        <div class="form-group">
-            <div class="col-md-10">
-                <b>Anket ya da sınav başlığını yazın</b>
-                @Html.TextBoxFor(model => model.AnketAdi, new { @class = "form-control", @maxlength = "50", @Required = "" })
-                @Html.ValidationMessageFor(model => model.AnketAdi, "", new { @class = "text-danger" })
+        <section class="study-create-panel">
+            <div class="study-create-panel-head">
+                <div>
+                    <h2>Çalışma bilgileri</h2>
+                    <p>Başlığı ve çalışma türünü belirleyin.</p>
+                </div>
+                <i class="fa fa-plus-circle"></i>
             </div>
-            <hr />
-            <div class="col-md-10">
-                <div class="checkbox-color checkbox-primary">
-                    <input name="Sinav" value="True" id="checkbox1" type="checkbox" unchecked="">
-                    <label class="form-label" for="checkbox1"> Sınav yapılacak ise işaretleyin.</label>
+
+            <div class="study-create-validation">
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+            </div>
+
+            <div class="study-create-grid">
+                <div class="study-field full">
+                    <label for="AnketAdi">Çalışma başlığı</label>
+                    @Html.TextBoxFor(model => model.AnketAdi, new { @class = "study-input", maxlength = "50", required = "required", placeholder = "Örn: Yeni çalışan oryantasyon anketi" })
+                    @Html.ValidationMessageFor(model => model.AnketAdi, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="study-field full">
+                    <span class="study-label">Çalışma türü</span>
+                    <div class="study-type-toggle">
+                        <label class="study-type-option">
+                            <input type="radio" name="SinavMode" value="survey" @(sinavSecili ? "" : "checked") />
+                            <span>
+                                <i class="fa fa-pencil-square-o"></i>
+                                <strong>Anket</strong>
+                                <small>Süre ve video zorunlu değildir.</small>
+                            </span>
+                        </label>
+                        <label class="study-type-option">
+                            <input id="Sinav" type="checkbox" name="Sinav" value="true" @(sinavSecili ? "checked" : "") />
+                            <input type="hidden" name="Sinav" value="false" />
+                            <span>
+                                <i class="fa fa-graduation-cap"></i>
+                                <strong>Sınav / eğitim</strong>
+                                <small>Video ve süre bilgisi kullanılabilir.</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="study-field">
+                    <label for="Link">YouTube video kodu</label>
+                    @Html.TextBoxFor(model => model.Link, new { @class = "study-input", maxlength = "450", placeholder = "Video linkindeki son kod" })
+                    @Html.ValidationMessageFor(model => model.Link, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="study-field">
+                    <label for="Zaman">Süre</label>
+                    <div class="study-input-addon">
+                        @Html.TextBoxFor(model => model.Zaman, new { @class = "study-input", maxlength = "3", inputmode = "numeric", placeholder = "Örn: 30" })
+                        <span>dk</span>
+                    </div>
+                    @Html.ValidationMessageFor(model => model.Zaman, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="study-field">
+                    <label for="YayinBaslangicTarihi">Katılım başlangıcı</label>
+                    <input id="YayinBaslangicTarihi" type="datetime-local" name="YayinBaslangicTarihi" class="study-input" value="@ViewBag.YayinBaslangicLocal" />
+                    <small>Boş bırakılırsa link hemen kullanılabilir.</small>
+                    @Html.ValidationMessage("YayinBaslangicTarihi", "", new { @class = "text-danger" })
+                </div>
+
+                <div class="study-field">
+                    <label for="YayinBitisTarihi">Katılım bitişi</label>
+                    <input id="YayinBitisTarihi" type="datetime-local" name="YayinBitisTarihi" class="study-input" value="@ViewBag.YayinBitisLocal" />
+                    <small>Boş bırakılırsa belirli bir bitiş uygulanmaz.</small>
+                    @Html.ValidationMessage("YayinBitisTarihi", "", new { @class = "text-danger" })
+                </div>
+
+                <div class="study-field full">
+                    <span class="study-label">Katılım yöntemi</span>
+                    <div class="study-radio-row">
+                        <label>
+                            <input type="radio" name="KatilimYontemi" value="HerkeseAcik" @(katilimYontemi == "HerkeseAcik" ? "checked" : "") />
+                            <span>Herkese açık link</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="KatilimYontemi" value="BilgiFormu" @(katilimYontemi == "BilgiFormu" ? "checked" : "") />
+                            <span>Bilgi formu ile giriş</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="KatilimYontemi" value="Kayitli" @(katilimYontemi == "Kayitli" ? "checked" : "") />
+                            <span>Kayıtlı katılımcı</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <div class="col-md-10">
-                <b>Eğitim için youtube video linkini buraya yapıştırın</b>
-                <b>ensondaki / işaretinden sonraki kodu</b>
-                @Html.TextBoxFor(model => model.Link, new { @class = "form-control", @maxlength = "450" })
-                @Html.ValidationMessageFor(model => model.Link, "", new { @class = "text-danger" })
+            <div class="study-create-footer">
+                <a class="study-create-btn" href="@Url.Action("AnketAdIndex", "Home")">
+                    <i class="fa fa-arrow-left"></i> Geri
+                </a>
+                <button type="submit" class="study-create-btn primary">
+                    <i class="fa fa-check"></i> Kaydet
+                </button>
             </div>
-            <div class="col-md-10">
-                <b>Sınav için zaman belirleyin dakika cinsinden</b>
-                @Html.TextBoxFor(model => model.Zaman, new { @class = "form-control", @maxlength = "3" })
-                @Html.ValidationMessageFor(model => model.Zaman, "", new { @class = "text-danger" })
-            </div>
-            <div class="col-md-10">
-                <b>Katilim baslangici</b>
-                <input type="datetime-local" name="YayinBaslangicTarihi" class="form-control" value="@ViewBag.YayinBaslangicLocal" />
-                <small class="text-muted">Bos birakilirsa link hemen kullanilabilir.</small>
-                @Html.ValidationMessage("YayinBaslangicTarihi", "", new { @class = "text-danger" })
-            </div>
-            <div class="col-md-10">
-                <b>Katilim bitisi</b>
-                <input type="datetime-local" name="YayinBitisTarihi" class="form-control" value="@ViewBag.YayinBitisLocal" />
-                <small class="text-muted">Bos birakilirsa belirli bir yayin bitisi uygulanmaz.</small>
-                @Html.ValidationMessage("YayinBitisTarihi", "", new { @class = "text-danger" })
-            </div>
+        </section>
+    }
+</div>
 
-        </div>
-        <a class="btn btn-primary btn-outline-primary fa fa-backward" href="@Url.Action("AnketAdIndex", "Home")"> Geri</a>
-        <input type="submit" class="btn btn-primary btn-outline-primary fa fa-check" value=" Kayıt" />
-    </div>
-}
-@*hadi bakalım*@
-@*hadi bakalım*@
-@*hadi bakalım*@
-@*hadi bakalım*@
-@*hadi bakalım*@
-@*hadi bakalım*@
-@*hadi bakalım*@
+<style>
+    .study-create {
+        width: min(1180px, calc(100% - 48px));
+        margin: 34px auto 60px;
+        color: #061a35;
+    }
+
+    .study-create * {
+        box-sizing: border-box;
+    }
+
+    .study-create-hero,
+    .study-create-panel {
+        border: 1px solid #d6e2f3;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .96);
+        box-shadow: 0 20px 48px rgba(24, 45, 83, .08);
+    }
+
+    .study-create-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 28px;
+        padding: 34px;
+        background: linear-gradient(130deg, rgba(225, 253, 246, .96), rgba(244, 247, 255, .9) 58%, rgba(255, 248, 229, .72)), #fff;
+    }
+
+    .study-create-eyebrow {
+        display: inline-flex;
+        color: #255ef5;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .study-create-hero h1 {
+        margin: 10px 0 8px;
+        font-size: 38px;
+        line-height: 1.12;
+        font-weight: 950;
+        letter-spacing: 0;
+    }
+
+    .study-create-hero p {
+        max-width: 720px;
+        margin: 0;
+        color: #53627a;
+        font-size: 15px;
+        line-height: 1.7;
+        font-weight: 650;
+    }
+
+    .study-create-actions,
+    .study-create-footer,
+    .study-radio-row,
+    .study-type-toggle {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .study-create-actions {
+        align-items: flex-start;
+        justify-content: flex-end;
+    }
+
+    .study-create-btn {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 18px;
+        border: 1px solid #c9daf0;
+        border-radius: 8px;
+        color: #0b2a53;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 900;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .study-create-btn:hover {
+        color: #0b2a53;
+        text-decoration: none;
+    }
+
+    .study-create-btn.primary {
+        color: #fff;
+        border-color: transparent;
+        background: linear-gradient(135deg, #16b9b0, #2563eb);
+        box-shadow: 0 16px 32px rgba(37, 99, 235, .18);
+    }
+
+    .study-create-panel {
+        margin-top: 18px;
+        overflow: hidden;
+    }
+
+    .study-create-panel-head {
+        min-height: 78px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 28px;
+        border-bottom: 1px solid #e3ebf6;
+        background: #fbfdff;
+    }
+
+    .study-create-panel-head h2 {
+        margin: 0;
+        color: #061a35;
+        font-size: 22px;
+        font-weight: 950;
+    }
+
+    .study-create-panel-head p {
+        margin: 5px 0 0;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .study-create-panel-head i {
+        color: #16b9b0;
+        font-size: 20px;
+    }
+
+    .study-create-validation {
+        padding: 0 28px;
+    }
+
+    .study-create-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+        padding: 26px 28px;
+    }
+
+    .study-field.full {
+        grid-column: 1 / -1;
+    }
+
+    .study-field label,
+    .study-label {
+        display: block;
+        margin-bottom: 8px;
+        color: #203047;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .study-field small {
+        display: block;
+        margin-top: 7px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .study-input,
+    .study-field input[type="datetime-local"] {
+        width: 100%;
+        min-height: 46px;
+        padding: 11px 13px;
+        color: #172333;
+        background: #fff;
+        border: 1px solid #d4dde8;
+        border-radius: 8px;
+        box-shadow: none;
+        outline: none;
+    }
+
+    .study-input:focus,
+    .study-field input[type="datetime-local"]:focus {
+        border-color: #5be4bd;
+        box-shadow: 0 0 0 4px rgba(91, 228, 189, .18);
+    }
+
+    .study-input-addon {
+        position: relative;
+    }
+
+    .study-input-addon .study-input {
+        padding-right: 52px;
+    }
+
+    .study-input-addon span {
+        position: absolute;
+        top: 50%;
+        right: 13px;
+        transform: translateY(-50%);
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .study-type-option {
+        flex: 1 1 260px;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .study-type-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .study-type-option span {
+        min-height: 92px;
+        display: grid;
+        grid-template-columns: 42px 1fr;
+        grid-template-areas: "icon title" "icon meta";
+        gap: 2px 12px;
+        align-items: center;
+        padding: 16px;
+        border: 1px solid #d6e2f3;
+        border-radius: 10px;
+        background: #fff;
+    }
+
+    .study-type-option i {
+        grid-area: icon;
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f9f91;
+        background: #e8fbf6;
+        border-radius: 10px;
+    }
+
+    .study-type-option strong {
+        grid-area: title;
+        color: #061a35;
+        font-size: 15px;
+        font-weight: 950;
+    }
+
+    .study-type-option small {
+        grid-area: meta;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .study-type-option input:checked + span {
+        border-color: #21c6a8;
+        background: #f1fffb;
+        box-shadow: 0 12px 26px rgba(33, 198, 168, .1);
+    }
+
+    .study-radio-row label {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 0 14px;
+        border: 1px solid #d6e2f3;
+        border-radius: 8px;
+        color: #0b2a53;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 850;
+        cursor: pointer;
+    }
+
+    .study-radio-row input {
+        margin: 0;
+    }
+
+    .study-create-footer {
+        justify-content: flex-end;
+        padding: 20px 28px;
+        border-top: 1px solid #e3ebf6;
+        background: #fbfdff;
+    }
+
+    @@media (max-width: 991px) {
+        .study-create {
+            width: calc(100% - 28px);
+            margin-top: 18px;
+        }
+
+        .study-create-hero,
+        .study-create-panel-head {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .study-create-grid {
+            grid-template-columns: 1fr;
+            padding: 20px;
+        }
+
+        .study-create-panel-head,
+        .study-create-footer {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .study-create-btn,
+        .study-radio-row label {
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        var surveyMode = document.querySelector('input[name="SinavMode"][value="survey"]');
+        var examInput = document.getElementById('Sinav');
+
+        if (surveyMode && examInput) {
+            surveyMode.addEventListener('change', function () {
+                if (surveyMode.checked) {
+                    examInput.checked = false;
+                }
+            });
+
+            examInput.addEventListener('change', function () {
+                if (examInput.checked) {
+                    surveyMode.checked = false;
+                } else {
+                    surveyMode.checked = true;
+                }
+            });
+        }
+    })();
+</script>

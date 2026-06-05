@@ -3,35 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Çalışma silme";
+    ViewData["DeleteTitle"] = "Çalışma silinsin mi?";
+    ViewData["DeleteDescription"] = "Bu çalışma listeden kaldırılacak. Çalışmaya bağlı soru grubu veya katılım verisi varsa sistem veri kaybını önlemek için silmeyi durdurur.";
+    ViewData["DeleteItemLabel"] = "Çalışma adı";
+    ViewData["DeleteItemName"] = Model?.AnketAdi;
+    ViewData["DeleteWarning"] = "Bu işlem geri alınamaz. Silme engellenirse önce bağlı soru gruplarını veya katılım kayıtlarını temizleyin.";
+    ViewData["DeleteBackUrl"] = Url.Action("AnketAdIndex", "Home");
+    ViewData["DeleteSubmitText"] = "Çalışmayı sil";
 }
 
-<div class="panel panel-primary">
-    <div class="panel-heading panel-head; text-uppercase">
-        ANKET SİL
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Anket Adı</h5>
-            @Html.EditorFor(model => model.AnketAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-            <br />
-                <div>
-                    <a class="btn btn-primary btn-outline-primary fa fa-backward" href="@Url.Action("AnketAdIndex", "Home")"> Geri</a>
-                    <input type="submit" class="btn btn-primary btn-outline-primary fa fa-check" value=" Sil" />
-                </div>
-            }
-        </div>
-    </div>
-</div>
-@*deneme*@
-@*deneme*@
-@*deneme*@
-@*deneme*@
-@*deneme*@
-@*deneme*@
+@await Html.PartialAsync("_DeleteConfirm")

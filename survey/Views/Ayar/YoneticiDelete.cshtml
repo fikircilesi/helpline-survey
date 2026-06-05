@@ -3,27 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    ViewData["DeleteEyebrow"] = "Sorumlu kişi tanımı";
+    ViewData["DeleteTitle"] = "Yönetici tanımı silinsin mi?";
+    ViewData["DeleteDescription"] = "Bu yönetici tanımı kaldırılacak. Çalışma veya kişi kayıtlarında kullanılıyorsa silme işlemi engellenir.";
+    ViewData["DeleteItemLabel"] = "Yönetici";
+    ViewData["DeleteItemName"] = Model?.YoneticiAdi;
+    ViewData["DeleteWarning"] = "Bu işlem geri alınamaz. Önce bu yöneticiyi kullanan kayıtları güncelleyin.";
+    ViewData["DeleteBackUrl"] = Url.Action("YoneticiIndex", "Ayar");
+    ViewData["DeleteSubmitText"] = "Tanımı sil";
 }
 
-<div class="panel panel-primary">
-    <div class="panel-heading panel-head; text-uppercase">
-        YÖNETİCİ SİL
-    </div>
-    <div class="panel-body">
-
-        <div class="col-md-10">
-            <h5>Yönetici Adı</h5>
-            @Html.EditorFor(model => model.YoneticiAdi, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
-        </div>
-        <div class="col-lg-9"></div>
-        <div class="col-lg-3">
-            @using (Html.BeginForm())
-            {
-                @Html.AntiForgeryToken()
-
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("YoneticiIndex", "Ayar")">Geri</a>
-                <input type="submit" style="background-color:red; color:white" class="btn btn-default" value="Sil" />
-            }
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_DeleteConfirm")

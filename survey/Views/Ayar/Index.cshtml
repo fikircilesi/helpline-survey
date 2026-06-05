@@ -288,7 +288,7 @@
                 Aslana Survey Studio yönetim alanı
             </span>
             <h1 class="settings-title">Ayarlar</h1>
-            <p class="settings-subtitle">Kullanıcı, katılımcı, organizasyon ve sistem tanımlarını tek ekranda düzenleyin.</p>
+            <p class="settings-subtitle">Personel, katılımcı, organizasyon ve sistem tanımlarını tek ekranda düzenleyin.</p>
         </div>
         <div class="settings-hero-actions">
             <a class="settings-btn" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
@@ -297,7 +297,7 @@
             </a>
             <a class="settings-btn primary" href="@Url.Action("UserIndex", "Ayar", new { id = Session["id"] })">
                 <i class="feather icon-users"></i>
-                Kullanıcılar
+                Katılımcılar
             </a>
         </div>
     </section>
@@ -306,7 +306,7 @@
         <div class="settings-stat">
             <i class="feather icon-users"></i>
             <strong>Erişim</strong>
-            <span>Kullanıcı ve personel hesapları</span>
+            <span>Panel personeli ve katılımcı kayıtları</span>
         </div>
         <div class="settings-stat">
             <i class="feather icon-briefcase"></i>
@@ -328,24 +328,24 @@
     <section class="settings-section">
         <div class="settings-section-head">
             <div>
-                <h2 class="settings-section-title">Kullanıcı ve Erişim</h2>
-                <p class="settings-section-note">Panel kullanıcıları ve katılımcı profilleri.</p>
+                <h2 class="settings-section-title">Personel ve Katılımcı</h2>
+                <p class="settings-section-note">Panel erişimi olan personel ve anket/sınav hedef kitlesi.</p>
             </div>
         </div>
         <div class="settings-grid">
-            <a class="settings-card" href="@Url.Action("UserIndex", "Ayar", new { id = Session["id"] })">
+            <a class="settings-card" href="@Url.Action("PersonelIndex", "Ayar", new { id = Session["id"] })">
                 <span class="settings-icon"><i class="feather icon-users"></i></span>
                 <span>
-                    <span class="settings-card-title">Kullanıcı Tanımları</span>
-                    <span class="settings-card-meta">Yetki ve panel erişimi</span>
+                    <span class="settings-card-title">Personel Tanımları</span>
+                    <span class="settings-card-meta">Panel girişi ve yetki</span>
                 </span>
                 <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
             </a>
-            <a class="settings-card" href="@Url.Action("PersonelIndex", "Ayar", new { id = Session["id"] })">
+            <a class="settings-card" href="@Url.Action("UserIndex", "Ayar", new { id = Session["id"] })">
                 <span class="settings-icon"><i class="feather icon-user-check"></i></span>
                 <span>
-                    <span class="settings-card-title">Personel Tanımları</span>
-                    <span class="settings-card-meta">Katılımcı ve hedef kitle</span>
+                    <span class="settings-card-title">Katılımcı Tanımları</span>
+                    <span class="settings-card-meta">Anket ve sınav hedef kitlesi</span>
                 </span>
                 <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
             </a>

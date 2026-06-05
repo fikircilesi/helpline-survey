@@ -12,7 +12,6 @@
     var kayitliKatilimSayisi = havuz.Where(x => x.UserId != null && x.UserId != 1).Select(x => x.UserId).Distinct().Count();
     var anonimKatilimSayisi = havuz.Where(x => x.UserId == null && x.Isimsiz != null).Select(x => x.Isimsiz).Distinct().Count();
     var katilimSayisi = kayitliKatilimSayisi + anonimKatilimSayisi;
-    var sertifikaHazir = anketler.Count(x => x.Sinav == true && x.Sonuc == true);
     var katilimTokenMap = ViewBag.KatilimTokenMap as System.Collections.Generic.Dictionary<int, string>
         ?? new System.Collections.Generic.Dictionary<int, string>();
     var katilimYontemiMap = ViewBag.KatilimYontemiMap as System.Collections.Generic.Dictionary<int, string>
@@ -26,17 +25,52 @@
     }
 
     .workspace-hero {
+        position: relative;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 22px;
-        padding: 28px;
+        padding: 32px 28px;
         margin-bottom: 18px;
         border-radius: 8px;
         color: #fff;
-        background: linear-gradient(135deg, rgba(11, 18, 32, .95), rgba(20, 43, 57, .94));
-        box-shadow: 0 18px 48px rgba(21, 34, 50, .14);
+        background:
+            linear-gradient(130deg, rgba(9, 17, 31, .98) 0%, rgba(18, 46, 62, .96) 48%, rgba(13, 32, 47, .98) 100%),
+            #0b1220;
+        border: 1px solid rgba(255, 255, 255, .10);
+        box-shadow: 0 20px 52px rgba(21, 34, 50, .18);
         overflow: hidden;
+        isolation: isolate;
+    }
+
+    .workspace-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(112deg, transparent 0 35%, rgba(141, 240, 199, .18) 42%, transparent 50%),
+            linear-gradient(72deg, transparent 0 58%, rgba(255, 228, 108, .16) 64%, transparent 70%),
+            linear-gradient(138deg, transparent 0 72%, rgba(255, 143, 178, .14) 78%, transparent 84%);
+        background-size: 520px 100%, 420px 100%, 460px 100%;
+        animation: heroColorTracks 9s linear infinite;
+        opacity: .95;
+        z-index: -2;
+    }
+
+    .workspace-hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+            repeating-linear-gradient(90deg, rgba(255, 255, 255, .055) 0 1px, transparent 1px 46px),
+            repeating-linear-gradient(0deg, rgba(255, 255, 255, .04) 0 1px, transparent 1px 38px);
+        opacity: .46;
+        z-index: -1;
+    }
+
+    .workspace-hero > div {
+        position: relative;
+        z-index: 1;
     }
 
     .workspace-kicker {
@@ -71,11 +105,48 @@
     }
 
     .workspace-actions {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: flex-end;
         gap: 10px;
         flex-wrap: wrap;
+        min-width: 270px;
+        min-height: 126px;
+    }
+
+    .wizard-launcher {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 250px;
+        min-height: 126px;
+        isolation: isolate;
+    }
+
+    .wizard-launcher::before {
+        content: "";
+        position: absolute;
+        inset: 8px 6px;
+        border-radius: 18px;
+        background:
+            conic-gradient(from 90deg, rgba(141, 240, 199, .24), rgba(53, 98, 244, .24), rgba(255, 207, 99, .22), rgba(255, 111, 145, .22), rgba(141, 240, 199, .24));
+        opacity: .9;
+        filter: blur(12px);
+        animation: launchAura 7s linear infinite;
+        z-index: -2;
+    }
+
+    .wizard-launcher::after {
+        content: "";
+        position: absolute;
+        width: 190px;
+        height: 58px;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 16px;
+        transform: rotate(-7deg);
+        opacity: .58;
+        z-index: -1;
     }
 
     .workspace-btn {
@@ -111,57 +182,145 @@
         color: #0b1220;
     }
 
-    .stat-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 14px;
-        margin-bottom: 18px;
+    .workspace-btn.primary.wizard-cta {
+        position: relative;
+        min-height: 52px;
+        padding: 0 22px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .45);
+        border-radius: 12px;
+        background: linear-gradient(120deg, #8df0c7, #86f7ff, #ffe46c, #ff8fb2, #8df0c7);
+        background-size: 260% 260%;
+        box-shadow:
+            0 18px 36px rgba(20, 184, 166, .30),
+            0 0 0 7px rgba(255, 255, 255, .06);
+        animation: ctaGradient 5.5s ease-in-out infinite, ctaBreath 2.4s ease-in-out infinite;
     }
 
-    .stat-tile {
-        min-height: 118px;
-        padding: 18px;
-        border: 1px solid #e8edf5;
-        border-radius: 8px;
+    .workspace-btn.primary.wizard-cta i,
+    .workspace-btn.primary.wizard-cta span {
+        position: relative;
+        z-index: 2;
+    }
+
+    .workspace-btn.primary.wizard-cta i {
+        animation: wandFlick 1.8s ease-in-out infinite;
+    }
+
+    .workspace-btn.primary.wizard-cta::before {
+        content: "";
+        position: absolute;
+        top: -60%;
+        bottom: -60%;
+        left: -34%;
+        width: 32px;
+        background: rgba(255, 255, 255, .58);
+        transform: rotate(22deg);
+        animation: ctaSweep 2.8s ease-in-out infinite;
+        z-index: 1;
+    }
+
+    .workspace-btn.primary.wizard-cta:hover {
+        transform: translateY(-3px) scale(1.03);
+        box-shadow:
+            0 24px 46px rgba(34, 211, 238, .28),
+            0 0 0 9px rgba(141, 240, 199, .10);
+    }
+
+    .launch-spark {
+        position: absolute;
+        width: 9px;
+        height: 9px;
+        border-radius: 3px;
         background: #fff;
-        box-shadow: 0 12px 30px rgba(20, 32, 51, .06);
+        box-shadow: 0 0 12px currentColor;
+        transform: rotate(45deg);
+        opacity: .8;
+        pointer-events: none;
     }
 
-    .stat-tile i {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 38px;
-        height: 38px;
-        border-radius: 8px;
-        color: #fff;
-        font-size: 18px;
+    .launch-spark.one {
+        top: 22px;
+        right: 42px;
+        color: #86f7ff;
+        animation: sparkJump 2.8s ease-in-out infinite;
     }
 
-    .stat-tile:nth-child(1) i { background: #19a7ce; }
-    .stat-tile:nth-child(2) i { background: #38a169; }
-    .stat-tile:nth-child(3) i { background: #f26b4f; }
-    .stat-tile:nth-child(4) i { background: #7559d9; }
-
-    .stat-value {
-        display: block;
-        margin-top: 15px;
-        color: #101827;
-        font-size: 28px;
-        font-weight: 900;
-        line-height: 1;
+    .launch-spark.two {
+        bottom: 20px;
+        left: 46px;
+        color: #ffe46c;
+        animation: sparkJump 3.2s ease-in-out .4s infinite;
     }
 
-    .stat-label {
-        display: block;
-        margin-top: 7px;
-        color: #667085;
-        font-size: 13px;
-        font-weight: 700;
+    .launch-spark.three {
+        top: 38px;
+        left: 28px;
+        color: #ff8fb2;
+        animation: sparkJump 2.6s ease-in-out .8s infinite;
+    }
+
+    @@keyframes ctaGradient {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    @@keyframes ctaBreath {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-2px) scale(1.015); }
+    }
+
+    @@keyframes ctaSweep {
+        0% { left: -36%; opacity: 0; }
+        28% { opacity: .58; }
+        58%, 100% { left: 126%; opacity: 0; }
+    }
+
+    @@keyframes wandFlick {
+        0%, 100% { transform: rotate(0deg); }
+        45% { transform: rotate(-12deg) translateY(-1px); }
+        70% { transform: rotate(8deg); }
+    }
+
+    @@keyframes sparkJump {
+        0%, 100% { transform: rotate(45deg) translate(0, 0) scale(.78); opacity: .45; }
+        45% { transform: rotate(45deg) translate(7px, -9px) scale(1.08); opacity: 1; }
+    }
+
+    @@keyframes launchAura {
+        to { transform: rotate(360deg); }
+    }
+
+    @@keyframes heroColorTracks {
+        0% { background-position: -260px 0, 180px 0, 420px 0; }
+        100% { background-position: 520px 0, -420px 0, -120px 0; }
     }
 
     .workspace-section {
         margin-top: 10px;
+    }
+
+    .studio-zone,
+    .works-zone {
+        position: relative;
+    }
+
+    .studio-zone .section-title,
+    .works-zone .section-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .section-title i {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        color: #0b1220;
+        background: #e9fff6;
+        font-size: 14px;
     }
 
     .section-head {
@@ -185,6 +344,32 @@
         font-size: 13px;
     }
 
+    .works-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+
+    .works-summary span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 32px;
+        padding: 0 11px;
+        border: 1px solid #dce7f5;
+        border-radius: 999px;
+        color: #31506f;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        box-shadow: 0 8px 18px rgba(20, 32, 51, .05);
+    }
+
+    .works-summary span:nth-child(1) i { color: #16845b; }
+    .works-summary span:nth-child(2) i { color: #c98909; }
+    .works-summary span:nth-child(3) i { color: #1d67e8; }
+
     .assessment-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -192,20 +377,103 @@
     }
 
     .assessment-card {
+        position: relative;
         display: grid;
         min-height: 236px;
         padding: 18px;
-        border: 1px solid #e8edf5;
+        border: 1px solid var(--work-border, #e8edf5);
         border-radius: 8px;
-        background: #fff;
+        background:
+            linear-gradient(180deg, var(--work-tint, rgba(29, 103, 232, .05)), rgba(255, 255, 255, 0) 38%),
+            #fff;
         box-shadow: 0 12px 28px rgba(20, 32, 51, .06);
+        overflow: hidden;
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .assessment-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 5px;
+        background: linear-gradient(90deg, var(--work-accent, #1d67e8), var(--work-accent-2, #00a9a5));
+    }
+
+    .assessment-card::after {
+        content: "";
+        position: absolute;
+        right: -42px;
+        top: -42px;
+        width: 126px;
+        height: 126px;
+        border-radius: 999px;
+        background: var(--work-orb, rgba(29, 103, 232, .08));
+        pointer-events: none;
+    }
+
+    .assessment-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--work-hover, #cbd5e1);
+        box-shadow: 0 18px 38px rgba(20, 32, 51, .10);
+    }
+
+    .assessment-card.exam {
+        --work-accent: #1d67e8;
+        --work-accent-2: #00a9a5;
+        --work-tint: rgba(29, 103, 232, .07);
+        --work-orb: rgba(0, 169, 165, .12);
+        --work-border: #d9e7ff;
+        --work-hover: #adc8fb;
+        --work-icon-bg: #e8f0ff;
+        --work-icon-color: #1d4ed8;
+    }
+
+    .assessment-card.survey {
+        --work-accent: #c98909;
+        --work-accent-2: #d93662;
+        --work-tint: rgba(201, 137, 9, .08);
+        --work-orb: rgba(217, 54, 98, .10);
+        --work-border: #f1dfb6;
+        --work-hover: #e9c56d;
+        --work-icon-bg: #fff2ce;
+        --work-icon-color: #9a6500;
+    }
+
+    .assessment-card.draft {
+        --work-accent: #f26b4f;
+        --work-accent-2: #c98909;
+        --work-tint: rgba(242, 107, 79, .07);
+        --work-orb: rgba(242, 107, 79, .10);
     }
 
     .assessment-top {
+        position: relative;
+        z-index: 1;
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
         gap: 12px;
+    }
+
+    .assessment-title-row {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 11px;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .assessment-type-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        color: var(--work-icon-color, #1d4ed8);
+        background: var(--work-icon-bg, #e8f0ff);
+        font-size: 18px;
+        box-shadow: 0 10px 18px rgba(20, 32, 51, .08);
     }
 
     .assessment-name {
@@ -218,6 +486,8 @@
     }
 
     .status-badge {
+        position: relative;
+        z-index: 1;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -240,6 +510,8 @@
     }
 
     .assessment-meta {
+        position: relative;
+        z-index: 1;
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
@@ -250,8 +522,13 @@
         min-height: 62px;
         padding: 10px;
         border-radius: 8px;
-        background: #f7fafc;
+        border: 1px solid rgba(226, 232, 240, .86);
+        background: rgba(248, 251, 255, .86);
     }
+
+    .meta-box:nth-child(1) { background: #eef8ff; }
+    .meta-box:nth-child(2) { background: #f0fff8; }
+    .meta-box:nth-child(3) { background: #fff7ed; }
 
     .meta-box strong {
         display: block;
@@ -269,6 +546,8 @@
     }
 
     .assessment-tags {
+        position: relative;
+        z-index: 1;
         display: flex;
         align-items: center;
         flex-wrap: wrap;
@@ -281,11 +560,42 @@
         align-items: center;
         min-height: 26px;
         padding: 0 9px;
+        border: 1px solid transparent;
         border-radius: 999px;
         color: #344054;
         background: #eef2f7;
         font-size: 11px;
         font-weight: 800;
+    }
+
+    .tag-pill.type {
+        color: var(--work-icon-color, #1d4ed8);
+        border-color: var(--work-border, #d9e7ff);
+        background: var(--work-icon-bg, #e8f0ff);
+    }
+
+    .tag-pill.result {
+        color: #0b4b77;
+        border-color: #c7e8f8;
+        background: #eef9ff;
+    }
+
+    .tag-pill.cert {
+        color: #8a5b00;
+        border-color: #f3d48a;
+        background: #fff7d8;
+    }
+
+    .tag-pill.time {
+        color: #5f3ab0;
+        border-color: #d7c4ff;
+        background: #f3edff;
+    }
+
+    .tag-pill.audience {
+        color: #31506f;
+        border-color: #dce7f5;
+        background: #f3f8ff;
     }
 
     .tag-pill.open {
@@ -299,6 +609,8 @@
     }
 
     .assessment-actions {
+        position: relative;
+        z-index: 1;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
@@ -323,6 +635,36 @@
     .mini-btn:hover {
         color: #101827;
         background: #f7fafc;
+    }
+
+    .assessment-actions .mini-btn:nth-child(1) {
+        color: #1d4ed8;
+        border-color: #c7d9ff;
+        background: #f1f6ff;
+    }
+
+    .assessment-actions .mini-btn:nth-child(2) {
+        color: #08724f;
+        border-color: #bdebd7;
+        background: #f0fff8;
+    }
+
+    .assessment-actions .mini-btn:nth-child(3) {
+        color: #8a5b00;
+        border-color: #f3d48a;
+        background: #fff9e8;
+    }
+
+    .assessment-actions .mini-btn:nth-child(4) {
+        color: #5f3ab0;
+        border-color: #d7c4ff;
+        background: #f6f1ff;
+    }
+
+    .assessment-actions .mini-btn:nth-child(5) {
+        color: #0b4b77;
+        border-color: #c7e8f8;
+        background: #eef9ff;
     }
 
     .mini-btn:disabled {
@@ -498,6 +840,7 @@
     }
 
     .management-link {
+        position: relative;
         display: grid;
         grid-template-columns: 38px minmax(0, 1fr);
         align-items: center;
@@ -509,24 +852,56 @@
         color: #101827;
         background: #fff;
         box-shadow: 0 10px 24px rgba(20, 32, 51, .05);
+        overflow: hidden;
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .management-link::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: var(--studio-accent, #19a7ce);
+    }
+
+    .management-link::after {
+        content: "";
+        position: absolute;
+        right: -28px;
+        top: -28px;
+        width: 90px;
+        height: 90px;
+        border-radius: 999px;
+        background: var(--studio-soft, rgba(25, 167, 206, .12));
+        pointer-events: none;
     }
 
     .management-link:hover {
         color: #101827;
-        border-color: #cbd5e1;
-        background: #f8fbff;
+        border-color: var(--studio-border, #cbd5e1);
+        background: var(--studio-bg, #f8fbff);
+        transform: translateY(-2px);
+        box-shadow: 0 16px 34px rgba(20, 32, 51, .10);
     }
 
     .management-link i {
+        position: relative;
+        z-index: 1;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         width: 38px;
         height: 38px;
         border-radius: 8px;
-        color: #0b1220;
-        background: #eef2f7;
+        color: var(--studio-ink, #0b1220);
+        background: var(--studio-icon, #eef2f7);
         font-size: 17px;
+        box-shadow: 0 8px 18px var(--studio-shadow, rgba(20, 32, 51, .06));
+    }
+
+    .management-link > span {
+        position: relative;
+        z-index: 1;
     }
 
     .management-link strong {
@@ -552,6 +927,76 @@
     .management-link.danger i {
         color: #7f1d1d;
         background: #fee2e2;
+    }
+
+    .management-link:nth-child(1) {
+        --studio-accent: #1d67e8;
+        --studio-soft: rgba(29, 103, 232, .12);
+        --studio-bg: #f6f9ff;
+        --studio-border: #bdd2fb;
+        --studio-icon: #e8f0ff;
+        --studio-ink: #1d4ed8;
+        --studio-shadow: rgba(29, 103, 232, .14);
+    }
+
+    .management-link:nth-child(2) {
+        --studio-accent: #00a9a5;
+        --studio-soft: rgba(0, 169, 165, .13);
+        --studio-bg: #f1fffd;
+        --studio-border: #a9ece6;
+        --studio-icon: #defaf7;
+        --studio-ink: #087b76;
+        --studio-shadow: rgba(0, 169, 165, .14);
+    }
+
+    .management-link:nth-child(3) {
+        --studio-accent: #c98909;
+        --studio-soft: rgba(201, 137, 9, .13);
+        --studio-bg: #fffaf0;
+        --studio-border: #f3d48a;
+        --studio-icon: #fff2ce;
+        --studio-ink: #9a6500;
+        --studio-shadow: rgba(201, 137, 9, .15);
+    }
+
+    .management-link:nth-child(4) {
+        --studio-accent: #6f42c1;
+        --studio-soft: rgba(111, 66, 193, .12);
+        --studio-bg: #fbf8ff;
+        --studio-border: #d7c4ff;
+        --studio-icon: #f0e8ff;
+        --studio-ink: #5f3ab0;
+        --studio-shadow: rgba(111, 66, 193, .14);
+    }
+
+    .management-link:nth-child(5) {
+        --studio-accent: #16845b;
+        --studio-soft: rgba(22, 132, 91, .13);
+        --studio-bg: #f3fff9;
+        --studio-border: #bdebd7;
+        --studio-icon: #e2f8ee;
+        --studio-ink: #08724f;
+        --studio-shadow: rgba(22, 132, 91, .14);
+    }
+
+    .management-link:nth-child(6) {
+        --studio-accent: #3347b9;
+        --studio-soft: rgba(51, 71, 185, .12);
+        --studio-bg: #f7f8ff;
+        --studio-border: #c9d1ff;
+        --studio-icon: #e9ecff;
+        --studio-ink: #3140a0;
+        --studio-shadow: rgba(51, 71, 185, .14);
+    }
+
+    .management-link.danger {
+        --studio-accent: #e05252;
+        --studio-soft: rgba(224, 82, 82, .12);
+        --studio-bg: #fff7f7;
+        --studio-border: #ffc9c9;
+        --studio-icon: #fee2e2;
+        --studio-ink: #7f1d1d;
+        --studio-shadow: rgba(224, 82, 82, .13);
     }
 
     .empty-state {
@@ -609,9 +1054,19 @@
 
         .workspace-actions {
             justify-content: flex-start;
+            min-width: 0;
+            min-height: 96px;
         }
 
-        .stat-grid,
+        .works-summary {
+            justify-content: flex-start;
+        }
+
+        .wizard-launcher {
+            width: min(100%, 250px);
+            min-height: 96px;
+        }
+
         .assessment-grid,
         .management-grid {
             grid-template-columns: 1fr;
@@ -636,44 +1091,22 @@
             </p>
         </div>
         <div class="workspace-actions">
-            <a class="workspace-btn primary" href="@Url.Action("AssessmentWizard", "Home")">
-                <i class="ti-wand"></i>
-                Yeni Sihirbaz
-            </a>
-            <a class="workspace-btn" href="@Url.Action("AnketAdIndex", "Home")">
-                <i class="ti-list"></i>
-                Klasik Liste
-            </a>
+            <div class="wizard-launcher">
+                <span class="launch-spark one"></span>
+                <span class="launch-spark two"></span>
+                <span class="launch-spark three"></span>
+                <a class="workspace-btn primary wizard-cta" href="@Url.Action("AssessmentWizard", "Home")">
+                    <i class="ti-wand"></i>
+                    <span>Yeni Sihirbaz</span>
+                </a>
+            </div>
         </div>
     </section>
 
-    <section class="stat-grid">
-        <div class="stat-tile">
-            <i class="ti-layout-grid2"></i>
-            <strong class="stat-value">@anketler.Count</strong>
-            <span class="stat-label">Toplam çalışma</span>
-        </div>
-        <div class="stat-tile">
-            <i class="ti-signal"></i>
-            <strong class="stat-value">@aktifSayisi</strong>
-            <span class="stat-label">Yayında</span>
-        </div>
-        <div class="stat-tile">
-            <i class="ti-pencil-alt"></i>
-            <strong class="stat-value">@taslakSayisi</strong>
-            <span class="stat-label">Taslak / pasif</span>
-        </div>
-        <div class="stat-tile">
-            <i class="ti-id-badge"></i>
-            <strong class="stat-value">@sertifikaHazir</strong>
-            <span class="stat-label">Sertifika hazır</span>
-        </div>
-    </section>
-
-    <section class="workspace-section">
+    <section class="workspace-section studio-zone">
         <div class="section-head">
             <div>
-                <h2 class="section-title">Çalışma Stüdyosu</h2>
+                <h2 class="section-title"><i class="ti-palette"></i> Çalışma Stüdyosu</h2>
                 <p class="section-note">Günlük akış sihirbaz üzerinden ilerler; soru bankası ve bakım araçları gerektiğinde kullanılır.</p>
             </div>
         </div>
@@ -738,16 +1171,17 @@
         </div>
     </section>
 
-    <section class="workspace-section">
+    <section class="workspace-section works-zone">
         <div class="section-head">
             <div>
-                <h2 class="section-title">Çalışmalarım</h2>
+                <h2 class="section-title"><i class="ti-briefcase"></i> Çalışmalarım</h2>
                 <p class="section-note">@katilimSayisi katılımcı kaydı sistemde takip ediliyor.</p>
             </div>
-            <a class="mini-btn publish" href="@Url.Action("AssessmentWizard", "Home")">
-                <i class="ti-plus"></i>
-                Yeni Çalışma
-            </a>
+            <div class="works-summary">
+                <span><i class="ti-signal"></i> @aktifSayisi yayında</span>
+                <span><i class="ti-pencil-alt"></i> @taslakSayisi taslak</span>
+                <span><i class="ti-user"></i> @katilimSayisi katılım</span>
+            </div>
         </div>
 
         @if (!anketler.Any())
@@ -777,6 +1211,8 @@
                     var durumClass = item.Pasif == true ? "draft" : "live";
                     var durumText = item.Pasif == true ? "Taslak" : "Yayında";
                     var tipText = item.Sinav == true ? "Sınav" : "Anket";
+                    var tipClass = item.Sinav == true ? "exam" : "survey";
+                    var tipIcon = item.Sinav == true ? "ti-ruler-pencil" : "ti-clipboard";
                     var katilimToken = katilimTokenMap.ContainsKey(item.AnketId) ? katilimTokenMap[item.AnketId] : "";
                     var publicLinkEnabled = item.Pasif != true && !string.IsNullOrWhiteSpace(katilimToken);
                     var paylasimUrl = Url.Action("Katilim", "Home", new { token = katilimToken }, Context.Request.Scheme);
@@ -795,9 +1231,12 @@
                             ? "Bu baglanti genel katilima aciktir; kayitli olmayan kisiler kod ile takip edilir."
                             : "Bu baglanti herkese aciktir; giris yapan kayitli kisiler kendi profiliyle, digerleri katilim koduyla izlenir.";
 
-                    <article class="assessment-card">
+                    <article class="assessment-card @tipClass @durumClass">
                         <div class="assessment-top">
-                            <h3 class="assessment-name">@item.AnketAdi</h3>
+                            <div class="assessment-title-row">
+                                <span class="assessment-type-icon"><i class="@tipIcon"></i></span>
+                                <h3 class="assessment-name">@item.AnketAdi</h3>
+                            </div>
                             <span class="status-badge @durumClass">@durumText</span>
                         </div>
 
@@ -817,20 +1256,20 @@
                         </div>
 
                         <div class="assessment-tags">
-                            <span class="tag-pill">@tipText</span>
+                            <span class="tag-pill type">@tipText</span>
                             @if (item.Sonuc == true)
                             {
-                                <span class="tag-pill">Sonuç açık</span>
+                                <span class="tag-pill result">Sonuç açık</span>
                             }
                             @if (item.SertifikaNotu != null)
                             {
-                                <span class="tag-pill">Sertifika @item.SertifikaNotu+</span>
+                                <span class="tag-pill cert">Sertifika @item.SertifikaNotu+</span>
                             }
                             @if (item.Zaman != null)
                             {
-                                <span class="tag-pill">@item.Zaman dk</span>
+                                <span class="tag-pill time">@item.Zaman dk</span>
                             }
-                            <span class="tag-pill">@katilimYontemiText</span>
+                            <span class="tag-pill audience">@katilimYontemiText</span>
                             <span class="tag-pill @(publicLinkEnabled ? "open" : "closed")">@(publicLinkEnabled ? "Link hazır" : "Link kapalı")</span>
                         </div>
 
