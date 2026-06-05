@@ -409,6 +409,34 @@ namespace survey.Controllers
                 return calismaAlaniId;
             }
 
+            var personelId = AktifPersonelId();
+            if (!personelId.HasValue)
+            {
+                return null;
+            }
+
+            try
+            {
+                var mevcut = db.Database.SqlQuery<int?>(
+                    @"SELECT TOP 1 cau.CalismaAlaniId
+                      FROM dbo.CalismaAlaniUye cau
+                      INNER JOIN dbo.CalismaAlani ca ON ca.CalismaAlaniId = cau.CalismaAlaniId
+                      WHERE cau.PersonelId = @p0
+                        AND ISNULL(cau.Pasif, 0) = 0
+                        AND ISNULL(ca.Pasif, 0) = 0
+                      ORDER BY cau.CalismaAlaniUyeId",
+                    personelId.Value).FirstOrDefault();
+
+                if (mevcut.HasValue && mevcut.Value > 0)
+                {
+                    Session["CalismaAlaniId"] = mevcut.Value;
+                    return mevcut.Value;
+                }
+            }
+            catch
+            {
+            }
+
             return null;
         }
 

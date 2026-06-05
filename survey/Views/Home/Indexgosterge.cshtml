@@ -1126,28 +1126,28 @@
                     <span>Yayın, süre ve sertifika ayarları</span>
                 </span>
             </a>
-            <a class="management-link" href="@Url.Action("SoruIndex", "Home", new { id = Session["id"] })">
+            <a class="management-link" href="@Url.Action("SoruIndex", "Home")">
                 <i class="ti-help-alt"></i>
                 <span>
                     <strong>Soru Bankası</strong>
                     <span>Sorular ve puan yapısı</span>
                 </span>
             </a>
-            <a class="management-link" href="@Url.Action("SoruGrupIndex", "Home", new { id = Session["id"] })">
+            <a class="management-link" href="@Url.Action("SoruGrupIndex", "Home")">
                 <i class="ti-layers"></i>
                 <span>
                     <strong>Bölüm / Kategori Bankası</strong>
                     <span>Soru grupları ve sıralama</span>
                 </span>
             </a>
-            <a class="management-link" href="@Url.Action("CevapIndex", "Home", new { id = Session["id"] })">
+            <a class="management-link" href="@Url.Action("CevapIndex", "Home")">
                 <i class="ti-check-box"></i>
                 <span>
                     <strong>Seçenek Bankası</strong>
                     <span>Anket puanı ve doğru cevap bilgisi</span>
                 </span>
             </a>
-            <a class="management-link" href="@Url.Action("CevapGrupIndex", "Home", new { id = Session["id"] })">
+            <a class="management-link" href="@Url.Action("CevapGrupIndex", "Home")">
                 <i class="ti-view-list"></i>
                 <span>
                     <strong>Gelişmiş Seçenek Grupları</strong>
@@ -1204,7 +1204,15 @@
                     var soruGruplari = anketGruplari.Where(x => x.AnketId == item.AnketId).ToList();
                     var soruSayisi = (from detay in soruGruplari
                                       join soru in sorular on detay.SoruGrupId equals soru.SoruGrupId
-                                      select soru).Count();
+                                      select soru.SoruId).Distinct().Count();
+                    if (soruSayisi == 0)
+                    {
+                        soruSayisi = itemHavuz
+                            .Where(x => x.SoruID != null)
+                            .Select(x => x.SoruID)
+                            .Distinct()
+                            .Count();
+                    }
                     var kayitliKatilim = itemHavuz.Where(x => x.UserId != null && x.UserId != 1).Select(x => x.UserId).Distinct().Count();
                     var anonimKatilim = itemHavuz.Where(x => x.UserId == null && x.Isimsiz != null).Select(x => x.Isimsiz).Distinct().Count();
                     var katilim = kayitliKatilim + anonimKatilim;
