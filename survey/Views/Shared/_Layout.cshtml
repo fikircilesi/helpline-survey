@@ -1434,6 +1434,85 @@
             var storageKey = "studioSidebarCollapsed";
             var desktopQuery = window.matchMedia("(min-width: 992px)");
 
+            function cssVar(name, fallback) {
+                var value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+                return value || fallback;
+            }
+
+            function setImportantStyle(element, property, value) {
+                if (!element) {
+                    return;
+                }
+
+                if (element.style.getPropertyValue(property) !== value
+                    || element.style.getPropertyPriority(property) !== "important") {
+                    element.style.setProperty(property, value, "important");
+                }
+            }
+
+            function clearInlineLayout(element, properties) {
+                if (!element) {
+                    return;
+                }
+
+                properties.forEach(function (property) {
+                    element.style.removeProperty(property);
+                });
+            }
+
+            function syncSidebarMetrics() {
+                var pcoded = document.getElementById("pcoded");
+                if (!pcoded) {
+                    return;
+                }
+
+                var header = document.querySelector(".pcoded-header");
+                var headerWrapper = document.querySelector(".pcoded-header .navbar-wrapper");
+                var logo = document.querySelector(".pcoded-header .navbar-logo");
+                var navbar = document.querySelector(".pcoded-navbar");
+                var main = document.querySelector(".pcoded-main-container");
+                var content = document.querySelector(".pcoded-content");
+                var innerContent = document.querySelector(".pcoded-inner-content");
+                var widthProperties = ["width", "max-width", "min-width", "flex-basis", "margin-left", "left", "right"];
+                var navProperties = widthProperties.concat(["top", "height", "min-height", "max-height", "transform"]);
+
+                if (!desktopQuery.matches) {
+                    [header, headerWrapper, logo, main, content, innerContent].forEach(function (element) {
+                        clearInlineLayout(element, widthProperties.concat(["height", "min-height", "margin-top", "padding-left"]));
+                    });
+                    clearInlineLayout(navbar, navProperties);
+                    return;
+                }
+
+                var expandedWidth = cssVar("--studio-sidebar-width", "272px");
+                var collapsedWidth = cssVar("--studio-sidebar-collapsed-width", "84px");
+                var headerHeight = cssVar("--studio-header-height", "64px");
+                var activeWidth = pcoded.classList.contains("studio-sidebar-collapsed")
+                    ? collapsedWidth
+                    : expandedWidth;
+
+                [header, headerWrapper, logo].forEach(function (element) {
+                    setImportantStyle(element, "width", activeWidth);
+                    setImportantStyle(element, "max-width", activeWidth);
+                    setImportantStyle(element, "flex-basis", activeWidth);
+                });
+
+                setImportantStyle(navbar, "width", activeWidth);
+                setImportantStyle(navbar, "left", "0px");
+                setImportantStyle(navbar, "top", headerHeight);
+                setImportantStyle(navbar, "height", "calc(100vh - " + headerHeight + ")");
+                setImportantStyle(navbar, "min-height", "calc(100vh - " + headerHeight + ")");
+                setImportantStyle(navbar, "max-height", "calc(100vh - " + headerHeight + ")");
+                setImportantStyle(navbar, "transform", "none");
+
+                setImportantStyle(main, "width", "calc(100% - " + activeWidth + ")");
+                setImportantStyle(main, "margin-left", activeWidth);
+                setImportantStyle(main, "margin-top", "0px");
+                setImportantStyle(content, "width", "100%");
+                setImportantStyle(content, "margin-left", "0px");
+                setImportantStyle(innerContent, "padding-left", "0px");
+            }
+
             function setMenuToggleIcon(iconName) {
                 var icon = document.querySelector("#mobile-collapse i");
                 if (icon) {
@@ -1476,6 +1555,8 @@
                     header.classList.toggle("nocollapsed", !collapsed);
                     setAttrIfDifferent(header, "pcoded-header-position", "fixed");
                 }
+
+                syncSidebarMetrics();
             }
 
             function setMobileMenu(open) {
@@ -1496,6 +1577,8 @@
                     header.classList.remove("iscollapsed", "nocollapsed");
                     setAttrIfDifferent(header, "pcoded-header-position", "fixed");
                 }
+
+                syncSidebarMetrics();
             }
 
             function studioDesktopLayout() {
@@ -1562,9 +1645,22 @@
 
             window.addEventListener("load", studioDesktopLayout);
             window.addEventListener("resize", studioDesktopLayout);
+            ["#pcoded", ".pcoded-header", ".pcoded-navbar", ".pcoded-main-container"].forEach(function (selector) {
+                var element = document.querySelector(selector);
+                if (!element) {
+                    return;
+                }
+
+                new MutationObserver(syncSidebarMetrics).observe(element, {
+                    attributes: true,
+                    attributeFilter: ["class", "style", "pcoded-device-type", "vertical-nav-type", "vertical-layout"]
+                });
+            });
             setTimeout(studioDesktopLayout, 100);
             setTimeout(studioDesktopLayout, 500);
             setTimeout(studioDesktopLayout, 1200);
+            setTimeout(syncSidebarMetrics, 1800);
+            setTimeout(syncSidebarMetrics, 2600);
         })();
     </script>
 
