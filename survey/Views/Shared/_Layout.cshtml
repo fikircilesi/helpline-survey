@@ -65,6 +65,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 18px;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .navbar-logo .studio-brand-link {
@@ -85,6 +87,7 @@
             text-decoration: none;
             box-shadow: none;
             overflow: hidden;
+            box-sizing: border-box;
         }
 
         .navbar-logo .studio-brand-link:hover,
@@ -172,12 +175,14 @@
 
         .studio-brand-copy {
             min-width: 0;
+            max-width: 124px;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
             gap: 0;
             line-height: 1;
             text-align: left;
+            overflow: hidden;
         }
 
         .studio-brand-copy strong {
@@ -891,6 +896,9 @@
                 max-width: var(--studio-sidebar-width) !important;
                 flex: 0 0 var(--studio-sidebar-width) !important;
                 position: relative;
+                display: block !important;
+                padding: 0 !important;
+                overflow: hidden;
             }
 
             #pcoded[theme-layout="vertical"] .pcoded-header .navbar-logo::after {
@@ -946,8 +954,17 @@
             }
 
             #pcoded[theme-layout="vertical"] .navbar-logo .studio-brand-link {
-                margin-left: 0;
-                padding-right: 50px;
+                width: calc(var(--studio-sidebar-width) - 76px) !important;
+                max-width: calc(var(--studio-sidebar-width) - 76px) !important;
+                min-width: 0 !important;
+                position: absolute !important;
+                top: 50% !important;
+                left: 18px !important;
+                right: auto !important;
+                transform: translateY(-50%) !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden;
             }
 
             #pcoded[theme-layout="vertical"] .pcoded-overlay-box {
