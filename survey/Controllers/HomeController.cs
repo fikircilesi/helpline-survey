@@ -9399,7 +9399,7 @@ Yalnizca su JSON semasinda cevap ver:
                     .Take(8)
                     .ToList()
                     .Select(x => string.IsNullOrWhiteSpace(x.UserAdi)
-                        ? (string.IsNullOrWhiteSpace(x.UserTc) ? ("KatÄ±lÄ±mcÄ± #" + x.UserId) : x.UserTc)
+                        ? (string.IsNullOrWhiteSpace(x.UserTc) ? ("Katılımcı #" + x.UserId) : x.UserTc)
                         : x.UserAdi)
                     .ToList();
             }
@@ -9409,7 +9409,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 paket.KatilimciAdlari.AddRange(anonimKatilimciIds
                     .Take(kalanListeYeri)
-                    .Select(x => "KatÄ±lÄ±m kodu " + x));
+                    .Select(x => "Katılım kodu " + x));
             }
 
             return paket;
@@ -9419,20 +9419,20 @@ Yalnizca su JSON semasinda cevap ver:
         {
             if (paket.Anket == null)
             {
-                return Json(new { success = false, message = "Ã‡alÄ±ÅŸma bulunamadÄ±." });
+                return Json(new { success = false, message = "Çalışma bulunamadı." });
             }
 
             var katilimciSayisi = paket.KayitliKatilimciSayisi + paket.AnonimKatilimciSayisi;
             var kalemler = new[]
             {
-                new { label = "Ã‡alÄ±ÅŸma ana kaydÄ±", count = 1 },
-                new { label = "KatÄ±lÄ±m cevaplarÄ±", count = paket.KatilimKayitlari.Count },
-                new { label = "SÃ¼re takip kayÄ±tlarÄ±", count = paket.SureKayitlari.Count },
-                new { label = "Rapor baÅŸlÄ±ÄŸÄ± baÄŸlantÄ±larÄ±", count = paket.AnketGruplari.Count },
-                new { label = "YalnÄ±z bu Ã§alÄ±ÅŸmaya baÄŸlÄ± soru gruplarÄ±", count = paket.SoruGruplari.Count },
-                new { label = "YalnÄ±z bu Ã§alÄ±ÅŸmaya baÄŸlÄ± sorular", count = paket.Sorular.Count },
-                new { label = "YalnÄ±z bu Ã§alÄ±ÅŸmaya baÄŸlÄ± cevap gruplarÄ±", count = paket.CevapGruplari.Count },
-                new { label = "YalnÄ±z bu Ã§alÄ±ÅŸmaya baÄŸlÄ± seÃ§enekler", count = paket.Cevaplar.Count }
+                new { label = "Çalışma ana kaydı", count = 1 },
+                new { label = "Katılım cevapları", count = paket.KatilimKayitlari.Count },
+                new { label = "Süre takip kayıtları", count = paket.SureKayitlari.Count },
+                new { label = "Rapor başlığı bağlantıları", count = paket.AnketGruplari.Count },
+                new { label = "Yalnız bu çalışmaya bağlı soru grupları", count = paket.SoruGruplari.Count },
+                new { label = "Yalnız bu çalışmaya bağlı sorular", count = paket.Sorular.Count },
+                new { label = "Yalnız bu çalışmaya bağlı cevap grupları", count = paket.CevapGruplari.Count },
+                new { label = "Yalnız bu çalışmaya bağlı seçenekler", count = paket.Cevaplar.Count }
             }.Where(x => x.count > 0).ToList();
 
             return Json(new
@@ -9459,12 +9459,12 @@ Yalnizca su JSON semasinda cevap ver:
         {
             if (Session["id"] == null || Session["admin"] == null)
             {
-                return Json(new { success = false, message = "Oturum bulunamadÄ±." });
+                return Json(new { success = false, message = "Oturum bulunamadı." });
             }
 
             if (!AnketCalismaAlanindaMi(id))
             {
-                return Json(new { success = false, message = "Bu Ã§alÄ±ÅŸmaya eriÅŸim yetkiniz yok." });
+                return Json(new { success = false, message = "Bu çalışmaya erişim yetkiniz yok." });
             }
 
             return AnketSilmeOzetJson(AnketSilmePaketiniHazirla(id));
@@ -9476,12 +9476,12 @@ Yalnizca su JSON semasinda cevap ver:
         {
             if (Session["id"] == null || Session["admin"] == null)
             {
-                return Json(new { success = false, message = "Oturum bulunamadÄ±." });
+                return Json(new { success = false, message = "Oturum bulunamadı." });
             }
 
             if (!AnketCalismaAlanindaMi(id))
             {
-                return Json(new { success = false, message = "Bu Ã§alÄ±ÅŸmaya eriÅŸim yetkiniz yok." });
+                return Json(new { success = false, message = "Bu çalışmaya erişim yetkiniz yok." });
             }
 
             using (var tx = db.Database.BeginTransaction())
@@ -9491,7 +9491,7 @@ Yalnizca su JSON semasinda cevap ver:
                     var paket = AnketSilmePaketiniHazirla(id);
                     if (paket.Anket == null)
                     {
-                        return Json(new { success = false, message = "Ã‡alÄ±ÅŸma bulunamadÄ±." });
+                        return Json(new { success = false, message = "Çalışma bulunamadı." });
                     }
 
                     db.Havuz.RemoveRange(paket.KatilimKayitlari);
@@ -9517,7 +9517,7 @@ Yalnizca su JSON semasinda cevap ver:
                     return Json(new
                     {
                         success = true,
-                        message = "Ã‡alÄ±ÅŸma ve baÄŸlÄ± kayÄ±tlarÄ± silindi."
+                        message = "Çalışma ve bağlı kayıtları silindi."
                     });
                 }
                 catch (Exception ex)
@@ -9526,7 +9526,7 @@ Yalnizca su JSON semasinda cevap ver:
                     return Json(new
                     {
                         success = false,
-                        message = "Silme iÅŸlemi tamamlanamadÄ±: " + ex.Message
+                        message = "Silme işlemi tamamlanamadı: " + ex.Message
                     });
                 }
             }
