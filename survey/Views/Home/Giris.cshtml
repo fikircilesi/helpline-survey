@@ -2600,41 +2600,103 @@
         }
 
         .assistant-thread {
-            display: grid;
-            gap: 8px;
-            max-height: 166px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            max-height: 184px;
             margin-bottom: 10px;
-            padding-right: 2px;
+            padding: 12px 8px;
+            border: 1px solid rgba(132, 151, 176, .22);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(21, 184, 166, .08), rgba(66, 87, 232, .06)),
+                repeating-linear-gradient(45deg, rgba(255, 255, 255, .48) 0 1px, transparent 1px 14px),
+                #edf7f5;
             overflow-y: auto;
         }
 
         .assistant-message {
+            position: relative;
+            align-self: flex-start;
+            max-width: 84%;
             margin: 0;
-            padding: 11px 12px;
-            border: 1px solid rgba(21, 184, 166, .22);
-            border-radius: 8px;
-            color: #334155;
-            background: rgba(255, 255, 255, .78);
+            padding: 8px 10px 15px;
+            border: 0;
+            border-radius: 4px 14px 14px 14px;
+            color: #1f2937;
+            background: #fff;
             font-size: 12px;
             line-height: 1.45;
+            box-shadow: 0 6px 16px rgba(49, 73, 118, .10);
+            overflow-wrap: anywhere;
         }
 
         .assistant-message.is-user {
-            margin-left: 28px;
-            color: #fff;
-            border-color: transparent;
-            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
+            align-self: flex-end;
+            color: #082f2a;
+            border-radius: 14px 4px 14px 14px;
+            background: linear-gradient(135deg, #d8fbef, #bff2e9);
+        }
+
+        .assistant-message.is-user::after,
+        .assistant-message.is-admin::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 10px;
+            height: 12px;
+            background: inherit;
+        }
+
+        .assistant-message.is-user::after {
+            right: -5px;
+            clip-path: polygon(0 0, 100% 0, 0 100%);
         }
 
         .assistant-message.is-system {
-            border-color: rgba(66, 87, 232, .20);
-            background: rgba(239, 246, 255, .88);
+            align-self: center;
+            max-width: 92%;
+            padding: 6px 9px;
+            border-radius: 999px;
+            color: #526070;
+            background: rgba(255, 255, 255, .72);
+            box-shadow: none;
+            font-size: 11px;
+            text-align: center;
         }
 
         .assistant-message.is-admin {
-            margin-right: 28px;
-            border-color: rgba(21, 184, 166, .26);
-            background: linear-gradient(135deg, rgba(240, 253, 250, .96), rgba(239, 246, 255, .92));
+            align-self: flex-start;
+            color: #172033;
+            background: #fff;
+        }
+
+        .assistant-message.is-admin::after {
+            left: -5px;
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+        }
+
+        .assistant-message > span {
+            display: block;
+            padding-right: 34px;
+        }
+
+        .assistant-message.is-system > span {
+            padding-right: 0;
+        }
+
+        .assistant-message small {
+            position: absolute;
+            right: 8px;
+            bottom: 4px;
+            color: #718096;
+            font-size: 9px;
+            line-height: 1;
+            opacity: .9;
+        }
+
+        .assistant-message.is-user small {
+            color: #0f766e;
         }
 
         .assistant-contact-form {
@@ -3968,12 +4030,39 @@
             let contactPollTimer = null;
             let contactPollErrorShown = false;
 
+            function contactTimeLabel() {
+                return new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            function flashContactStatus(message) {
+                if (!contactStatus) return;
+
+                contactStatus.textContent = message || '';
+                if (!message) return;
+
+                window.setTimeout(() => {
+                    if (contactStatus.textContent === message) {
+                        contactStatus.textContent = '';
+                    }
+                }, 1500);
+            }
+
             function addContactBubble(message, type) {
                 if (!contactThread || !message) return;
 
                 const bubble = document.createElement('p');
                 bubble.className = 'assistant-message' + (type ? ' ' + type : '');
-                bubble.textContent = message;
+
+                const body = document.createElement('span');
+                body.textContent = message;
+                bubble.appendChild(body);
+
+                if (type === 'is-user' || type === 'is-admin') {
+                    const time = document.createElement('small');
+                    time.textContent = contactTimeLabel();
+                    bubble.appendChild(time);
+                }
+
                 contactThread.appendChild(bubble);
                 contactThread.scrollTop = contactThread.scrollHeight;
             }
@@ -4043,7 +4132,7 @@
                     result.messages.forEach(item => {
                         lastContactMessageId = Math.max(lastContactMessageId, item.id || 0);
                         if (item.kimden === 'yonetici') {
-                            addContactBubble('Aslana ekibi: ' + item.mesaj, 'is-admin');
+                            addContactBubble(item.mesaj, 'is-admin');
                         } else if (item.kimden === 'ziyaretci') {
                             addContactBubble(item.mesaj, 'is-user');
                         }
@@ -4099,6 +4188,7 @@
                     addContactBubble(message, 'is-user');
                     if (contactStatus) contactStatus.textContent = 'Mesaj gönderiliyor...';
                     if (submitButton) submitButton.disabled = true;
+                    let statusHandled = false;
 
                     try {
                         const response = await fetch(contactForm.action, {
@@ -4109,7 +4199,13 @@
                         });
 
                         const result = await response.json();
-                        addContactBubble(result.message || 'Mesaj durumunu alamadık.', result.success ? 'is-system' : 'is-system');
+                        if (!result.success) {
+                            addContactBubble(result.message || 'Mesaj durumunu alamadık.', 'is-system');
+                        } else {
+                            flashContactStatus('Gönderildi');
+                            statusHandled = true;
+                        }
+
                         if (result.conversationId) {
                             contactConversationId = result.conversationId;
                             if (contactConversationInput) contactConversationInput.value = result.conversationId;
@@ -4127,7 +4223,7 @@
                     } catch (error) {
                         addContactBubble('Mesaj şu anda gönderilemedi. info@aslana.com.tr adresine doğrudan yazabilirsiniz.', 'is-system');
                     } finally {
-                        if (contactStatus) contactStatus.textContent = '';
+                        if (!statusHandled && contactStatus) contactStatus.textContent = '';
                         if (submitButton) submitButton.disabled = false;
                     }
                 });
