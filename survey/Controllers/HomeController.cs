@@ -2041,10 +2041,10 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 $"<p><strong>E-posta:</strong> {guvenliEmail}</p>" +
                 $"<p><strong>Mesaj:</strong><br>{guvenliMesaj}</p>" +
                 $"<p><a href=\"{guvenliYanitEkrani}\">Yönetici cevap ekranını aç</a></p>" +
-                "<p>Info mailinden normal yanıt verirseniz konu satırındaki " + konuKodu + " kodu kaldığı sürece yanıt ziyaretçinin açık ekranına da düşer.</p>" +
-                "<p>Bu ekrandan yazdığınız yanıt ziyaretçi sayfayı kapatmadıysa ekranda görünür; ayrıca ziyaretçinin e-posta adresine de gönderilir.</p>";
+                "<p>Bu maili normal şekilde yanıtlayabilirsiniz. Konu satırındaki " + konuKodu + " kodu kaldığı sürece yanıtınız ziyaretçinin açık ekranına düşer ve e-posta adresine de gönderilir.</p>" +
+                "<p>Yanıtınız doğrudan ziyaretçiye gitmez; önce Survey tarafından okunup konuşmaya işlenir.</p>";
 
-            var mailGitti = IletisimMailGonder("info@aslana.com.tr", "Survey web iletişim mesajı " + konuKodu, mailGovde, yanitAdresi, out _);
+            var mailGitti = IletisimMailGonder("info@aslana.com.tr", "Survey web iletişim mesajı " + konuKodu, mailGovde, null, out _);
             var cevapMesaji = mailGitti
                 ? "Mesajınız Aslana ekibine iletildi. Sayfayı açık bırakırsanız yanıtı burada görebilirsiniz; yanıt e-postanıza da gelir."
                 : "Mesajınız bu ekranda beklemeye alındı. Mail sunucusu şu anda kabul etmediği için info@aslana.com.tr adresine de yazabilirsiniz.";
