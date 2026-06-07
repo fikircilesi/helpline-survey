@@ -1595,7 +1595,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                 : NormalizeExamPoints(rawQuestionPoints);
             var personelId = Convert.ToInt32(Session["id"]);
             BankaCalismaAlaniHazirla();
-            if (!PaketKullanimKontrolu.AktifAnketEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji))
+            if (!PaketKullanimKontrolu.AktifAnketEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji, AktifPersonelId()))
             {
                 return Json(new { success = false, message = paketLimitMesaji });
             }
@@ -8887,7 +8887,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return View(dgskn);
             }
 
-            if (!PaketKullanimKontrolu.AktifAnketEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji))
+            if (!PaketKullanimKontrolu.AktifAnketEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji, AktifPersonelId()))
             {
                 ModelState.AddModelError("", paketLimitMesaji);
                 ViewBag.YayinBaslangicLocal = DateTimeLocalValue(YayinBaslangicTarihi);

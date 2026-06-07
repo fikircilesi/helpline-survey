@@ -87,6 +87,128 @@
             font-weight: 800;
         }
 
+        .billing-admin {
+            margin-top: 18px;
+            padding: 18px;
+            border: 1px solid #d9e7ff;
+            border-radius: 8px;
+            background: #f8fbff;
+        }
+
+        .billing-admin-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .billing-admin-head h2 {
+            margin: 0;
+            color: #101827;
+            font-size: 19px;
+            font-weight: 900;
+        }
+
+        .billing-admin-head p {
+            margin: 5px 0 0;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .billing-admin-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 0 10px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: #e9fbf6;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .billing-admin-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .billing-admin-form {
+            display: grid;
+            grid-template-columns: 1.2fr 1.8fr repeat(4, minmax(90px, .7fr)) auto;
+            gap: 10px;
+            align-items: end;
+            padding: 12px;
+            border: 1px solid #e4ebf5;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .billing-admin-field {
+            display: grid;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .billing-admin-field label,
+        .billing-admin-switches span {
+            color: #667085;
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+        .billing-admin-field input,
+        .billing-admin-field textarea,
+        .billing-admin-field select {
+            width: 100%;
+            min-height: 38px;
+            border: 1px solid #d9e3f0;
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #101827;
+            background: #fff;
+            font-size: 13px;
+            font-weight: 750;
+        }
+
+        .billing-admin-field textarea {
+            min-height: 38px;
+            resize: vertical;
+        }
+
+        .billing-admin-switches {
+            grid-column: 1 / -2;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px 12px;
+            align-items: center;
+        }
+
+        .billing-admin-switches label {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            color: #344054;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .billing-admin-save {
+            min-height: 38px;
+            border: 0;
+            border-radius: 8px;
+            padding: 0 14px;
+            color: #fff;
+            background: #1d67e8;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
         .billing-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -270,6 +392,14 @@
                 grid-template-columns: 1fr;
             }
 
+            .billing-admin-form {
+                grid-template-columns: 1fr;
+            }
+
+            .billing-admin-switches {
+                grid-column: auto;
+            }
+
             .billing-status {
                 min-width: 0;
             }
@@ -301,6 +431,73 @@
     @if (!Model.TamiHazir)
     {
         <div class="billing-alert">Tami ödeme ayarları henüz tamamlanmamış. Ücretsiz plan çalışır; ücretli paketler için Tami bilgileri appsettings üzerinden girilmeli.</div>
+    }
+
+    @if (Model.PaketYonetimiAktif && Model.Paketler.Any())
+    {
+        <section class="billing-admin">
+            <div class="billing-admin-head">
+                <div>
+                    <h2>Paket ve fiyat yönetimi</h2>
+                    <p>Kurucu hesap için sınırsız kullanım açıktır. Müşterilere görünen fiyatları, süreleri ve paket limitlerini buradan yönetebilirsiniz.</p>
+                </div>
+                <span class="billing-admin-badge">Id 1 sınırsız</span>
+            </div>
+            <div class="billing-admin-list">
+                @foreach (var paket in Model.Paketler)
+                {
+                    <form class="billing-admin-form" method="post" action="@Url.Action("PaketGuncelle", "Odeme")">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="OdemePaketiId" value="@paket.OdemePaketiId" />
+                        <div class="billing-admin-field">
+                            <label>Paket adı</label>
+                            <input name="PaketAdi" value="@paket.PaketAdi" maxlength="120" required />
+                        </div>
+                        <div class="billing-admin-field">
+                            <label>Açıklama</label>
+                            <textarea name="Aciklama" maxlength="600">@paket.Aciklama</textarea>
+                        </div>
+                        <div class="billing-admin-field">
+                            <label>Tutar</label>
+                            <input name="Tutar" type="number" min="0" step="0.01" value="@paket.Tutar.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" />
+                        </div>
+                        <div class="billing-admin-field">
+                            <label>Para</label>
+                            <input name="ParaBirimi" value="@paket.ParaBirimi" maxlength="10" />
+                        </div>
+                        <div class="billing-admin-field">
+                            <label>Süre gün</label>
+                            <input name="SureGun" type="number" min="1" step="1" value="@paket.SureGun" />
+                        </div>
+                        <div class="billing-admin-field">
+                            <label>Kullanıcı</label>
+                            <input name="KullaniciLimiti" type="number" min="0" step="1" value="@paket.KullaniciLimiti" />
+                        </div>
+                        <div class="billing-admin-field">
+                            <label>Aktif anket</label>
+                            <input name="AktifAnketLimiti" type="number" min="0" step="1" value="@paket.AktifAnketLimiti" />
+                        </div>
+                        <div class="billing-admin-field">
+                            <label>Aylık yanıt</label>
+                            <input name="AylikYanitLimiti" type="number" min="0" step="1" value="@paket.AylikYanitLimiti" />
+                        </div>
+                        <div class="billing-admin-field">
+                            <label>Sıra</label>
+                            <input name="SiraNo" type="number" min="1" step="1" value="@paket.SiraNo" />
+                        </div>
+                        <div class="billing-admin-switches">
+                            <span>@paket.PaketKodu</span>
+                            <label><input type="checkbox" name="MarkaIziGoster" value="true" @(paket.MarkaIziGoster ? "checked" : "") /> Marka izi</label>
+                            <label><input type="checkbox" name="PdfRaporAktif" value="true" @(paket.PdfRaporAktif ? "checked" : "") /> PDF</label>
+                            <label><input type="checkbox" name="GelismisRaporAktif" value="true" @(paket.GelismisRaporAktif ? "checked" : "") /> Gelişmiş rapor</label>
+                            <label><input type="checkbox" name="DisaAktarmaAktif" value="true" @(paket.DisaAktarmaAktif ? "checked" : "") /> Dışa aktarma</label>
+                            <label><input type="checkbox" name="YapayZekaOzetAktif" value="true" @(paket.YapayZekaOzetAktif ? "checked" : "") /> AI özet</label>
+                        </div>
+                        <button class="billing-admin-save" type="submit">Kaydet</button>
+                    </form>
+                }
+            </div>
+        </section>
     }
 
     @if (!Model.Paketler.Any())

@@ -47,6 +47,7 @@ namespace survey.Controllers
                 Abonelik = abonelik,
                 SonOdemeler = SonOdemeleriGetir(calismaAlaniId.Value),
                 TamiHazir = TamiAyarlari().HostedOdemeHazirMi(),
+                PaketYonetimiAktif = KurucuHesapMi(personelId, calismaAlaniId),
                 Mesaj = mesaj ?? otomatikMesaj
             };
 
@@ -71,6 +72,90 @@ namespace survey.Controllers
 
             var sonuc = UcretsizPlanBaslat(calismaAlaniId.Value, personelId.Value, otomatik: false);
             return RedirectToAction("Index", new { mesaj = sonuc });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult PaketGuncelle(
+            int OdemePaketiId,
+            string PaketAdi,
+            string Aciklama,
+            decimal Tutar,
+            string ParaBirimi,
+            int SureGun,
+            int KullaniciLimiti,
+            int AktifAnketLimiti,
+            int AylikYanitLimiti,
+            bool MarkaIziGoster = false,
+            bool PdfRaporAktif = false,
+            bool GelismisRaporAktif = false,
+            bool DisaAktarmaAktif = false,
+            bool YapayZekaOzetAktif = false,
+            int SiraNo = 100)
+        {
+            if (Session["id"] == null)
+            {
+                return RedirectToAction("Giris", "Home");
+            }
+
+            var personelId = AktifPersonelId();
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!KurucuHesapMi(personelId, calismaAlaniId))
+            {
+                return RedirectToAction("Index", new { mesaj = "Paket fiyatlarını yalnızca kurucu hesap yönetebilir." });
+            }
+
+            if (OdemePaketiId <= 0 || string.IsNullOrWhiteSpace(PaketAdi))
+            {
+                return RedirectToAction("Index", new { mesaj = "Paket adı zorunlu." });
+            }
+
+            Tutar = Math.Max(0, Tutar);
+            SureGun = Math.Max(1, SureGun);
+            KullaniciLimiti = Math.Max(0, KullaniciLimiti);
+            AktifAnketLimiti = Math.Max(0, AktifAnketLimiti);
+            AylikYanitLimiti = Math.Max(0, AylikYanitLimiti);
+            SiraNo = Math.Max(1, SiraNo);
+            ParaBirimi = string.IsNullOrWhiteSpace(ParaBirimi) ? "TRY" : ParaBirimi.Trim().ToUpperInvariant();
+            if (ParaBirimi.Length > 10)
+            {
+                ParaBirimi = ParaBirimi.Substring(0, 10);
+            }
+
+            db.Database.ExecuteSqlCommand(
+                @"UPDATE dbo.OdemePaketi
+                  SET PaketAdi = @p1,
+                      Aciklama = @p2,
+                      Tutar = @p3,
+                      ParaBirimi = @p4,
+                      SureGun = @p5,
+                      KullaniciLimiti = @p6,
+                      AktifAnketLimiti = @p7,
+                      AylikYanitLimiti = @p8,
+                      MarkaIziGoster = @p9,
+                      PdfRaporAktif = @p10,
+                      GelismisRaporAktif = @p11,
+                      DisaAktarmaAktif = @p12,
+                      YapayZekaOzetAktif = @p13,
+                      SiraNo = @p14
+                  WHERE OdemePaketiId = @p0",
+                OdemePaketiId,
+                PaketAdi.Trim(),
+                (Aciklama ?? string.Empty).Trim(),
+                Tutar,
+                ParaBirimi,
+                SureGun,
+                KullaniciLimiti,
+                AktifAnketLimiti,
+                AylikYanitLimiti,
+                MarkaIziGoster,
+                PdfRaporAktif,
+                GelismisRaporAktif,
+                DisaAktarmaAktif,
+                YapayZekaOzetAktif,
+                SiraNo);
+
+            return RedirectToAction("Index", new { mesaj = "Paket fiyatı ve limitleri güncellendi." });
         }
 
         [HttpPost]
@@ -628,6 +713,9 @@ namespace survey.Controllers
 
         private static string EpostaAnahtari(string eposta)
             => string.IsNullOrWhiteSpace(eposta) ? null : eposta.Trim().ToLowerInvariant();
+
+        private static bool KurucuHesapMi(int? personelId, int? calismaAlaniId)
+            => personelId == 1 || calismaAlaniId == 1;
 
         private static string SiparisNoUret()
             => $"SVY-{DateTime.UtcNow:yyyyMMddHHmmss}-{RandomNumberGenerator.GetInt32(1000, 9999)}";

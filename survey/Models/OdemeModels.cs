@@ -67,5 +67,6 @@ public sealed class OdemePaketleriSayfaModel
     public List<OdemePaketiModel> Paketler { get; set; } = new();
     public List<OdemeIslemiModel> SonOdemeler { get; set; } = new();
     public bool TamiHazir { get; set; }
+    public bool PaketYonetimiAktif { get; set; }
     public string Mesaj { get; set; }
 }

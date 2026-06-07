@@ -4,10 +4,10 @@ namespace survey.Infrastructure;
 
 public static class PaketKullanimKontrolu
 {
-    public static bool AktifAnketEklenebilirMi(SurveyEntities db, int? calismaAlaniId, out string mesaj)
+    public static bool AktifAnketEklenebilirMi(SurveyEntities db, int? calismaAlaniId, out string mesaj, int? personelId = null)
     {
         mesaj = null;
-        if (!calismaAlaniId.HasValue)
+        if (!calismaAlaniId.HasValue || KurucuHesapMi(calismaAlaniId, personelId))
         {
             return true;
         }
@@ -41,10 +41,10 @@ public static class PaketKullanimKontrolu
         }
     }
 
-    public static bool PanelKullanicisiEklenebilirMi(SurveyEntities db, int? calismaAlaniId, out string mesaj)
+    public static bool PanelKullanicisiEklenebilirMi(SurveyEntities db, int? calismaAlaniId, out string mesaj, int? personelId = null)
     {
         mesaj = null;
-        if (!calismaAlaniId.HasValue)
+        if (!calismaAlaniId.HasValue || KurucuHesapMi(calismaAlaniId, personelId))
         {
             return true;
         }
@@ -98,4 +98,7 @@ ORDER BY ad.AbonelikDurumuId DESC";
 
         return db.Database.SqlQuery<int?>(sql, calismaAlaniId).FirstOrDefault();
     }
+
+    private static bool KurucuHesapMi(int? calismaAlaniId, int? personelId)
+        => calismaAlaniId == 1 || personelId == 1;
 }

@@ -4261,7 +4261,7 @@ namespace survey.Controllers
                 return YoneticiYetkisiYok();
             }
 
-            if (!PaketKullanimKontrolu.PanelKullanicisiEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji))
+            if (!PaketKullanimKontrolu.PanelKullanicisiEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji, AktifPersonelId()))
             {
                 ModelState.AddModelError("", paketLimitMesaji);
                 PersonelLookupHazirla();
