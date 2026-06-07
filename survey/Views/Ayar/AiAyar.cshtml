@@ -155,8 +155,8 @@
     <div class="ai-settings-card">
         <div class="ai-settings-head">
             <div>
-                <h3>Yapay Zeka Ayarlari</h3>
-                <p>Soru uretimi ve ileride embedding tabanli arama icin OpenAI baglantisini buradan yonet.</p>
+                <h3>Platform Yapay Zeka Ayarları</h3>
+                <p>Studio AI soru üretimi için kullanılan merkezi bağlantıyı buradan yönetin. Bu anahtar çalışma alanı kullanıcılarına gösterilmez.</p>
             </div>
             <a class="ai-btn" href="@Url.Action("index", "Ayar")">Geri</a>
         </div>
@@ -170,9 +170,9 @@
             @if (!Model.TableReady)
             {
                 <div class="ai-alert">
-                    AI ayar tablosu henuz yok. Once
+                    AI ayar tablosu henüz yok. Önce
                     <strong>DatabaseScripts/20260602_AiAyar.sql</strong>
-                    scriptini SQL Server uzerinde calistirin.
+                    scriptini SQL Server üzerinde çalıştırın.
                 </div>
             }
 
@@ -190,7 +190,7 @@
                     </div>
 
                     <div class="ai-field">
-                        @Html.LabelFor(model => model.ChatModel, "Soru Uretim Modeli")
+                        @Html.LabelFor(model => model.ChatModel, "Soru Üretim Modeli")
                         @Html.TextBoxFor(model => model.ChatModel, new { placeholder = "gpt-4o-mini" })
                         @Html.ValidationMessageFor(model => model.ChatModel)
                     </div>
@@ -202,23 +202,23 @@
                     </div>
 
                     <div class="ai-field">
-                        @Html.LabelFor(model => model.ApiKey, "API Anahtari")
-                        @Html.PasswordFor(model => model.ApiKey, new { autocomplete = "new-password", placeholder = string.IsNullOrWhiteSpace(Model.ApiKeyMasked) ? "OpenAI API anahtarini girin" : "Bos birakirsaniz mevcut anahtar korunur" })
+                        @Html.LabelFor(model => model.ApiKey, "Gizli API Anahtarı")
+                        @Html.PasswordFor(model => model.ApiKey, new { autocomplete = "new-password", placeholder = string.IsNullOrWhiteSpace(Model.ApiKeyMasked) ? "OpenAI API anahtarını girin" : "Boş bırakırsanız mevcut anahtar korunur" })
                         @Html.ValidationMessageFor(model => model.ApiKey)
                         @if (!string.IsNullOrWhiteSpace(Model.ApiKeyMasked))
                         {
-                            <span class="ai-help">Kayitli anahtar: @Model.ApiKeyMasked</span>
+                            <span class="ai-help">Kayıtlı anahtar: @Model.ApiKeyMasked</span>
                         }
                     </div>
                 </div>
 
                 <label class="ai-checkline">
                     @Html.CheckBoxFor(model => model.Aktif)
-                    <span>AI uretimi aktif</span>
+                    <span>Studio AI üretimi aktif</span>
                 </label>
 
                 <div class="ai-actions">
-                    <a class="ai-btn" href="@Url.Action("index", "Ayar")">Vazgec</a>
+                    <a class="ai-btn" href="@Url.Action("index", "Ayar")">Vazgeç</a>
                     <button type="submit" class="ai-btn primary">Kaydet</button>
                 </div>
             }

@@ -1,0 +1,205 @@
+@{
+    var action = Convert.ToString(ViewData["ResimAction"] ?? string.Empty);
+    var controller = Convert.ToString(ViewData["ResimController"] ?? "Ayar");
+    var modalId = Convert.ToString(ViewData["ResimModalId"] ?? "quickPhotoModal");
+    var baslik = Convert.ToString(ViewData["ResimBaslik"] ?? "Fotoğraf");
+}
+
+<div class="quick-photo-modal" id="@modalId" data-quick-photo-modal hidden>
+    <div class="quick-photo-backdrop" data-quick-photo-close></div>
+    <div class="quick-photo-dialog" role="dialog" aria-modal="true" aria-labelledby="@modalId-title">
+        @using (Html.BeginForm(action, controller, FormMethod.Post, new { enctype = "multipart/form-data", data_quick_photo_form = "true" }))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" data-quick-photo-id />
+            <div class="quick-photo-head">
+                <div>
+                    <span>@baslik</span>
+                    <h3 id="@modalId-title" data-quick-photo-title>Fotoğraf düzenle</h3>
+                </div>
+                <button type="button" class="quick-photo-close" data-quick-photo-close title="Kapat">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="quick-photo-body">
+                <div class="quick-photo-preview-card">
+                    <button type="button"
+                            class="quick-photo-preview-avatar is-neutral"
+                            title="Büyük göster"
+                            data-avatar-preview-open
+                            data-quick-photo-preview-button>
+                        <img alt="" data-quick-photo-preview-img hidden />
+                        <span class="quick-photo-preview-fallback">
+                            <i class="fa fa-user" aria-hidden="true" data-quick-photo-preview-icon></i>
+                        </span>
+                    </button>
+                    <div class="quick-photo-preview-copy">
+                        <strong data-quick-photo-preview-name>Profil görüntüsü</strong>
+                        <span data-quick-photo-preview-note>Mevcut avatar veya fotoğraf burada görünür.</span>
+                        <small>Fotoğrafın büyük halini görmek için görsele tıklayın.</small>
+                    </div>
+                </div>
+                @await Html.PartialAsync("_ResimKirpici")
+                <label class="quick-photo-remove">
+                    <input type="checkbox" name="resimKaldir" value="true" data-quick-photo-remove />
+                    Mevcut resmi kaldır ve avatar kullan
+                </label>
+            </div>
+            <div class="quick-photo-actions">
+                <button type="button" class="btn btn-default" data-quick-photo-close>Vazgeç</button>
+                <button type="submit" class="btn btn-default quick-photo-save">Kaydet</button>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    (() => {
+        if (window.__aslanaQuickPhotoModalLoaded) {
+            return;
+        }
+
+        const resetCropper = form => {
+            form.reset();
+            const output = form.querySelector("[data-avatar-crop-output]");
+            const stage = form.querySelector("[data-avatar-crop-stage]");
+            if (output) {
+                output.value = "";
+            }
+            if (stage) {
+                stage.hidden = true;
+            }
+        };
+
+        const avatarDataFrom = opener => {
+            const avatar = opener?.matches?.("[data-avatar-preview-open]")
+                ? opener
+                : opener?.querySelector?.("[data-avatar-preview-open]");
+            const image = avatar?.querySelector?.("img");
+            const src = avatar?.dataset.avatarSrc || image?.currentSrc || image?.src || "";
+            const hasPhoto = !!src && avatar?.classList?.contains("has-photo");
+            return {
+                name: opener?.dataset.quickPhotoName || avatar?.dataset.avatarName || "Profil görüntüsü",
+                src: hasPhoto ? src : "",
+                tone: avatar?.dataset.avatarTone || "is-neutral",
+                icon: avatar?.dataset.avatarIcon || "fa-user"
+            };
+        };
+
+        const setPreviewData = (modal, data) => {
+            const button = modal.querySelector("[data-quick-photo-preview-button]");
+            const image = modal.querySelector("[data-quick-photo-preview-img]");
+            const icon = modal.querySelector("[data-quick-photo-preview-icon]");
+            const name = modal.querySelector("[data-quick-photo-preview-name]");
+            const note = modal.querySelector("[data-quick-photo-preview-note]");
+
+            if (!button) {
+                return;
+            }
+
+            button.classList.remove("is-male", "is-female", "is-neutral", "has-photo");
+            button.classList.add(data.tone || "is-neutral");
+            button.dataset.avatarName = data.name || "Profil görüntüsü";
+            button.dataset.avatarSrc = data.src || "";
+            button.dataset.avatarTone = data.tone || "is-neutral";
+            button.dataset.avatarIcon = data.icon || "fa-user";
+
+            if (image) {
+                image.hidden = !data.src;
+                if (data.src) {
+                    image.src = data.src;
+                } else {
+                    image.removeAttribute("src");
+                }
+                image.alt = data.name || "";
+                image.onerror = () => {
+                    image.hidden = true;
+                    image.removeAttribute("src");
+                    button.classList.remove("has-photo");
+                    button.dataset.avatarSrc = "";
+                    if (note) {
+                        note.textContent = "Fotoğraf bulunamadı; avatar gösteriliyor.";
+                    }
+                };
+            }
+
+            if (data.src) {
+                button.classList.add("has-photo");
+            }
+            if (icon) {
+                icon.className = "fa " + (data.icon || "fa-user");
+            }
+            if (name) {
+                name.textContent = data.name || "Profil görüntüsü";
+            }
+            if (note) {
+                note.textContent = data.src
+                    ? "Mevcut fotoğraf. Değiştirmek için aşağıdan yeni görsel seçin."
+                    : "Kayıt özel fotoğraf yerine avatar kullanıyor.";
+            }
+        };
+
+        const closeModal = modal => {
+            const form = modal.querySelector("[data-quick-photo-form]");
+            if (form) {
+                resetCropper(form);
+            }
+            modal.hidden = true;
+            document.body.classList.remove("quick-photo-open");
+        };
+
+        document.addEventListener("click", event => {
+            const opener = event.target.closest("[data-quick-photo-open]");
+            if (opener) {
+                const target = opener.dataset.quickPhotoTarget || "[data-quick-photo-modal]";
+                const modal = document.querySelector(target);
+                if (!modal) {
+                    return;
+                }
+
+                const form = modal.querySelector("[data-quick-photo-form]");
+                const id = form?.querySelector("[data-quick-photo-id]");
+                const title = modal.querySelector("[data-quick-photo-title]");
+                const remove = form?.querySelector("[data-quick-photo-remove]");
+                resetCropper(form);
+                setPreviewData(modal, avatarDataFrom(opener));
+
+                if (id) {
+                    id.value = opener.dataset.quickPhotoId || "";
+                }
+                if (title) {
+                    title.textContent = opener.dataset.quickPhotoName || "Fotoğraf düzenle";
+                }
+                if (remove) {
+                    remove.checked = opener.dataset.quickPhotoRemove === "true";
+                }
+
+                modal.hidden = false;
+                document.body.classList.add("quick-photo-open");
+                const file = modal.querySelector("[data-avatar-crop-file]");
+                if (file && !remove?.checked) {
+                    setTimeout(() => file.focus(), 60);
+                }
+                return;
+            }
+
+            const closer = event.target.closest("[data-quick-photo-close]");
+            if (closer) {
+                const modal = closer.closest("[data-quick-photo-modal]");
+                if (modal) {
+                    closeModal(modal);
+                }
+            }
+        });
+
+        document.addEventListener("keydown", event => {
+            if (event.key !== "Escape") {
+                return;
+            }
+
+            document.querySelectorAll("[data-quick-photo-modal]:not([hidden])").forEach(closeModal);
+        });
+
+        window.__aslanaQuickPhotoModalLoaded = true;
+    })();
+</script>

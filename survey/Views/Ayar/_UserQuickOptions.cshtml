@@ -1,0 +1,177 @@
+<style>
+    .quick-add-inline {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .quick-add-inline input {
+        min-width: 0;
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid #d8e1ee;
+        border-radius: 7px;
+        color: #142033;
+        font-weight: 700;
+    }
+
+    .quick-add-inline button {
+        min-width: 42px;
+        height: 36px;
+        border: 0;
+        border-radius: 7px;
+        color: #fff;
+        background: #0f8f3a;
+        font-size: 18px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .quick-add-inline button:disabled {
+        opacity: .65;
+        cursor: progress;
+    }
+
+    .quick-add-message {
+        min-height: 18px;
+        margin-top: 4px;
+        color: #08724f;
+        font-size: 12px;
+        font-weight: 800;
+    }
+</style>
+
+<script>
+    (function () {
+        const endpoint = "@Url.Action("HizliSecenekEkle", "Ayar")";
+        const token = document.querySelector("input[name='__RequestVerificationToken']")?.value || "";
+        const lists = [
+            { id: "UserUnvan", type: "Unvan", label: "unvan" },
+            { id: "UserCinsiyet", type: "Cinsiyet", label: "cinsiyet" },
+            { id: "UserEgitim", type: "Egitim", label: "egitim" },
+            { id: "UserBolumu", type: "Bolum", label: "bolum" },
+            { id: "UserSube", type: "Sube", label: "sube" },
+            { id: "UserBolge", type: "Bolge", label: "bolge" },
+            { id: "UserDepartman", type: "Departman", label: "departman" },
+            { id: "UserYoneticisi", type: "Yonetici", label: "yonetici" },
+            { id: "UserYaka", type: "Yaka", label: "yaka" },
+            { id: "UserSehir", type: "Sehir", label: "sehir" }
+        ];
+
+        ["UserDogumTar"].forEach(function (id) {
+            const field = document.getElementById(id);
+            if (field) field.removeAttribute("required");
+        });
+
+        function optionExists(select, value) {
+            return Array.from(select.options).some(function (option) {
+                return option.value === String(value);
+            });
+        }
+
+        function appendOption(select, id, text) {
+            if (!optionExists(select, id)) {
+                select.add(new Option(text, id));
+            } else {
+                const existing = Array.from(select.options).find(function (option) {
+                    return option.value === String(id);
+                });
+                if (existing && text) {
+                    existing.text = text;
+                }
+            }
+
+            select.value = String(id);
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+            if (window.jQuery) {
+                window.jQuery(select).val(String(id)).trigger("change");
+            }
+        }
+
+        async function addOption(config, input, button, message, select) {
+            const value = input.value.trim();
+            if (value.length < 2) {
+                message.textContent = "En az 2 karakter yazin.";
+                return;
+            }
+
+            const body = new URLSearchParams();
+            body.set("__RequestVerificationToken", token);
+            body.set("tip", config.type);
+            body.set("ad", value);
+
+            button.disabled = true;
+            message.textContent = "Ekleniyor...";
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                    body: body.toString()
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    message.textContent = result.message || "Eklenemedi.";
+                    return;
+                }
+
+                const resultText = result.text || value;
+                appendOption(select, result.id, resultText);
+                input.value = "";
+                if (result.kind === "mevcut") {
+                    message.textContent = "Mevcut kayit secildi.";
+                } else if (result.kind === "benzer") {
+                    message.textContent = resultText + " ile eslesti ve secildi.";
+                } else {
+                    message.textContent = resultText !== value ? resultText + " olarak eklendi ve secildi." : "Eklendi ve secildi.";
+                }
+            } catch {
+                message.textContent = "Eklenemedi.";
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        lists.forEach(function (config) {
+            const select = document.getElementById(config.id);
+            if (!select) return;
+
+            select.removeAttribute("required");
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "quick-add-inline";
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.maxLength = 80;
+            input.placeholder = "Yeni " + config.label;
+            input.autocomplete = "off";
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = "+";
+            button.title = "Yeni " + config.label + " ekle";
+
+            const message = document.createElement("div");
+            message.className = "quick-add-message";
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(button);
+            select.insertAdjacentElement("afterend", message);
+            select.insertAdjacentElement("afterend", wrapper);
+
+            button.addEventListener("click", function () {
+                addOption(config, input, button, message, select);
+            });
+
+            input.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    addOption(config, input, button, message, select);
+                }
+            });
+        });
+    })();
+</script>

@@ -18,6 +18,7 @@ if (builder.Environment.IsDevelopment())
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddHostedService<RaporIndexBakimService>();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(8);

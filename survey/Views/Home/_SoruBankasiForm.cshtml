@@ -1,0 +1,564 @@
+@model survey.Controllers.HomeController.SoruBankasiFormModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using System.Linq
+
+@{
+    var baslik = Convert.ToString(ViewData["SoruFormBaslik"] ?? "Soru");
+    var altBaslik = Convert.ToString(ViewData["SoruFormAltBaslik"] ?? "");
+    var aksiyon = Convert.ToString(ViewData["SoruFormAksiyon"] ?? ViewContext.RouteData.Values["action"]);
+    var soruGruplari = ViewBag.Sor as List<SelectListItem> ?? new List<SelectListItem>();
+    var cevapGruplari = ViewBag.Cev as List<SelectListItem> ?? new List<SelectListItem>();
+    var cevaplar = Model.Cevaplar ?? new List<survey.Controllers.HomeController.SoruBankasiCevapFormModel>();
+    var imageBaseUrl = Url.Content("~/Content/AnketGorsel/");
+    var imageUploadUrl = Url.Action("AssessmentWizardImageUpload", "Home");
+    var isEdit = Model.SoruId.HasValue;
+    var geriUrl = Model.AnketId.HasValue
+        ? Url.Action("AnketSoruYonetim", "Home", new { id = Model.AnketId.Value })
+        : Url.Action("SoruIndex", "Home");
+    Func<string, string> imageUrl = file =>
+    {
+        file = (file ?? "").Trim();
+        return string.IsNullOrWhiteSpace(file) ? "" : imageBaseUrl + Uri.EscapeDataString(file);
+    };
+}
+
+<div class="question-editor">
+    @using (Html.BeginForm(aksiyon, "Home", FormMethod.Post, new { @class = "question-form", id = "questionBankForm" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.AnketId)
+        @Html.HiddenFor(x => x.SoruId)
+        @Html.HiddenFor(x => x.SoruGorsel, new { id = "questionImageInput" })
+
+        <section class="question-hero">
+            <div>
+                <span class="question-eyebrow">Soru Bankası</span>
+                <h1>@baslik</h1>
+                <p>@altBaslik</p>
+            </div>
+            <div class="question-hero-actions">
+                <a class="qb-btn ghost" href="@geriUrl">
+                    <i class="fa fa-arrow-left"></i> Geri
+                </a>
+                <button class="qb-btn primary" type="submit">
+                    <i class="fa fa-check"></i> Kaydet
+                </button>
+            </div>
+        </section>
+
+        @Html.ValidationSummary(true, "", new { @class = "qb-validation" })
+
+        <div class="question-layout">
+            <main class="question-main">
+                <section class="qb-section">
+                    <div class="section-head">
+                        <div>
+                            <span>01</span>
+                            <h2>Soru</h2>
+                        </div>
+                    </div>
+
+                    <div class="qb-field">
+                        <label for="SoruAdi">Soru metni</label>
+                        @Html.TextAreaFor(x => x.SoruAdi, new { @class = "qb-textarea", rows = 4, maxlength = "250", placeholder = "Soruyu yazın" })
+                        @Html.ValidationMessageFor(x => x.SoruAdi, "", new { @class = "qb-error" })
+                    </div>
+
+                    <div class="question-image-editor">
+                        <div class="question-image-thumb" data-image-preview="question">
+                            @if (!string.IsNullOrWhiteSpace(Model.SoruGorsel))
+                            {
+                                <img src="@imageUrl(Model.SoruGorsel)" alt="" loading="lazy" />
+                            }
+                            else
+                            {
+                                <i class="fa fa-image"></i>
+                            }
+                        </div>
+                        <div class="question-image-copy">
+                            <strong>Soru görseli</strong>
+                            <span data-image-name="question">@(string.IsNullOrWhiteSpace(Model.SoruGorsel) ? "Görsel yok" : Model.SoruGorsel)</span>
+                        </div>
+                        <div class="question-image-actions">
+                            <button class="qb-btn compact" type="button" data-upload-target="question">
+                                <i class="fa fa-image"></i> Görsel Ekle
+                            </button>
+                            <button class="qb-icon-btn" type="button" data-remove-image="question" title="Görseli kaldır" @(string.IsNullOrWhiteSpace(Model.SoruGorsel) ? "hidden" : "")>
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="qb-section">
+                    <div class="section-head">
+                        <div>
+                            <span>02</span>
+                            <h2>Cevaplar</h2>
+                        </div>
+                        <div class="preset-actions">
+                            <button class="qb-mini" type="button" data-preset="multiple">A-D</button>
+                            <button class="qb-mini" type="button" data-preset="truefalse">Doğru/Yanlış</button>
+                            <button class="qb-mini" type="button" data-preset="likert">5'li</button>
+                        </div>
+                    </div>
+
+                    <div class="mode-tabs" role="group" aria-label="Puanlama modu">
+                        <label class="mode-tab @(Model.PuanlamaModu == "anket" ? "" : "active")">
+                            @Html.RadioButtonFor(x => x.PuanlamaModu, "sinav", new { data_score_mode = "sinav" })
+                            <i class="fa fa-check-circle"></i>
+                            <span>Sınav</span>
+                        </label>
+                        <label class="mode-tab @(Model.PuanlamaModu == "anket" ? "active" : "")">
+                            @Html.RadioButtonFor(x => x.PuanlamaModu, "anket", new { data_score_mode = "anket" })
+                            <i class="fa fa-sliders"></i>
+                            <span>Anket</span>
+                        </label>
+                    </div>
+
+                    <div class="answer-list" id="answerList" data-next-index="@cevaplar.Count">
+                        @for (var i = 0; i < cevaplar.Count; i++)
+                        {
+                            var cevap = cevaplar[i];
+                            var rowHidden = cevap.Silinsin ? "is-deleted" : "";
+                            <div class="answer-row @rowHidden" data-answer-row>
+                                <input type="hidden" name="Cevaplar[@i].CevapId" value="@cevap.CevapId" />
+                                <input type="hidden" name="Cevaplar[@i].Gorsel" value="@cevap.Gorsel" data-answer-image-input />
+                                <input type="hidden" name="Cevaplar[@i].Silinsin" value="@(cevap.Silinsin ? "true" : "false")" data-delete-input />
+
+                                <label class="correct-pick" title="Doğru cevap">
+                                    <input type="radio" name="DogruCevapSatiri" value="@i" @(Model.DogruCevapSatiri == i ? "checked" : "") data-correct-radio />
+                                    <span><i class="fa fa-check"></i></span>
+                                </label>
+
+                                <div class="answer-image-thumb" data-answer-image-preview>
+                                    @if (!string.IsNullOrWhiteSpace(cevap.Gorsel))
+                                    {
+                                        <img src="@imageUrl(cevap.Gorsel)" alt="" loading="lazy" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fa fa-image"></i>
+                                    }
+                                </div>
+
+                                <input class="answer-text" type="text" name="Cevaplar[@i].Metin" value="@cevap.Metin" maxlength="250" placeholder="Cevap seçeneği" />
+                                <input class="answer-score" type="number" name="Cevaplar[@i].Puan" value="@((cevap.Puan ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))" min="0" max="5" step="0.5" title="Anket puanı" />
+
+                                <button class="qb-icon-btn" type="button" data-upload-target="answer" title="Cevap görseli ekle">
+                                    <i class="fa fa-image"></i>
+                                </button>
+                                <button class="qb-icon-btn danger" type="button" data-delete-answer title="Cevabı sil">
+                                    <i class="fa fa-trash-o"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <button class="qb-btn compact" type="button" id="addAnswerButton">
+                        <i class="fa fa-plus"></i> Cevap Ekle
+                    </button>
+                </section>
+            </main>
+
+            <aside class="question-side">
+                <section class="qb-section side-section">
+                    <div class="section-head compact-head">
+                        <div>
+                            <span>03</span>
+                            <h2>Bağlantılar</h2>
+                        </div>
+                    </div>
+
+                    <div class="qb-field">
+                        <label for="SoruGrupId">Bölüm / kategori</label>
+                        @Html.DropDownListFor(x => x.SoruGrupId, soruGruplari, "Seçim", new { @class = "qb-select", required = "required" })
+                        @Html.ValidationMessageFor(x => x.SoruGrupId, "", new { @class = "qb-error" })
+                    </div>
+
+                    <div class="qb-grid two">
+                        <div class="qb-field">
+                            <label for="SoruSira">Sıra</label>
+                            @Html.TextBoxFor(x => x.SoruSira, new { @class = "qb-input", type = "number", min = "0", max = "999" })
+                            @Html.ValidationMessageFor(x => x.SoruSira, "", new { @class = "qb-error" })
+                        </div>
+                        <div class="qb-field">
+                            <label for="SoruPuan">Puan</label>
+                            @Html.TextBoxFor(x => x.SoruPuan, new { @class = "qb-input", type = "number", min = "0", max = "1000", step = "0.5" })
+                            @Html.ValidationMessageFor(x => x.SoruPuan, "", new { @class = "qb-error" })
+                        </div>
+                    </div>
+                </section>
+
+                <section class="qb-section side-section">
+                    <div class="section-head compact-head">
+                        <div>
+                            <span>04</span>
+                            <h2>Seçenek Grubu</h2>
+                        </div>
+                    </div>
+
+                    <div class="group-mode">
+                        <label class="group-mode-item @(Model.CevapGrupModu == "hazir" ? "" : "active")">
+                            @Html.RadioButtonFor(x => x.CevapGrupModu, "yeni", new { data_group_mode = "yeni" })
+                            <i class="fa fa-plus"></i>
+                            <span>Yeni grup</span>
+                        </label>
+                        <label class="group-mode-item @(Model.CevapGrupModu == "hazir" ? "active" : "")">
+                            @Html.RadioButtonFor(x => x.CevapGrupModu, "hazir", new { data_group_mode = "hazir" })
+                            <i class="fa fa-list"></i>
+                            <span>Hazır grup</span>
+                        </label>
+                    </div>
+
+                    <div class="qb-field" data-new-group-panel>
+                        <label for="YeniCevapGrupAdi">Yeni grup adı</label>
+                        @Html.TextBoxFor(x => x.YeniCevapGrupAdi, new { @class = "qb-input", maxlength = "250", placeholder = "Boşsa soru adına göre oluşur" })
+                    </div>
+
+                    <div class="qb-field" data-existing-group-panel>
+                        <label for="CevapGrupId">Hazır seçenek grubu</label>
+                        @Html.DropDownListFor(x => x.CevapGrupId, cevapGruplari, "Seçim", new { @class = "qb-select" })
+                        @Html.ValidationMessageFor(x => x.CevapGrupId, "", new { @class = "qb-error" })
+                    </div>
+
+                    <label class="qb-check" data-update-answers-panel>
+                        @Html.CheckBoxFor(x => x.CevaplariGuncelle)
+                        <span>Seçenekleri kaydet</span>
+                    </label>
+                </section>
+
+                <section class="qb-save-panel">
+                    <button class="qb-btn primary wide" type="submit">
+                        <i class="fa fa-check"></i> Kaydet
+                    </button>
+                    <a class="qb-btn ghost wide" href="@geriUrl">
+                        <i class="fa fa-arrow-left"></i> Geri
+                    </a>
+                </section>
+            </aside>
+        </div>
+    }
+</div>
+
+<style>
+    .question-editor { width: min(1600px, calc(100% - 48px)); margin: 34px auto 64px; color: #071832; }
+    .question-editor * { box-sizing: border-box; }
+    .question-hero { display: flex; justify-content: space-between; gap: 28px; align-items: flex-start; padding: 32px 34px; border: 1px solid #d6e2f3; border-radius: 12px; background: linear-gradient(130deg, rgba(228,253,247,.96), rgba(247,249,255,.94) 56%, rgba(255,248,228,.78)), #fff; box-shadow: 0 20px 48px rgba(24,45,83,.08); }
+    .question-eyebrow { display: inline-block; color: #255ef5; font-size: 12px; font-weight: 950; text-transform: uppercase; }
+    .question-hero h1 { margin: 10px 0 8px; font-size: 40px; line-height: 1.1; font-weight: 950; letter-spacing: 0; }
+    .question-hero p { margin: 0; color: #526176; font-size: 15px; line-height: 1.6; font-weight: 700; }
+    .question-hero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; min-width: 250px; }
+    .question-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; margin-top: 18px; align-items: start; }
+    .question-main, .question-side { display: grid; gap: 18px; }
+    .qb-section, .qb-save-panel { border: 1px solid #d6e2f3; border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: 0 20px 48px rgba(24,45,83,.08); }
+    .qb-section { padding: 22px; }
+    .side-section { padding: 18px; }
+    .qb-save-panel { display: grid; gap: 10px; padding: 14px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .section-head > div:first-child { display: flex; align-items: center; gap: 12px; }
+    .section-head span { width: 34px; height: 34px; display: inline-grid; place-items: center; border-radius: 10px; color: #0b4b77; background: #eef9ff; font-size: 12px; font-weight: 950; }
+    .section-head h2 { margin: 0; font-size: 20px; line-height: 1.2; font-weight: 950; letter-spacing: 0; }
+    .compact-head { margin-bottom: 14px; }
+    .compact-head h2 { font-size: 17px; }
+    .qb-field { display: grid; gap: 8px; margin-bottom: 14px; }
+    .qb-field label { color: #253755; font-size: 13px; font-weight: 950; }
+    .qb-input, .qb-select, .qb-textarea, .answer-text, .answer-score { width: 100%; border: 1px solid #cfdbec; border-radius: 10px; background: #fff; color: #071832; font-size: 14px; font-weight: 750; outline: none; }
+    .qb-input, .qb-select, .answer-text, .answer-score { min-height: 44px; padding: 0 13px; }
+    .qb-textarea { padding: 13px; resize: vertical; min-height: 118px; line-height: 1.5; }
+    .qb-input:focus, .qb-select:focus, .qb-textarea:focus, .answer-text:focus, .answer-score:focus { border-color: #3562f4; box-shadow: 0 0 0 3px rgba(53,98,244,.12); }
+    .qb-grid.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .qb-btn, .qb-icon-btn, .qb-mini { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cfe0f6; border-radius: 10px; background: #fff; color: #071832; font-weight: 950; text-decoration: none; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
+    .qb-btn { min-height: 42px; padding: 0 16px; }
+    .qb-btn.compact { min-height: 38px; padding: 0 13px; font-size: 13px; }
+    .qb-btn.primary { border-color: #22b8a6; color: #fff; background: linear-gradient(135deg, #16bca9, #3562f4); box-shadow: 0 16px 32px rgba(34,105,244,.18); }
+    .qb-btn.ghost { background: #fff; }
+    .qb-btn.wide { width: 100%; }
+    .qb-icon-btn { width: 38px; min-width: 38px; min-height: 38px; padding: 0; color: #1763df; }
+    .qb-icon-btn.danger { color: #d9364f; border-color: #ffd1d8; background: #fff7f8; }
+    .qb-mini { min-height: 34px; padding: 0 11px; color: #37506f; background: #f8fbff; font-size: 12px; }
+    .qb-btn:hover, .qb-icon-btn:hover, .qb-mini:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(19,42,80,.12); text-decoration: none; }
+    .preset-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .qb-validation { margin: 16px 0 0; padding: 12px 14px; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; background: #fff1f2; font-weight: 800; }
+    .qb-validation.validation-summary-valid { display: none; }
+    .qb-error { color: #b42318; font-size: 12px; font-weight: 800; }
+    .question-image-editor { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px; border: 1px solid #d6e2f3; border-radius: 12px; background: #f8fbff; }
+    .question-image-thumb, .answer-image-thumb { display: grid; place-items: center; overflow: hidden; border: 1px solid #d6e2f3; background: #fff; color: #8aa0bf; }
+    .question-image-thumb { width: 104px; aspect-ratio: 4 / 3; border-radius: 10px; }
+    .answer-image-thumb { width: 46px; min-width: 46px; height: 46px; border-radius: 10px; }
+    .question-image-thumb img, .answer-image-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .question-image-copy { min-width: 0; display: grid; gap: 4px; }
+    .question-image-copy strong { font-size: 14px; font-weight: 950; }
+    .question-image-copy span { color: #64748b; font-size: 12px; font-weight: 800; overflow-wrap: anywhere; }
+    .question-image-actions { display: flex; gap: 8px; align-items: center; }
+    .mode-tabs, .group-mode { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .mode-tab, .group-mode-item, .qb-check { display: flex; align-items: center; gap: 9px; min-height: 42px; padding: 0 12px; border: 1px solid #d6e2f3; border-radius: 10px; background: #fff; color: #344054; font-weight: 900; cursor: pointer; }
+    .mode-tab input, .group-mode-item input { position: absolute; opacity: 0; pointer-events: none; }
+    .mode-tab.active, .group-mode-item.active { color: #075985; border-color: #7dd3fc; background: #ecfeff; box-shadow: inset 0 0 0 1px rgba(14,165,233,.18); }
+    .answer-list { display: grid; gap: 10px; margin-bottom: 14px; }
+    .answer-row { display: grid; grid-template-columns: 40px 46px minmax(180px, 1fr) 88px 38px 38px; gap: 10px; align-items: center; padding: 10px; border: 1px solid #e1e8f3; border-radius: 12px; background: #fff; }
+    .answer-row.is-deleted { display: none; }
+    .correct-pick { width: 40px; height: 40px; margin: 0; display: inline-grid; place-items: center; cursor: pointer; }
+    .correct-pick input { position: absolute; opacity: 0; pointer-events: none; }
+    .correct-pick span { width: 34px; height: 34px; display: inline-grid; place-items: center; border-radius: 10px; color: #9aa8bd; border: 1px solid #d6e2f3; background: #fff; }
+    .correct-pick input:checked + span { color: #fff; border-color: #10b981; background: #10b981; }
+    .answer-score { text-align: center; }
+    .question-form[data-mode="sinav"] .answer-score { display: none; }
+    .question-form[data-mode="anket"] .correct-pick { display: none; }
+    .question-form[data-group-mode="hazir"] [data-new-group-panel] { display: none; }
+    .question-form[data-group-mode="yeni"] [data-existing-group-panel] { display: none; }
+    .qb-check { margin-top: 4px; justify-content: flex-start; }
+    .qb-check input { width: 16px; height: 16px; }
+    @@media (max-width: 1100px) {
+        .question-layout { grid-template-columns: 1fr; }
+        .question-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .qb-save-panel { grid-column: 1 / -1; }
+    }
+    @@media (max-width: 760px) {
+        .question-editor { width: min(100% - 22px, 1600px); margin-top: 18px; }
+        .question-hero { display: grid; padding: 24px; }
+        .question-hero-actions { justify-content: flex-start; min-width: 0; }
+        .question-hero h1 { font-size: 32px; }
+        .question-side { grid-template-columns: 1fr; }
+        .question-image-editor { grid-template-columns: 82px 1fr; }
+        .question-image-thumb { width: 82px; }
+        .question-image-actions { grid-column: 1 / -1; }
+        .answer-row { grid-template-columns: 40px 46px 1fr; }
+        .answer-score, .answer-row > .qb-icon-btn { grid-column: auto; }
+        .preset-actions { justify-content: flex-start; }
+    }
+</style>
+
+<script>
+    (function () {
+        const form = document.getElementById("questionBankForm");
+        if (!form) return;
+
+        const uploadUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(imageUploadUrl));
+        const imageBaseUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(imageBaseUrl));
+        const answerList = document.getElementById("answerList");
+        const addAnswerButton = document.getElementById("addAnswerButton");
+        const questionImageInput = document.getElementById("questionImageInput");
+
+        function cleanImageName(value) {
+            return String(value || "").split(/[\\/]/).pop().trim();
+        }
+
+        function imageUrl(fileName) {
+            const cleanName = cleanImageName(fileName);
+            return cleanName ? imageBaseUrl + encodeURIComponent(cleanName) : "";
+        }
+
+        function setMode(mode) {
+            form.dataset.mode = mode === "anket" ? "anket" : "sinav";
+            form.querySelectorAll(".mode-tab").forEach(label => {
+                const input = label.querySelector("input");
+                label.classList.toggle("active", input && input.value === form.dataset.mode);
+            });
+
+            const anketMode = form.dataset.mode === "anket";
+            form.querySelectorAll(".answer-score").forEach(input => {
+                input.disabled = !anketMode;
+                if (anketMode) {
+                    const value = Number(input.value || "0");
+                    if (Number.isFinite(value)) {
+                        input.value = String(Math.max(0, Math.min(5, value)));
+                    }
+                }
+            });
+        }
+
+        function setGroupMode(mode, changed) {
+            form.dataset.groupMode = mode === "hazir" ? "hazir" : "yeni";
+            form.querySelectorAll(".group-mode-item").forEach(label => {
+                const input = label.querySelector("input");
+                label.classList.toggle("active", input && input.value === form.dataset.groupMode);
+            });
+
+            const updateAnswers = form.querySelector("input[name='CevaplariGuncelle']");
+            if (changed && updateAnswers) {
+                updateAnswers.checked = form.dataset.groupMode === "yeni";
+            }
+        }
+
+        function pickImageFile() {
+            return new Promise(resolve => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "image/jpeg,image/png,image/webp,image/gif";
+                input.addEventListener("change", () => resolve(input.files && input.files[0] ? input.files[0] : null), { once: true });
+                input.click();
+            });
+        }
+
+        async function uploadImage() {
+            const file = await pickImageFile();
+            if (!file) return "";
+
+            const token = form.querySelector("input[name='__RequestVerificationToken']")?.value || "";
+            const body = new FormData();
+            body.append("__RequestVerificationToken", token);
+            body.append("file", file);
+
+            const response = await fetch(uploadUrl, { method: "POST", body });
+            const result = await response.json();
+            if (!result.success) {
+                window.alert(result.message || "Görsel yüklenemedi.");
+                return "";
+            }
+
+            return result.fileName || "";
+        }
+
+        function renderImage(preview, fileName) {
+            const url = imageUrl(fileName);
+            preview.innerHTML = url ? `<img src="${url}" alt="" loading="lazy" />` : `<i class="fa fa-image"></i>`;
+        }
+
+        async function uploadQuestionImage() {
+            const fileName = await uploadImage();
+            if (!fileName) return;
+
+            questionImageInput.value = fileName;
+            renderImage(form.querySelector("[data-image-preview='question']"), fileName);
+            form.querySelector("[data-image-name='question']").textContent = fileName;
+            const removeButton = form.querySelector("[data-remove-image='question']");
+            if (removeButton) removeButton.hidden = false;
+        }
+
+        async function uploadAnswerImage(row) {
+            const fileName = await uploadImage();
+            if (!fileName) return;
+
+            row.querySelector("[data-answer-image-input]").value = fileName;
+            renderImage(row.querySelector("[data-answer-image-preview]"), fileName);
+        }
+
+        function answerTemplate(index, text, score, correct) {
+            return `
+                <div class="answer-row" data-answer-row>
+                    <input type="hidden" name="Cevaplar[${index}].CevapId" value="" />
+                    <input type="hidden" name="Cevaplar[${index}].Gorsel" value="" data-answer-image-input />
+                    <input type="hidden" name="Cevaplar[${index}].Silinsin" value="false" data-delete-input />
+                    <label class="correct-pick" title="Doğru cevap">
+                        <input type="radio" name="DogruCevapSatiri" value="${index}" ${correct ? "checked" : ""} data-correct-radio />
+                        <span><i class="fa fa-check"></i></span>
+                    </label>
+                    <div class="answer-image-thumb" data-answer-image-preview><i class="fa fa-image"></i></div>
+                    <input class="answer-text" type="text" name="Cevaplar[${index}].Metin" value="${escapeAttr(text || "")}" maxlength="250" placeholder="Cevap seçeneği" />
+                    <input class="answer-score" type="number" name="Cevaplar[${index}].Puan" value="${score ?? 0}" min="0" max="5" step="0.5" title="Anket puanı" />
+                    <button class="qb-icon-btn" type="button" data-upload-target="answer" title="Cevap görseli ekle"><i class="fa fa-image"></i></button>
+                    <button class="qb-icon-btn danger" type="button" data-delete-answer title="Cevabı sil"><i class="fa fa-trash-o"></i></button>
+                </div>`;
+        }
+
+        function escapeAttr(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/"/g, "&quot;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
+        function nextIndex() {
+            const value = Number(answerList.dataset.nextIndex || "0");
+            answerList.dataset.nextIndex = String(value + 1);
+            return value;
+        }
+
+        function addAnswer(text, score, correct) {
+            answerList.insertAdjacentHTML("beforeend", answerTemplate(nextIndex(), text, score, correct));
+            setMode(form.dataset.mode || "sinav");
+        }
+
+        function clearAnswers() {
+            answerList.querySelectorAll("[data-answer-row]").forEach(row => {
+                row.querySelector("[data-delete-input]").value = "true";
+                row.classList.add("is-deleted");
+            });
+        }
+
+        function applyPreset(kind) {
+            clearAnswers();
+            if (kind === "truefalse") {
+                setMode("sinav");
+                form.querySelector("input[value='sinav'][name='PuanlamaModu']").checked = true;
+                addAnswer("Doğru", 5, true);
+                addAnswer("Yanlış", 0, false);
+                return;
+            }
+
+            if (kind === "likert") {
+                setMode("anket");
+                form.querySelector("input[value='anket'][name='PuanlamaModu']").checked = true;
+                ["Çok memnunum", "Memnunum", "Kararsızım", "Memnun değilim", "Hiç memnun değilim"].forEach((text, index) => addAnswer(text, 5 - index, false));
+                return;
+            }
+
+            setMode("sinav");
+            form.querySelector("input[value='sinav'][name='PuanlamaModu']").checked = true;
+            ["A seçeneği", "B seçeneği", "C seçeneği", "D seçeneği"].forEach((text, index) => addAnswer(text, index === 0 ? 5 : 0, index === 0));
+        }
+
+        function ensureCorrectSelection() {
+            const visibleRows = Array.from(answerList.querySelectorAll("[data-answer-row]:not(.is-deleted)"));
+            if (!visibleRows.length) return;
+            const checked = visibleRows.some(row => row.querySelector("[data-correct-radio]")?.checked);
+            if (!checked) {
+                const first = visibleRows[0].querySelector("[data-correct-radio]");
+                if (first) first.checked = true;
+            }
+        }
+
+        form.querySelectorAll("[data-score-mode]").forEach(input => {
+            input.addEventListener("change", () => setMode(input.value));
+            if (input.checked) setMode(input.value);
+        });
+
+        form.querySelectorAll("[data-group-mode]").forEach(input => {
+            input.addEventListener("change", () => setGroupMode(input.value, true));
+            if (input.checked) setGroupMode(input.value, false);
+        });
+
+        form.addEventListener("click", event => {
+            const uploadTarget = event.target.closest("[data-upload-target]");
+            if (uploadTarget) {
+                const target = uploadTarget.dataset.uploadTarget;
+                if (target === "question") uploadQuestionImage();
+                if (target === "answer") uploadAnswerImage(uploadTarget.closest("[data-answer-row]"));
+                return;
+            }
+
+            const removeQuestion = event.target.closest("[data-remove-image='question']");
+            if (removeQuestion) {
+                questionImageInput.value = "";
+                renderImage(form.querySelector("[data-image-preview='question']"), "");
+                form.querySelector("[data-image-name='question']").textContent = "Görsel yok";
+                removeQuestion.hidden = true;
+                return;
+            }
+
+            const deleteButton = event.target.closest("[data-delete-answer]");
+            if (deleteButton) {
+                const row = deleteButton.closest("[data-answer-row]");
+                row.querySelector("[data-delete-input]").value = "true";
+                row.classList.add("is-deleted");
+                ensureCorrectSelection();
+                return;
+            }
+
+            const preset = event.target.closest("[data-preset]");
+            if (preset) {
+                applyPreset(preset.dataset.preset || "multiple");
+            }
+        });
+
+        if (addAnswerButton) {
+            addAnswerButton.addEventListener("click", () => addAnswer("", 0, false));
+        }
+
+        setMode(form.querySelector("input[name='PuanlamaModu']:checked")?.value || "sinav");
+        setGroupMode(form.querySelector("input[name='CevapGrupModu']:checked")?.value || "yeni");
+        ensureCorrectSelection();
+    })();
+</script>

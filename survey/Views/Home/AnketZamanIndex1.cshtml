@@ -2,8 +2,10 @@
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var anketAdi = (ViewBag.anketAdi as string) ?? Model.FirstOrDefault()?.Anket?.AnketAdi ?? "Calisma";
+    var anketAdi = (ViewBag.anketAdi as string) ?? Model.FirstOrDefault()?.Anket?.AnketAdi ?? "Çalışma";
     int? zaman = ViewBag.zaman == null ? null : (int?)Convert.ToInt32(ViewBag.zaman);
+    var cevapliKatilimKeys = ViewBag.CevapliKatilimKeys as System.Collections.Generic.HashSet<string>
+        ?? new System.Collections.Generic.HashSet<string>();
 }
 
 <style>
@@ -96,6 +98,11 @@
         color: #c53030;
     }
 
+    .status-chip.ghost {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
     .time-action {
         display: inline-flex;
         align-items: center;
@@ -130,29 +137,30 @@
     <div class="time-detail-head">
         <div>
             <h2>@anketAdi</h2>
-            <p>Sinav suresi: @(zaman.HasValue && zaman.Value > 0 ? zaman + " dakika" : "Sinirsiz")</p>
+            <p>Sınav süresi: @(zaman.HasValue && zaman.Value > 0 ? zaman + " dakika" : "Sınırsız")</p>
         </div>
         <a class="time-action" href="@Url.Action("AnketZamanIndex", "Home")">Geri</a>
     </div>
 
     <div class="time-detail-body">
         <div class="time-note">
-            Sure sifirlama bu katilimcinin zaman kaydini siler. Kisi ayni calismaya yeniden girdiginde sure bastan baslar.
+            Bu ekran cevap katılımını değil, sınavın süre takibini gösterir. Cevap kaydı yoksa kişi çalışmayı açmış ama tamamlamamış olabilir.
         </div>
 
         @if (!Model.Any())
         {
-            <div class="empty-time-state">Bu calisma icin sure kaydi bulunamadi.</div>
+            <div class="empty-time-state">Bu çalışma için süre kaydı bulunamadı.</div>
         }
         else
         {
             <table class="time-table">
                 <thead>
                     <tr>
-                        <th>Katilimci</th>
+                        <th>Süre kaydı</th>
                         <th>TC / Kod</th>
-                        <th>Baslangic</th>
-                        <th>Bitis</th>
+                        <th>Başlangıç</th>
+                        <th>Bitiş</th>
+                        <th>Cevap kaydı</th>
                         <th>Durum</th>
                         <th></th>
                     </tr>
@@ -160,22 +168,33 @@
                 <tbody>
                     @foreach (var item in Model)
                     {
-                        var kullaniciAdi = item.User?.UserAdi ?? ("Katilimci #" + (item.UseId?.ToString() ?? item.IzleId.ToString()));
+                        var kullaniciAdi = item.User?.UserAdi ?? ("Süre kaydı #" + (item.UseId?.ToString() ?? item.IzleId.ToString()));
                         var kullaniciTc = item.User?.UserTc ?? (item.UseId?.ToString() ?? "-");
+                        var cevapKaydiVar = false;
+                        if (item.User != null)
+                        {
+                            cevapKaydiVar = cevapliKatilimKeys.Contains("u:" + item.User.UserId);
+                        }
+                        if (!cevapKaydiVar && item.UseId.HasValue)
+                        {
+                            cevapKaydiVar = cevapliKatilimKeys.Contains("u:" + item.UseId.Value)
+                                || cevapliKatilimKeys.Contains("k:" + item.UseId.Value);
+                        }
                         var devamEdiyor = item.BitisZaman.HasValue && DateTime.Now < item.BitisZaman.Value;
                         var sinirsiz = !item.BitisZaman.HasValue;
                         var durumClass = sinirsiz ? "" : (devamEdiyor ? "live" : "done");
-                        var durumText = sinirsiz ? "Sure sinirsiz" : (devamEdiyor ? "Devam ediyor" : "Sure doldu");
+                        var durumText = sinirsiz ? "Süre sınırsız" : (devamEdiyor ? "Devam ediyor" : "Süre doldu");
                         <tr>
                             <td><strong>@kullaniciAdi</strong></td>
                             <td>@kullaniciTc</td>
                             <td>@(item.IzTarih.HasValue ? item.IzTarih.Value.ToString("dd.MM.yyyy HH:mm") : "-")</td>
                             <td>@(item.BitisZaman.HasValue ? item.BitisZaman.Value.ToString("dd.MM.yyyy HH:mm") : "-")</td>
+                            <td><span class="status-chip @(cevapKaydiVar ? "live" : "ghost")">@(cevapKaydiVar ? "Var" : "Yok")</span></td>
                             <td><span class="status-chip @durumClass">@durumText</span></td>
                             <td>
                                 <a class="time-action danger"
                                    href="@Url.Action("AnketZamanDelete", "Home", new { id = item.IzleId, adi = kullaniciAdi, ank = anketAdi, ankid = item.AnketId })">
-                                    Sureyi sifirla
+                                    Süreyi sıfırla
                                 </a>
                             </td>
                         </tr>

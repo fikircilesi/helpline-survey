@@ -3,7 +3,7 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-@using (Html.BeginForm())
+@using (Html.BeginForm(null, null, FormMethod.Post, new { enctype = "multipart/form-data" }))
 {
     @Html.AntiForgeryToken()
 
@@ -30,6 +30,16 @@
             @Html.EditorFor(model => model.UserTc, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
             @Html.ValidationMessageFor(model => model.UserTc, "", new { @class = "text-danger" })
         </div>
+        <div class="col-md-10">
+            <b>E-posta</b>
+            @Html.EditorFor(model => model.UserMail, new { htmlAttributes = new { @class = "form-control", @type = "email", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.UserMail, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <b>Telefon</b>
+            @Html.EditorFor(model => model.UserTelefon, new { htmlAttributes = new { @class = "form-control", @maxlength = "50" } })
+            @Html.ValidationMessageFor(model => model.UserTelefon, "", new { @class = "text-danger" })
+        </div>
         <div>
             <b>Unvan</b>
             @Html.DropDownListFor(m => m.UserUnvan, (List<SelectListItem>)ViewBag.Unv, "Seçim", new { @class = "form-control", @Required = "" })
@@ -49,6 +59,11 @@
             <b>Yaşı</b>
             @Html.EditorFor(model => model.UserDogumTar, new { htmlAttributes = new { @type = "date", @class = "form-control", @Required = "", @maxlength = "50" } })
             @Html.ValidationMessageFor(model => model.UserDogumTar, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <b>İşe Giriş Tarihi</b>
+            @Html.EditorFor(model => model.UserIseGirisTarihi, new { htmlAttributes = new { @type = "date", @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.UserIseGirisTarihi, "", new { @class = "text-danger" })
         </div>
 
         <div>
@@ -87,6 +102,18 @@
             @Html.DropDownListFor(m => m.UserSehir, (List<SelectListItem>)ViewBag.Seh, "Seçim", new { @class = "form-control", @Required = "" })
             @Html.ValidationMessageFor(model => model.UserSehir, "", new { @class = "text-danger" })
         </div>
+        <div class="col-md-10">
+            <b>Katılımcı Fotoğrafı</b>
+            @Html.HiddenFor(model => model.UserResim)
+            @await Html.PartialAsync("_ResimKirpici")
+            <small class="text-muted">Excel için dosya adı yazılır; görseller /Content/Katilimci klasöründe durur.</small>
+            @Html.ValidationMessageFor(model => model.UserResim, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-10">
+            <b>Adres</b>
+            @Html.TextAreaFor(model => model.UserAdres, new { @class = "form-control", rows = "3" })
+            @Html.ValidationMessageFor(model => model.UserAdres, "", new { @class = "text-danger" })
+        </div>
         <div class="checkbox-color checkbox-primary">
             <input name="Pasif" value="True" id="checkbox1" type="checkbox" unchecked="">
             <label class="form-label" for="checkbox1"> Pasif</label>
@@ -101,3 +128,5 @@
         </div>
     </div>
 }
+
+@await Html.PartialAsync("_UserQuickOptions")

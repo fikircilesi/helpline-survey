@@ -4511,36 +4511,55 @@ namespace survey.Controllers
             }
         }
 
-        [HttpPost]
+        [ValidateAntiForgeryToken(), HttpPost]
         public ActionResult SifremiUnuttum(string email, int MailId = 1)
         {
-            var sorgu = (from i in db.Personel where i.Mail.Equals(email) select i).SingleOrDefault(); //üyeyi yakaladık
-            var sorgu1 = (from ii in db.smtpayar where ii.MailId.Equals(MailId) select ii).SingleOrDefault(); //üyeyi yakaladık
-            if (sorgu != null)
+            email = (email ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(email))
             {
-                Guid randomkey = Guid.NewGuid(); //32 karakterli kodu ürettik
-                sorgu.Sifre = randomkey.ToString().Substring(0, 5);///keyi ekleyip veritabanına ekledik
-                MailMessage msg = new MailMessage();
-                msg.To.Add(email.ToString());
-                string Body = randomkey.ToString().Substring(0, 5);
-                msg.IsBodyHtml = true;
-                msg.Subject = "Şifre Degiştirme İsteği Bildirimi";
-                msg.Body += "<h2>  Merhaba " + sorgu.Mail + " Şifre Degiştirme İsteğiniz Alınmıştır.  Şifreniz :" + randomkey.ToString().Substring(0, 5) + "  Hesabınıza girerek şifrenizi Güncelleyiniz </h2>  </br>  "; //randomkeyimizi 5 karatere düşdük
-                msg.From = new MailAddress(sorgu1.Gonderen);
-                msg.BodyEncoding = Encoding.UTF8;
-                msg.DeliveryNotificationOptions = DeliveryNotificationOptions.OnFailure;
+                ViewBag.Uyari = "Mail adresinizi yazın.";
+                return View();
+            }
 
-                SmtpClient sm = new SmtpClient
-                {
-                    Host = sorgu1.Sunucu,
-                    Port = sorgu1.Portu,
-                    UseDefaultCredentials = true,
-                    Credentials = new NetworkCredential(sorgu1.UserName, sorgu1.Password),
-                    EnableSsl = sorgu1.Ssli,
-                    Timeout = 10000,
-                    DeliveryMethod = SmtpDeliveryMethod.Network
+            var sorgu = (from i in db.Personel where i.Mail == email select i).FirstOrDefault();
+            var sorgu1 = (from ii in db.smtpayar where ii.MailId == MailId select ii).FirstOrDefault();
+            if (sorgu == null)
+            {
+                ViewBag.Uyari = "Mail adresi kayıtlı değil.";
+                return View();
+            }
 
-                };
+            if (sorgu1 == null)
+            {
+                ViewBag.Uyari = "SMTP ayarı bulunamadı. Lütfen mail ayarlarını kontrol edin.";
+                return View();
+            }
+
+            var yeniSifre = Guid.NewGuid().ToString("N").Substring(0, 6);
+            sorgu.Sifre = yeniSifre;
+            MailMessage msg = new MailMessage();
+            msg.To.Add(email);
+            msg.IsBodyHtml = true;
+            msg.Subject = "Şifre Değiştirme İsteği Bildirimi";
+            msg.Body = "<h2>Merhaba " + sorgu.Mail + "</h2>"
+                + "<p>Şifre değiştirme isteğiniz alınmıştır.</p>"
+                + "<p>Geçici şifreniz: <strong>" + yeniSifre + "</strong></p>"
+                + "<p>Hesabınıza girdikten sonra şifrenizi güncelleyiniz.</p>";
+            msg.From = new MailAddress(sorgu1.Gonderen);
+            msg.SubjectEncoding = Encoding.UTF8;
+            msg.BodyEncoding = Encoding.UTF8;
+            msg.DeliveryNotificationOptions = DeliveryNotificationOptions.OnFailure;
+
+            SmtpClient sm = new SmtpClient
+            {
+                Host = sorgu1.Sunucu,
+                Port = sorgu1.Portu,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(sorgu1.UserName, sorgu1.Password),
+                EnableSsl = sorgu1.Ssli,
+                Timeout = 10000,
+                DeliveryMethod = SmtpDeliveryMethod.Network
+            };
 #pragma warning disable SYSLIB0014
                 ServicePointManager.ServerCertificateValidationCallback = delegate (object s, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
                 {
@@ -4548,14 +4567,20 @@ namespace survey.Controllers
                 };
 #pragma warning restore SYSLIB0014
 
-                sm.Send(msg);
-                db.SaveChanges();
-                ViewBag.Uyari = "Doğrulama kodu mail adresinize gönderildi.";
-            }
-            else
-            {
-                ViewBag.Uyari = " Mail Adresi Mevcut Değil";
-            }
+                try
+                {
+                    sm.Send(msg);
+                    db.SaveChanges();
+                    ViewBag.Uyari = "Geçici şifre mail adresinize gönderildi.";
+                }
+                catch (SmtpException ex)
+                {
+                    ViewBag.Uyari = "Mail sunucusu gönderimi reddetti. SMTP kullanıcı adı, şifre, port, SSL ve gönderici adresini kontrol edin. Teknik mesaj: " + ex.Message;
+                }
+                catch (Exception ex)
+                {
+                    ViewBag.Uyari = "Şifre sıfırlama maili gönderilemedi. Teknik mesaj: " + ex.Message;
+                }
             return View();
         }
 

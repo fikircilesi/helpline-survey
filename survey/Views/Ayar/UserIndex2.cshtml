@@ -39,6 +39,10 @@
 
     @if (izlemeler.Any())
     {
+        <div class="people-tools">
+            <input type="search" class="person-search" data-watch-person-search placeholder="Katılımcı ara" />
+            <span>@izlemeler.Count kayıt</span>
+        </div>
         <section class="people-grid">
             @foreach (var item in izlemeler)
             {
@@ -46,7 +50,6 @@
                 var ad = !string.IsNullOrWhiteSpace(user?.UserAdi)
                     ? user.UserAdi
                     : "Katılımcı #" + (item.UseId?.ToString() ?? item.IzleId.ToString());
-                var ilkHarf = ad.Substring(0, 1).ToUpper(new CultureInfo("tr-TR"));
                 var profil = user == null
                     ? "Katılım kodu ile giriş"
                     : string.Join(" / ", new[]
@@ -54,12 +57,13 @@
                         user.Departman?.DepartmanAdi,
                         user.Unvan?.UnvanAdi,
                         user.Sehir?.SehiarAdi
-                    }.Where(x => !string.IsNullOrWhiteSpace(x)).DefaultIfEmpty("Profil bilgisi yok"));
+                }.Where(x => !string.IsNullOrWhiteSpace(x)).DefaultIfEmpty("Profil bilgisi yok"));
                 var durum = item.Izledi == true ? "Video tamamlandı" : "Video süreci başladı";
                 var durumClass = item.Izledi == true ? "active" : "waiting";
+                var arama = string.Join(" ", new[] { ad, profil, user?.Cinsiyet?.CinsiyetAdi, user?.Yaka?.YakaAdi, item.UseId?.ToString() }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
-                <article class="person-card">
-                    <div class="person-avatar">@ilkHarf</div>
+                <article class="person-card" data-watch-person-card data-search="@arama">
+                    @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = ad, Resim = user?.UserResim, Cinsiyet = user?.Cinsiyet?.CinsiyetAdi, Size = "lg" })
                     <div class="person-main">
                         <div class="person-head">
                             <div>
@@ -175,6 +179,41 @@
         min-width: 280px;
     }
 
+    .people-tools {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    .people-tools span {
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #24436d;
+        font-size: 12px;
+        font-weight: 850;
+        padding: 8px 11px;
+    }
+
+    .person-search {
+        width: min(280px, 100%);
+        min-height: 40px;
+        border: 1px solid #cfe0f6;
+        border-radius: 10px;
+        padding: 0 12px;
+        color: #071832;
+        background: #fff;
+        font-weight: 850;
+        outline: none;
+    }
+
+    .person-search:focus {
+        border-color: #3562f4;
+        box-shadow: 0 0 0 3px rgba(53, 98, 244, .12);
+    }
+
     .center-btn {
         display: inline-flex;
         align-items: center;
@@ -209,7 +248,10 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 16px;
-        margin-top: 18px;
+        max-height: 640px;
+        margin-top: 12px;
+        overflow-y: auto;
+        padding-right: 6px;
     }
 
     .person-card {
@@ -320,3 +362,21 @@
         }
     }
 </style>
+
+<script>
+    (() => {
+        const search = document.querySelector("[data-watch-person-search]");
+        const cards = Array.from(document.querySelectorAll("[data-watch-person-card]"));
+        if (!search || cards.length === 0) {
+            return;
+        }
+
+        search.addEventListener("input", () => {
+            const query = search.value.toLocaleLowerCase("tr-TR").trim();
+            cards.forEach(card => {
+                const haystack = (card.dataset.search || "").toLocaleLowerCase("tr-TR");
+                card.hidden = query.length > 0 && !haystack.includes(query);
+            });
+        });
+    })();
+</script>

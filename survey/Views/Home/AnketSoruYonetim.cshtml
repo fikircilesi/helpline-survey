@@ -1,0 +1,179 @@
+@model survey.Controllers.HomeController.AnketSoruYonetimModel
+@using System.Globalization
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var imageBaseUrl = Url.Content("~/Content/AnketGorsel/");
+    var returnUrl = string.IsNullOrWhiteSpace(Model.ReturnUrl)
+        ? Url.Action("Indexgosterge", "Home")
+        : Model.ReturnUrl;
+    Func<double, string> number = value => value.ToString("0.##", new CultureInfo("tr-TR"));
+}
+
+<div class="work-questions">
+    <section class="wq-hero">
+        <div>
+            <span class="wq-eyebrow">Çalışma Soruları</span>
+            <h1>@Model.AnketAdi</h1>
+            <p>Bu çalışmada yayına çıkan soru setini yönetin.</p>
+            <div class="wq-chip-row">
+                <span><i class="fa fa-folder-open"></i> @Model.BaslikSayisi başlık</span>
+                <span><i class="fa fa-question-circle"></i> @Model.SoruSayisi soru</span>
+                <span><i class="fa fa-users"></i> @Model.KatilimSayisi katılım</span>
+                <span><i class="fa fa-star"></i> @number(Model.ToplamPuan) toplam puan</span>
+            </div>
+        </div>
+        <div class="wq-actions">
+            <a class="wq-btn" href="@returnUrl">
+                <i class="fa fa-arrow-left"></i> Çalışmalarıma Dön
+            </a>
+            <a class="wq-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi, returnUrl = returnUrl })">
+                <i class="fa fa-list"></i> Rapor Başlıkları
+            </a>
+            <a class="wq-btn primary" href="@Url.Action("SoruCreate", "Home", new { anketId = Model.AnketId })">
+                <i class="fa fa-plus"></i> Soru Ekle
+            </a>
+        </div>
+    </section>
+
+    @if (TempData["AnketSoruYonetimMesaj"] != null)
+    {
+        <div class="wq-notice">@TempData["AnketSoruYonetimMesaj"]</div>
+    }
+
+    @if (!Model.Gruplar.Any())
+    {
+        <section class="wq-empty">
+            <i class="fa fa-question-circle"></i>
+            <strong>Bu çalışmada soru başlığı yok</strong>
+            <a class="wq-btn primary" href="@Url.Action("AnketGrupCreate", "Home", new { id = Model.AnketId, adi = Model.AnketAdi })">
+                <i class="fa fa-plus"></i> İlk Başlığı Ekle
+            </a>
+        </section>
+    }
+    else
+    {
+        <div class="wq-group-list">
+            @foreach (var grup in Model.Gruplar)
+            {
+                <section class="wq-group">
+                    <div class="wq-group-head">
+                        <div>
+                            <h2>@grup.SoruGrupAdi</h2>
+                            <span>@grup.SoruSayisi soru · @number(grup.Puan) puan</span>
+                        </div>
+                        <a class="wq-btn compact" href="@Url.Action("SoruCreate", "Home", new { anketId = Model.AnketId })">
+                            <i class="fa fa-plus"></i> Bu Çalışmaya Soru Ekle
+                        </a>
+                    </div>
+
+                    @if (!grup.Sorular.Any())
+                    {
+                        <div class="wq-group-empty">Bu başlıkta henüz soru yok.</div>
+                    }
+                    else
+                    {
+                        <div class="wq-question-list">
+                            @foreach (var soru in grup.Sorular)
+                            {
+                                <article class="wq-question-card">
+                                    <div class="wq-question-main">
+                                        @if (!string.IsNullOrWhiteSpace(soru.SoruGorsel))
+                                        {
+                                            <span class="wq-thumb">
+                                                <img src="@(imageBaseUrl + Uri.EscapeDataString(soru.SoruGorsel))" alt="" loading="lazy" />
+                                            </span>
+                                        }
+                                        <div>
+                                            <h3>@soru.SoruAdi</h3>
+                                            <div class="wq-question-meta">
+                                                <span><i class="fa fa-check-square-o"></i> @soru.CevapSayisi seçenek</span>
+                                                <span><i class="fa fa-star-o"></i> @number(soru.Puan) puan</span>
+                                                <span><i class="fa fa-user"></i> @soru.KatilimKaydi kayıt</span>
+                                                <span>@soru.CevapGrupAdi</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="wq-question-actions">
+                                        <a class="wq-icon" title="Soruyu düzenle" href="@Url.Action("SoruEdit", "Home", new { id = soru.SoruId, anketId = Model.AnketId })">
+                                            <i class="fa fa-pencil"></i>
+                                        </a>
+                                        <form class="wq-remove-form" method="post" action="@Url.Action("AnketSoruCikar", "Home", new { id = Model.AnketId, soruId = soru.SoruId })">
+                                            @Html.AntiForgeryToken()
+                                            <button class="wq-icon danger" type="submit" title="Çalışmadan çıkar" @(soru.Cikarilabilir ? "" : "disabled")>
+                                                <i class="fa fa-trash-o"></i>
+                                            </button>
+                                        </form>
+                                        @if (!soru.Cikarilabilir && !string.IsNullOrWhiteSpace(soru.CikarilamazMesaji))
+                                        {
+                                            <small>@soru.CikarilamazMesaji</small>
+                                        }
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .work-questions { width: min(1580px, calc(100% - 48px)); margin: 34px auto 64px; color: #071832; }
+    .work-questions * { box-sizing: border-box; }
+    .wq-hero, .wq-group, .wq-empty, .wq-notice { border: 1px solid #d6e2f3; border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: 0 20px 48px rgba(24,45,83,.08); }
+    .wq-hero { display: flex; justify-content: space-between; gap: 28px; align-items: flex-start; padding: 32px 34px; background: linear-gradient(130deg, rgba(228,253,247,.96), rgba(247,249,255,.94) 58%, rgba(255,248,228,.78)), #fff; }
+    .wq-eyebrow { color: #255ef5; font-size: 12px; font-weight: 950; text-transform: uppercase; }
+    .wq-hero h1 { margin: 10px 0 8px; font-size: 38px; line-height: 1.12; font-weight: 950; letter-spacing: 0; }
+    .wq-hero p { margin: 0; color: #526176; font-size: 15px; line-height: 1.6; font-weight: 700; }
+    .wq-chip-row, .wq-actions, .wq-question-meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .wq-chip-row { margin-top: 18px; }
+    .wq-chip-row span, .wq-question-meta span { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; background: #eef5ff; color: #24436d; font-size: 12px; font-weight: 850; padding: 8px 11px; }
+    .wq-chip-row i { color: #11a99b; }
+    .wq-actions { justify-content: flex-end; min-width: 430px; }
+    .wq-btn, .wq-icon { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cfe0f6; border-radius: 10px; background: #fff; color: #071832; font-weight: 950; text-decoration: none; cursor: pointer; }
+    .wq-btn.primary { border-color: #22b8a6; color: #fff; background: linear-gradient(135deg, #16bca9, #3562f4); box-shadow: 0 16px 32px rgba(34,105,244,.18); }
+    .wq-btn { padding: 0 16px; }
+    .wq-btn.compact { min-height: 38px; padding: 0 13px; font-size: 13px; }
+    .wq-icon { width: 38px; min-width: 38px; min-height: 38px; padding: 0; color: #1763df; }
+    .wq-icon.danger { color: #d9364f; border-color: #ffd1d8; background: #fff7f8; }
+    .wq-icon:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+    .wq-notice { margin-top: 16px; padding: 13px 15px; color: #075985; background: #ecfeff; font-weight: 900; }
+    .wq-empty { display: grid; place-items: center; gap: 12px; margin-top: 18px; padding: 46px; text-align: center; color: #64748b; }
+    .wq-empty i { color: #255ef5; font-size: 30px; }
+    .wq-group-list { display: grid; gap: 18px; margin-top: 18px; }
+    .wq-group { overflow: hidden; }
+    .wq-group-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 20px; border-bottom: 1px solid #e3ebf6; background: #f8fbff; }
+    .wq-group-head h2 { margin: 0; font-size: 20px; line-height: 1.2; font-weight: 950; letter-spacing: 0; }
+    .wq-group-head span { display: block; margin-top: 5px; color: #64748b; font-size: 12px; font-weight: 850; }
+    .wq-group-empty { padding: 20px; color: #64748b; font-weight: 850; }
+    .wq-question-list { display: grid; gap: 10px; padding: 14px; }
+    .wq-question-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px; border: 1px solid #e1e8f3; border-radius: 10px; background: #fff; }
+    .wq-question-main { min-width: 0; display: flex; align-items: flex-start; gap: 12px; }
+    .wq-thumb { width: 70px; height: 54px; flex: 0 0 70px; overflow: hidden; border: 1px solid #d6e2f3; border-radius: 9px; background: #f8fbff; }
+    .wq-thumb img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .wq-question-card h3 { margin: 0 0 8px; color: #071832; font-size: 16px; line-height: 1.35; font-weight: 950; letter-spacing: 0; overflow-wrap: anywhere; }
+    .wq-question-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 150px; }
+    .wq-remove-form { margin: 0; }
+    .wq-question-actions small { width: 180px; color: #b45309; font-size: 12px; font-weight: 700; line-height: 1.45; }
+    @@media (max-width: 900px) {
+        .work-questions { width: min(100% - 22px, 1580px); margin-top: 18px; }
+        .wq-hero, .wq-group-head, .wq-question-card { display: grid; }
+        .wq-actions { min-width: 0; justify-content: flex-start; }
+        .wq-hero h1 { font-size: 30px; }
+        .wq-question-actions { justify-content: flex-start; min-width: 0; }
+    }
+</style>
+
+<script>
+    (function () {
+        document.querySelectorAll(".wq-remove-form").forEach(function (form) {
+            form.addEventListener("submit", function (event) {
+                if (!window.confirm("Bu soruyu çalışmadan çıkarmak istiyor musunuz?")) {
+                    event.preventDefault();
+                }
+            });
+        });
+    })();
+</script>

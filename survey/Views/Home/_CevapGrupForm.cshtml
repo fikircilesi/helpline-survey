@@ -1,0 +1,104 @@
+@model survey.Models.CevapGrup
+
+@{
+    var baslik = Convert.ToString(ViewData["CevapGrupFormBaslik"] ?? "Seçenek Grubu");
+    var altBaslik = Convert.ToString(ViewData["CevapGrupFormAltBaslik"] ?? "Soruların kullanacağı cevap setinin adını düzenle");
+    var aksiyon = Convert.ToString(ViewData["CevapGrupFormAksiyon"] ?? ViewContext.RouteData.Values["action"]);
+    var geriUrl = Url.Action("CevapGrupIndex", "Home");
+}
+
+<div class="group-editor">
+    @using (Html.BeginForm(aksiyon, "Home", FormMethod.Post, new { @class = "group-form", id = "answerGroupForm" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(model => model.CevapGrupId)
+
+        <section class="group-hero">
+            <div>
+                <span class="group-eyebrow">Seçenek Grupları</span>
+                <h1>@baslik</h1>
+                <p>@altBaslik</p>
+            </div>
+            <div class="group-actions">
+                <a class="group-btn ghost" href="@geriUrl">
+                    <i class="fa fa-arrow-left"></i> Geri
+                </a>
+                <button class="group-btn primary" type="submit">
+                    <i class="fa fa-check"></i> Kaydet
+                </button>
+            </div>
+        </section>
+
+        @Html.ValidationSummary(true, "", new { @class = "group-validation" })
+
+        <section class="group-section">
+            <div class="group-section-head">
+                <span>01</span>
+                <h2>Grup Bilgisi</h2>
+            </div>
+
+            <label class="group-field">
+                <span>Seçenek grubu adı</span>
+                @Html.TextBoxFor(model => model.CevapGrupAdi, new { @class = "group-input", maxlength = "250", required = "required", autofocus = "autofocus", placeholder = "Örn: Ekip çalışması davranışları" })
+                <small><b data-count>@((Model?.CevapGrupAdi ?? string.Empty).Length)</b>/250 karakter</small>
+                @Html.ValidationMessageFor(model => model.CevapGrupAdi, "", new { @class = "group-error" })
+            </label>
+        </section>
+
+        <section class="group-save-panel">
+            <button class="group-btn primary wide" type="submit">
+                <i class="fa fa-check"></i> Kaydet
+            </button>
+            <a class="group-btn ghost wide" href="@geriUrl">
+                <i class="fa fa-arrow-left"></i> Geri
+            </a>
+        </section>
+    }
+</div>
+
+<style>
+    .group-editor { width: min(1300px, calc(100% - 48px)); margin: 34px auto 64px; color: #071832; }
+    .group-editor * { box-sizing: border-box; }
+    .group-hero, .group-section, .group-save-panel { border: 1px solid #d6e2f3; border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: 0 20px 48px rgba(24,45,83,.08); }
+    .group-hero { display: flex; justify-content: space-between; gap: 28px; align-items: flex-start; padding: 32px 34px; background: linear-gradient(130deg, rgba(228,253,247,.96), rgba(247,249,255,.94) 56%, rgba(255,248,228,.78)), #fff; }
+    .group-eyebrow { display: inline-block; color: #255ef5; font-size: 12px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+    .group-hero h1 { margin: 10px 0 8px; font-size: 40px; line-height: 1.1; font-weight: 950; letter-spacing: 0; }
+    .group-hero p { max-width: 720px; margin: 0; color: #526176; font-size: 15px; line-height: 1.6; font-weight: 700; }
+    .group-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; min-width: 250px; }
+    .group-section { margin-top: 18px; padding: 22px; }
+    .group-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .group-section-head span { width: 34px; height: 34px; display: inline-grid; place-items: center; border-radius: 10px; color: #0b4b77; background: #eef9ff; font-size: 12px; font-weight: 950; }
+    .group-section-head h2 { margin: 0; font-size: 20px; line-height: 1.2; font-weight: 950; letter-spacing: 0; }
+    .group-field { display: grid; gap: 8px; margin: 0; }
+    .group-field > span { color: #253755; font-size: 13px; font-weight: 950; }
+    .group-input { width: 100%; min-height: 48px; border: 1px solid #cfdbec; border-radius: 10px; background: #fff; color: #071832; font-size: 15px; font-weight: 750; outline: none; padding: 0 14px; }
+    .group-input:focus { border-color: #3562f4; box-shadow: 0 0 0 3px rgba(53,98,244,.12); }
+    .group-field small { color: #64748b; font-size: 12px; font-weight: 800; }
+    .group-btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cfe0f6; border-radius: 10px; background: #fff; color: #071832; font-weight: 950; text-decoration: none; cursor: pointer; padding: 0 16px; transition: transform .16s ease, box-shadow .16s ease; }
+    .group-btn.primary { border-color: #22b8a6; color: #fff; background: linear-gradient(135deg, #16bca9, #3562f4); box-shadow: 0 16px 32px rgba(34,105,244,.18); }
+    .group-btn.wide { width: 100%; }
+    .group-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(19,42,80,.12); text-decoration: none; }
+    .group-save-panel { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 220px); gap: 10px; margin-top: 18px; padding: 14px; justify-content: end; }
+    .group-validation { margin: 16px 0 0; padding: 12px 14px; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; background: #fff1f2; font-weight: 800; }
+    .group-validation.validation-summary-valid { display: none; }
+    .group-error { color: #b42318; font-size: 12px; font-weight: 800; }
+    @@media (max-width: 760px) { .group-editor { width: min(100% - 22px, 1300px); margin-top: 18px; } .group-hero { display: grid; padding: 24px; } .group-actions { justify-content: flex-start; min-width: 0; } .group-hero h1 { font-size: 32px; } .group-save-panel { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+    (function () {
+        const form = document.getElementById("answerGroupForm");
+        if (!form) return;
+
+        const input = form.querySelector("input[name='CevapGrupAdi']");
+        const counter = form.querySelector("[data-count]");
+        function updateCount() {
+            if (counter && input) counter.textContent = String((input.value || "").length);
+        }
+
+        if (input) {
+            input.addEventListener("input", updateCount);
+            updateCount();
+        }
+    })();
+</script>

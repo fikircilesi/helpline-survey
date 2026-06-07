@@ -10,67 +10,710 @@
 </head>
 
 <div class="panel settings-list-panel settings-user-list-panel">
-    <div class="col-lg-9"></div>
-    <div class="col-lg-3">
-        <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
-        <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("UserCreate", "Ayar")">Yeni</a>
-        <h4>KATILIMCI LİSTESİ</h4>
+    <style>
+        .katilimci-import-toolbar {
+            align-items: center;
+            background: linear-gradient(135deg, #10233b, #164451);
+            border-radius: 8px 8px 0 0;
+            color: #fff;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            padding: 16px 20px;
+        }
 
+        .katilimci-import-toolbar h4 {
+            color: #fff;
+            font-weight: 800;
+            letter-spacing: 0;
+            margin: 0;
+        }
+
+        .katilimci-import-toolbar p {
+            color: rgba(255, 255, 255, .72);
+            margin: 4px 0 0;
+        }
+
+        .katilimci-import-actions {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .katilimci-import-form {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0;
+        }
+
+        .katilimci-import-file {
+            background: #fff;
+            border: 1px solid #d8e1ef;
+            border-radius: 6px;
+            color: #17233c;
+            max-width: 260px;
+            padding: 7px 10px;
+        }
+
+        .katilimci-import-alert {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 6px;
+            color: #065f46;
+            font-weight: 700;
+            margin: 14px 0;
+            padding: 10px 14px;
+        }
+
+        .katilimci-import-review {
+            margin: 14px 0;
+            padding: 16px;
+            border: 1px solid #bfd5ff;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f7fbff, #ffffff);
+            box-shadow: 0 16px 34px rgba(24, 48, 88, .08);
+        }
+
+        .katilimci-import-review h5 {
+            margin: 0 0 6px;
+            color: #071832;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .katilimci-import-review p {
+            margin: 0;
+            color: #52647f;
+            font-weight: 700;
+        }
+
+        .katilimci-import-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .katilimci-import-stat {
+            padding: 12px;
+            border: 1px solid #dce7f7;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .katilimci-import-stat strong {
+            display: block;
+            color: #071832;
+            font-size: 22px;
+            font-weight: 950;
+            line-height: 1;
+        }
+
+        .katilimci-import-stat span {
+            display: block;
+            margin-top: 6px;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .katilimci-import-missing {
+            margin: 10px 0 0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #fff7ed;
+            color: #8a4b0f;
+            font-weight: 750;
+        }
+
+        .katilimci-import-review-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .katilimci-import-decision {
+            border: 0;
+            border-radius: 8px;
+            color: #ffffff;
+            font-weight: 900;
+            padding: 10px 14px;
+        }
+
+        .katilimci-import-decision.keep {
+            background: #2563eb;
+        }
+
+        .katilimci-import-decision.passive {
+            background: #db7c13;
+        }
+
+        .katilimci-import-decision.cancel {
+            background: #64748b;
+        }
+
+        .katilimci-defaults-panel {
+            margin: 14px 0;
+            border: 1px solid #cfe0f6;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 14px 32px rgba(19, 42, 77, .08);
+        }
+
+        .katilimci-defaults-panel summary {
+            cursor: pointer;
+            padding: 14px 16px;
+            color: #071832;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .katilimci-defaults-body {
+            border-top: 1px solid #e5edf8;
+            padding: 14px 16px 16px;
+        }
+
+        .katilimci-defaults-body p {
+            color: #52647f;
+            font-weight: 700;
+            margin: 0 0 12px;
+        }
+
+        .katilimci-defaults-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 12px;
+        }
+
+        .katilimci-defaults-group {
+            border: 1px solid #dce7f7;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .katilimci-defaults-group strong {
+            display: block;
+            color: #10233b;
+            font-weight: 900;
+        }
+
+        .katilimci-defaults-group-head {
+            align-items: center;
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .katilimci-defaults-group-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .katilimci-defaults-mini {
+            border: 1px solid #cfe0f6;
+            border-radius: 6px;
+            background: #f8fbff;
+            color: #173a67;
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1;
+            padding: 6px 8px;
+            white-space: nowrap;
+        }
+
+        .katilimci-defaults-items {
+            display: grid;
+            gap: 6px;
+            max-height: 220px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .katilimci-defaults-items label {
+            align-items: center;
+            display: flex;
+            gap: 8px;
+            color: #142033;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .katilimci-defaults-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .katilimci-defaults-panel {
+            border-color: #f3d68d;
+            box-shadow: 0 16px 38px rgba(20, 32, 51, .08);
+            overflow: hidden;
+        }
+
+        .katilimci-defaults-panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .katilimci-defaults-summary {
+            display: grid;
+            grid-template-columns: 46px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, #fff8e6, #f8fbff);
+            list-style: none;
+        }
+
+        .katilimci-defaults-icon {
+            width: 46px;
+            height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            color: #a16207;
+            background: #fffbeb;
+            font-size: 20px;
+        }
+
+        .katilimci-defaults-copy strong,
+        .katilimci-defaults-copy span {
+            display: block;
+        }
+
+        .katilimci-defaults-copy strong {
+            color: #0f172a;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .katilimci-defaults-copy span {
+            margin-top: 3px;
+            color: #52647f;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .katilimci-defaults-toggle {
+            min-width: 112px;
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #fff;
+            background: #0f766e;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .katilimci-defaults-toggle::before {
+            content: "Hazırla";
+        }
+
+        .katilimci-defaults-panel[open] .katilimci-defaults-toggle::before {
+            content: "Kapat";
+        }
+
+        .katilimci-defaults-body {
+            background: #fff;
+        }
+
+        .katilimci-defaults-route {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .katilimci-defaults-route span {
+            min-height: 30px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 10px;
+            border: 1px solid #e4ecf7;
+            border-radius: 8px;
+            color: #173a67;
+            background: #f8fbff;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .katilimci-defaults-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .katilimci-defaults-lane {
+            border: 1px solid #dbe7f5;
+            border-radius: 8px;
+            background: #fbfdff;
+            overflow: hidden;
+        }
+
+        .katilimci-defaults-lane-head {
+            display: grid;
+            grid-template-columns: 38px minmax(0, 1fr);
+            align-items: center;
+            gap: 9px;
+            padding: 10px;
+            border-bottom: 1px solid #e4ecf7;
+            background: #fff;
+        }
+
+        .katilimci-defaults-lane-icon {
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #0f766e;
+            background: #e9fbf6;
+            font-size: 17px;
+        }
+
+        .katilimci-defaults-lane-head strong,
+        .katilimci-defaults-lane-head span {
+            display: block;
+        }
+
+        .katilimci-defaults-lane-head span {
+            margin-top: 2px;
+            color: #667085;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .katilimci-defaults-lane-body {
+            display: grid;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .katilimci-defaults-group {
+            border: 0;
+            padding: 0;
+        }
+
+        .katilimci-defaults-items {
+            max-height: 160px;
+            padding: 8px;
+            border: 1px solid #e4ecf7;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .katilimci-defaults-actions {
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 12px;
+            border-top: 1px solid #e6edf7;
+        }
+
+        .katilimci-defaults-action-note {
+            color: #667085;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .katilimci-defaults-action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        @@media (max-width: 1199px) {
+            .katilimci-defaults-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 767px) {
+            .katilimci-defaults-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .katilimci-defaults-toggle,
+            .katilimci-defaults-action-buttons,
+            .katilimci-defaults-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+
+    <div class="katilimci-import-toolbar">
+        <div>
+            <h4>KATILIMCI LİSTESİ</h4>
+            <p>Excel'deki resim adları .webp olarak kaydedilir. Toplu yüklenen jpg, png, gif veya webp fotoğraflar WebP'ye çevrilip /Content/Katilimci klasöründe durur.</p>
+        </div>
+        <div class="katilimci-import-actions">
+            <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
+            <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("UserCreate", "Ayar")">Yeni</a>
+            <a style="background-color:#0f766e; color:white" class="btn btn-default" href="@Url.Action("UserImportTemplate", "Ayar")">Şablon İndir</a>
+            @using (Html.BeginForm("UserImport", "Ayar", FormMethod.Post, new { enctype = "multipart/form-data", @class = "katilimci-import-form" }))
+            {
+                @Html.AntiForgeryToken()
+                <input class="katilimci-import-file" type="file" name="dosya" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+                <button style="background-color:#7c3aed; color:white" class="btn btn-default" type="submit">Excel Önizle</button>
+            }
+            @using (Html.BeginForm("UserResimTopluYukle", "Ayar", FormMethod.Post, new { enctype = "multipart/form-data", @class = "katilimci-import-form" }))
+            {
+                @Html.AntiForgeryToken()
+                <input class="katilimci-import-file" type="file" name="resimDosyalari" accept=".jpg,.jpeg,.png,.webp,.gif,image/*" multiple required />
+                <button style="background-color:#db7c13; color:white" class="btn btn-default" type="submit">Fotoğraf Yükle (WebP)</button>
+            }
+        </div>
     </div>
+
+    @{
+        var varsayilanGruplar = (ViewBag.VarsayilanSecenekGruplari as IEnumerable<survey.Controllers.AyarController.VarsayilanSecenekGrubu> ?? new List<survey.Controllers.AyarController.VarsayilanSecenekGrubu>()).ToList();
+    }
+    @if (varsayilanGruplar.Any())
+    {
+        var varsayilanBloklar = new[]
+        {
+            new { Baslik = "Organizasyon", Aciklama = "Ünvan ve departman", Ikon = "icon-briefcase", Tipler = new[] { "Unvan", "Departman" } },
+            new { Baslik = "Profil", Aciklama = "Cinsiyet ve eğitim", Ikon = "icon-user-check", Tipler = new[] { "Cinsiyet", "Egitim" } },
+            new { Baslik = "Lokasyon", Aciklama = "Bölge ve şehir", Ikon = "icon-map-pin", Tipler = new[] { "Bolge", "Sehir" } }
+        };
+
+        <details class="katilimci-defaults-panel">
+            <summary class="katilimci-defaults-summary">
+                <span class="katilimci-defaults-icon"><i class="feather icon-zap"></i></span>
+                <span class="katilimci-defaults-copy">
+                    <strong>Excel öncesi hazır liste sihirbazı</strong>
+                    <span>Ünvan, departman, eğitim, cinsiyet, bölge ve şehir havuzunu importtan önce hazırlayın.</span>
+                </span>
+                <span class="katilimci-defaults-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="katilimci-defaults-body">
+                <div class="katilimci-defaults-route">
+                    <span>1. Listeleri seç</span>
+                    <span>2. Gereksizleri çıkar</span>
+                    <span>3. Import havuzunu hazırla</span>
+                </div>
+                @using (Html.BeginForm("VarsayilanSecenekleriEkle", "Ayar", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="donus" value="UserIndex" />
+                    <div class="katilimci-defaults-grid">
+                        @foreach (var blok in varsayilanBloklar)
+                        {
+                            var blokGruplari = varsayilanGruplar.Where(g => blok.Tipler.Contains(g.Tip)).ToList();
+                            if (blokGruplari.Any())
+                            {
+                                <div class="katilimci-defaults-lane">
+                                    <div class="katilimci-defaults-lane-head">
+                                        <span class="katilimci-defaults-lane-icon"><i class="feather @blok.Ikon"></i></span>
+                                        <span>
+                                            <strong>@blok.Baslik</strong>
+                                            <span>@blok.Aciklama</span>
+                                        </span>
+                                    </div>
+                                    <div class="katilimci-defaults-lane-body">
+                                        @foreach (var grup in blokGruplari)
+                                        {
+                                            <div class="katilimci-defaults-group">
+                                                <div class="katilimci-defaults-group-head">
+                                                    <strong>@grup.Baslik</strong>
+                                                    <div class="katilimci-defaults-group-actions">
+                                                        <button class="katilimci-defaults-mini" type="button" data-defaults-group-all>Tümünü seç</button>
+                                                        <button class="katilimci-defaults-mini" type="button" data-defaults-group-clear>Temizle</button>
+                                                    </div>
+                                                </div>
+                                                <div class="katilimci-defaults-items">
+                                                    @foreach (var secenek in grup.Secenekler)
+                                                    {
+                                                        <label>
+                                                            <input type="checkbox" name="secenekler" value="@($"{grup.Tip}|{secenek}")" checked />
+                                                            <span>@secenek</span>
+                                                        </label>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <div class="katilimci-defaults-actions">
+                        <span class="katilimci-defaults-action-note">Seçili olanlar eklenir; mevcut tanımlar korunur.</span>
+                        <span class="katilimci-defaults-action-buttons">
+                            <button style="background-color:#64748b; color:white" class="btn btn-default" type="button" data-defaults-clear>Seçimleri temizle</button>
+                            <button style="background-color:#2563eb; color:white" class="btn btn-default" type="button" data-defaults-all>Tümünü seç</button>
+                            <button style="background-color:#0f766e; color:white" class="btn btn-default" type="submit">Hazırlığı tamamla</button>
+                        </span>
+                    </div>
+                }
+            </div>
+        </details>
+    }
+
+    @if (TempData["UserImportMesaj"] != null)
+    {
+        <div class="katilimci-import-alert">@TempData["UserImportMesaj"]</div>
+    }
+
+    @if (ViewBag.UserImportOnizlemeVar == true)
+    {
+        var eksikOrnekleri = (ViewBag.UserImportExceldeOlmayanAktifOrnekleri as IEnumerable<string> ?? new List<string>()).ToList();
+        var atlananOrnekleri = (ViewBag.UserImportAtlananSatirOrnekleri as IEnumerable<string> ?? new List<string>()).ToList();
+        var exceldeOlmayanAktif = Convert.ToInt32(ViewBag.UserImportExceldeOlmayanAktifSayisi ?? 0);
+
+        <div class="katilimci-import-review">
+            <h5>Excel aktarımı için karar bekleniyor</h5>
+            <p>Dosya henüz veritabanına yazılmadı. Aşağıdaki özete göre mevcut kayıtlara ne yapılacağını seçin.</p>
+
+            <div class="katilimci-import-stats">
+                <div class="katilimci-import-stat">
+                    <strong>@ViewBag.UserImportGecerliKayitSayisi</strong>
+                    <span>Excel'deki geçerli kayıt</span>
+                </div>
+                <div class="katilimci-import-stat">
+                    <strong>@ViewBag.UserImportKayitliAktifSayisi</strong>
+                    <span>Sistemde aktif kayıt</span>
+                </div>
+                <div class="katilimci-import-stat">
+                    <strong>@ViewBag.UserImportYeniKayitSayisi</strong>
+                    <span>Yeni eklenecek</span>
+                </div>
+                <div class="katilimci-import-stat">
+                    <strong>@ViewBag.UserImportGuncellenecekKayitSayisi</strong>
+                    <span>Mevcut güncellenecek</span>
+                </div>
+                <div class="katilimci-import-stat">
+                    <strong>@ViewBag.UserImportExceldeOlmayanAktifSayisi</strong>
+                    <span>Excel'de olmayan aktif</span>
+                </div>
+                <div class="katilimci-import-stat">
+                    <strong>@ViewBag.UserImportAtlananSatirSayisi</strong>
+                    <span>Atlanan satır</span>
+                </div>
+                <div class="katilimci-import-stat">
+                    <strong>@ViewBag.UserImportTekrarEdenTcSayisi</strong>
+                    <span>Excel içinde tekrar TC</span>
+                </div>
+            </div>
+
+            @if (exceldeOlmayanAktif > 0)
+            {
+                <div class="katilimci-import-missing">
+                    Excel'de olmayan aktif kayıt örnekleri: @string.Join(", ", eksikOrnekleri)
+                    @if (exceldeOlmayanAktif > eksikOrnekleri.Count)
+                    {
+                        <span> ve @(exceldeOlmayanAktif - eksikOrnekleri.Count) kişi daha</span>
+                    }
+                </div>
+            }
+
+            @if (atlananOrnekleri.Any())
+            {
+                <div class="katilimci-import-missing">
+                    Atlanan satır örnekleri: @string.Join("; ", atlananOrnekleri)
+                </div>
+            }
+
+            <div class="katilimci-import-review-actions">
+                @using (Html.BeginForm("UserImportOnayla", "Ayar", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="eksikKayitIslemi" value="kalsin" />
+                    <button type="submit" class="katilimci-import-decision keep">Aktar, Excel'de olmayanlar kalsın</button>
+                }
+                @using (Html.BeginForm("UserImportOnayla", "Ayar", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="eksikKayitIslemi" value="pasifeAl" />
+                    <button type="submit" class="katilimci-import-decision passive">Aktar, Excel'de olmayan aktifleri pasife al</button>
+                }
+                @using (Html.BeginForm("UserImportVazgec", "Ayar", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="katilimci-import-decision cancel">Vazgeç</button>
+                }
+            </div>
+        </div>
+    }
 
     <div class="col-lg-12" style="overflow: auto">
         <table class="table hover" id="Grid">
             <thead>
                 <tr class="tab-content-wrapper" style="color:chocolate">
                     <td hidden>Id</td>
-                    <td></td>
-                    <th>
-                        Katılımcı Adı
-                    </th>
-                    <th>
-                        Tc
-                    </th>
-                    <th>
-                        Pasif
-                    </th>
-                    <th>
-                        Ünvanı
-                    </th>
-                    <th>
-                        Bölüm
-                    </th>
-                    <th>
-                        Cinsiyet
-                    </th>
-                    <th>
-                        Eğitim
-                    </th>
-                    <th>
-                        DoğumTar
-                    </th>
-                    <th>
-                        Şubesi
-                    </th>
-                    <th>
-                        Bölgesi
-                    </th>
-                    <th>
-                        Departman
-                    </th>
-                    <th>
-                        Yöneticisi
-                    </th>
-                    <th>
-                        Yaka
-                    </th>
-                    <th>
-                        Şehir
-                    </th>
+                    <th style="width:90px;"></th>
+                    <th>Katılımcı</th>
+                    <th>İletişim</th>
+                    <th>Profil</th>
+                    <th>Yönetici</th>
+                    <th>Durum</th>
+                    <th>Resim</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var item in Model)
                 {
+                    var iletisimParcalari = new System.Collections.Generic.List<string>();
+                    if (!string.IsNullOrWhiteSpace(item.UserTc))
+                    {
+                        iletisimParcalari.Add(item.UserTc);
+                    }
+                    if (!string.IsNullOrWhiteSpace(item.UserMail))
+                    {
+                        iletisimParcalari.Add(item.UserMail);
+                    }
+                    if (!string.IsNullOrWhiteSpace(item.UserTelefon))
+                    {
+                        iletisimParcalari.Add(item.UserTelefon);
+                    }
+
+                    var profilParcalari = new System.Collections.Generic.List<string>();
+                    var departmanAdi = item.UserDepartman != null ? item.Departman?.DepartmanAdi : null;
+                    var unvanAdi = item.UserUnvan != null ? item.Unvan?.UnvanAdi : null;
+                    var sehirAdi = item.UserSehir != null ? item.Sehir?.SehiarAdi : null;
+                    if (!string.IsNullOrWhiteSpace(departmanAdi))
+                    {
+                        profilParcalari.Add(departmanAdi);
+                    }
+                    if (!string.IsNullOrWhiteSpace(unvanAdi))
+                    {
+                        profilParcalari.Add(unvanAdi);
+                    }
+                    if (!string.IsNullOrWhiteSpace(sehirAdi))
+                    {
+                        profilParcalari.Add(sehirAdi);
+                    }
+
+                    var kimlikParcalari = new System.Collections.Generic.List<string>();
+                    var cinsiyetAdi = item.UserCinsiyet != null ? item.Cinsiyet?.CinsiyetAdi : null;
+                    var egitimAdi = item.UserEgitim != null ? item.Egitim?.EgitimAdi : null;
+                    if (!string.IsNullOrWhiteSpace(cinsiyetAdi))
+                    {
+                        kimlikParcalari.Add(cinsiyetAdi);
+                    }
+                    if (!string.IsNullOrWhiteSpace(egitimAdi))
+                    {
+                        kimlikParcalari.Add(egitimAdi);
+                    }
+
+                    var iletisimSatiri = string.Join(" / ", iletisimParcalari);
+                    var profilSatiri = string.Join(" / ", profilParcalari);
+                    var kimlikSatiri = string.Join(" / ", kimlikParcalari);
+                    var subeAdi = item.UserSube != null ? item.Sube?.SubeAdi : null;
+                    var yoneticiAdi = item.UserYoneticisi != null ? item.Yonetici?.YoneticiAdi : null;
+                    var durumClass = item.Pasif == true ? "profile-status-pill passive" : "profile-status-pill";
+                    var durumMetni = item.Pasif == true ? "Pasif" : "Aktif";
+
                     <tr>
                         <td hidden>
                             @item.UserId
@@ -81,85 +724,42 @@
                         </td>
 
                         <td>
-                            @item.UserAdi
+                            <div class="profile-window compact">
+                                <button type="button"
+                                        class="profile-avatar-button"
+                                        title="Fotoğraf değiştir"
+                                        data-quick-photo-open
+                                        data-quick-photo-target="#userQuickPhotoModal"
+                                        data-quick-photo-id="@item.UserId"
+                                        data-quick-photo-name="@item.UserAdi">
+                                    @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = item.UserAdi, Resim = item.UserResim, Cinsiyet = item.Cinsiyet?.CinsiyetAdi, Size = "sm" })
+                                </button>
+                                <div class="profile-window-text">
+                                    <strong>@item.UserAdi</strong>
+                                    <span>@(string.IsNullOrWhiteSpace(kimlikSatiri) ? "Katılımcı" : kimlikSatiri)</span>
+                                </div>
+                            </div>
                         </td>
                         <td>
-                            @item.UserTc
+                            <div class="profile-list-stack">
+                                <strong>@(string.IsNullOrWhiteSpace(iletisimSatiri) ? "İletişim yok" : iletisimSatiri)</strong>
+                                <span>@(item.UserIseGirisTarihi.HasValue ? $"İşe giriş: {item.UserIseGirisTarihi.Value:dd.MM.yyyy}" : "İşe giriş yok")</span>
+                            </div>
                         </td>
                         <td>
-                            @if (item.Pasif != true)
-                            {
-                                <b style="color:darkgreen">Aktif</b>
-                            }
-                            else
-                            {
-                                <b style="color:darkgrey">Pasif</b>
-
-                            }
+                            <div class="profile-list-stack">
+                                <strong>@(string.IsNullOrWhiteSpace(profilSatiri) ? "Profil bilgisi yok" : profilSatiri)</strong>
+                                <span>@(string.IsNullOrWhiteSpace(subeAdi) ? "Şube bilgisi yok" : subeAdi)</span>
+                            </div>
                         </td>
                         <td>
-                            @if (item.UserUnvan != null)
-                            {
-                                @item.Unvan.UnvanAdi
-                            }
+                            @(string.IsNullOrWhiteSpace(yoneticiAdi) ? "-" : yoneticiAdi)
                         </td>
                         <td>
-                            @if (item.UserBolumu != null)
-                            {
-                                @item.Bolum.BolumAdi
-                            }
+                            <span class="@durumClass">@durumMetni</span>
                         </td>
                         <td>
-                            @if (item.UserCinsiyet != null)
-                            {
-                                @item.Cinsiyet.CinsiyetAdi
-                            }
-                        </td>
-                        <td>
-                            @if (item.UserEgitim != null)
-                            {
-                                @item.Egitim.EgitimAdi
-                            }
-                        </td>
-                        <td>
-                            @item.UserDogumTar
-                        </td>
-
-                        <td>
-                            @if (item.UserSube != null)
-                            {
-                                @item.Sube.SubeAdi
-                            }
-                        </td>
-                        <td>
-                            @if (item.UserBolge != null)
-                            {
-                                @item.Bolge.BolgeAdi
-                            }
-                        </td>
-                        <td>
-                            @if (item.UserDepartman != null)
-                            {
-                                @item.Departman.DepartmanAdi
-                            }
-                        </td>
-                        <td>
-                            @if (item.UserYoneticisi != null)
-                            {
-                                @item.Yonetici.YoneticiAdi
-                            }
-                        </td>
-                        <td>
-                            @if (item.UserYaka != null)
-                            {
-                                @item.Yaka.YakaAdi
-                            }
-                        </td>
-                        <td>
-                            @if (item.UserSehir != null)
-                            {
-                                @item.Sehir.SehiarAdi
-                            }
+                            <span class="profile-file-chip">@(string.IsNullOrWhiteSpace(item.UserResim) ? "Avatar" : item.UserResim)</span>
                         </td>
 
                     </tr>
@@ -170,7 +770,51 @@
     </div>
 </div>
 
+@{
+    var userResimModalData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData)
+    {
+        ["ResimAction"] = "UserResimGuncelle",
+        ["ResimController"] = "Ayar",
+        ["ResimModalId"] = "userQuickPhotoModal",
+        ["ResimBaslik"] = "Katılımcı Fotoğrafı"
+    };
+}
+@await Html.PartialAsync("_ResimHizliYukleModal", null, userResimModalData)
+
 <script>
     $('#Grid').dataTable({
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        autoWidth: false
+    });
+
+    document.querySelector("[data-defaults-clear]")?.addEventListener("click", function () {
+        document.querySelectorAll(".katilimci-defaults-panel input[type='checkbox']").forEach(function (input) {
+            input.checked = false;
+        });
+    });
+
+    document.querySelector("[data-defaults-all]")?.addEventListener("click", function () {
+        document.querySelectorAll(".katilimci-defaults-panel input[type='checkbox']").forEach(function (input) {
+            input.checked = true;
+        });
+    });
+
+    document.querySelectorAll("[data-defaults-group-clear]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const group = button.closest(".katilimci-defaults-group");
+            group?.querySelectorAll("input[type='checkbox']").forEach(function (input) {
+                input.checked = false;
+            });
+        });
+    });
+
+    document.querySelectorAll("[data-defaults-group-all]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const group = button.closest(".katilimci-defaults-group");
+            group?.querySelectorAll("input[type='checkbox']").forEach(function (input) {
+                input.checked = true;
+            });
+        });
     });
 </script>

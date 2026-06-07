@@ -3,41 +3,71 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+
 <div class="panel settings-list-panel">
-    <div>
+    <div class="settings-form-heading" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
         <h4>YÖNETİCİ LİSTESİ</h4>
+        <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("YoneticiCreate", "Ayar")">Yeni</a>
     </div>
     <div class="panel-body">
-
+        @if (TempData["YoneticiResimMesaj"] != null)
+        {
+            <div class="katilimci-import-alert">@TempData["YoneticiResimMesaj"]</div>
+        }
         <table class="table">
-            <tr>
-                <td></td>
-                <th>
-                    Yönetici Adı
-                </th>
-            </tr>
-
-            @foreach (var item in Model)
-            {
+            <thead>
                 <tr>
-                    <td>
-                        <a class="fa fa-pencil" title="Ünvan düzenleme" href="@Url.Action("YoneticiEdit", "Ayar", new { id = item.YoneticiId })"></a>
-                        <a class="fa fa-trash-o" title="Ünvan sil" href="@Url.Action("YoneticiDelete", "Ayar", new { id = item.YoneticiId})"></a>
-                    </td>
-
-                    <td>
-                        @item.YoneticiAdi
-                    </td>
-
+                    <th style="width:110px;"></th>
+                    <th>Yönetici</th>
+                    <th>Resim</th>
                 </tr>
-            }
-
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <a class="fa fa-pencil" title="Yönetici düzenleme" href="@Url.Action("YoneticiEdit", "Ayar", new { id = item.YoneticiId })"></a>
+                            <a class="fa fa-trash-o" title="Yönetici sil" href="@Url.Action("YoneticiDelete", "Ayar", new { id = item.YoneticiId })"></a>
+                        </td>
+                        <td>
+                            <div class="profile-window compact">
+                                <button type="button"
+                                        class="profile-avatar-button"
+                                        title="Fotoğraf değiştir"
+                                        data-quick-photo-open
+                                        data-quick-photo-target="#yoneticiQuickPhotoModal"
+                                        data-quick-photo-id="@item.YoneticiId"
+                                        data-quick-photo-name="@item.YoneticiAdi">
+                                    @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = item.YoneticiAdi, Resim = item.YoneticiResim, Klasor = "Yonetici", Size = "sm" })
+                                </button>
+                                <div class="profile-window-text">
+                                    <strong>@item.YoneticiAdi</strong>
+                                    <span>Yönetici</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="profile-file-chip">@(string.IsNullOrWhiteSpace(item.YoneticiResim) ? "Avatar" : item.YoneticiResim)</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
         </table>
         <div class="col-lg-9"></div>
         <div class="col-lg-3">
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
-                <a style="background-color:blue; color:white" class="btn btn-default" href="@Url.Action("YoneticiCreate", "Ayar")">Yeni</a>
+            <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("Index", "Ayar")">Geri</a>
         </div>
-
     </div>
 </div>
+
+@{
+    var yoneticiResimModalData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData)
+    {
+        ["ResimAction"] = "YoneticiResimIndexGuncelle",
+        ["ResimController"] = "Ayar",
+        ["ResimModalId"] = "yoneticiQuickPhotoModal",
+        ["ResimBaslik"] = "Yönetici Fotoğrafı"
+    };
+}
+@await Html.PartialAsync("_ResimHizliYukleModal", null, yoneticiResimModalData)

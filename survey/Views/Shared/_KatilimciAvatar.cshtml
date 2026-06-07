@@ -1,0 +1,46 @@
+@model survey.Models.KatilimciAvatarModel
+@using System.Globalization
+@using System.IO
+@using System.Text.RegularExpressions
+
+@{
+    var ad = string.IsNullOrWhiteSpace(Model?.Ad) ? "Katilimci" : Model.Ad.Trim();
+    var resim = System.IO.Path.GetFileName(Model?.Resim ?? string.Empty);
+    var klasor = Regex.Replace((Model?.Klasor ?? "Katilimci").Trim('/','\\'), @"[^A-Za-z0-9\-_]", "");
+    klasor = string.IsNullOrWhiteSpace(klasor) ? "Katilimci" : klasor;
+    var cinsiyet = (Model?.Cinsiyet ?? string.Empty).Trim().ToLower(new CultureInfo("tr-TR"));
+    var boyut = string.IsNullOrWhiteSpace(Model?.Size) ? "md" : Model.Size.Trim().ToLowerInvariant();
+    var ekSinif = Model?.ClassName ?? string.Empty;
+    var fotografVar = !string.IsNullOrWhiteSpace(resim);
+    var resimUrl = fotografVar ? Url.Content("~/Content/" + klasor + "/" + resim) : string.Empty;
+    var cinsiyetSinifi = "is-neutral";
+    var ikon = "fa-user";
+
+    if (cinsiyet.Contains("bayan") || cinsiyet.Contains("kadın") || cinsiyet.Contains("kadin") || cinsiyet.Contains("female"))
+    {
+        cinsiyetSinifi = "is-female";
+        ikon = "fa-female";
+    }
+    else if (cinsiyet.Contains("erkek") || cinsiyet.Contains("male"))
+    {
+        cinsiyetSinifi = "is-male";
+        ikon = "fa-male";
+    }
+}
+
+<span class="katilimci-avatar @boyut @cinsiyetSinifi @(fotografVar ? "has-photo" : "") @ekSinif"
+      title="@ad"
+      aria-label="@ad"
+      data-avatar-preview-open
+      data-avatar-name="@ad"
+      data-avatar-src="@resimUrl"
+      data-avatar-tone="@cinsiyetSinifi"
+      data-avatar-icon="@ikon">
+    @if (fotografVar)
+    {
+        <img src="@resimUrl" alt="@ad" onerror="this.parentElement.classList.remove('has-photo'); this.remove();" />
+    }
+    <span class="katilimci-avatar-fallback">
+        <i class="fa @ikon" aria-hidden="true"></i>
+    </span>
+</span>

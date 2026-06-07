@@ -1,138 +1,516 @@
-﻿@model survey.Models.smtpayar
+@model survey.Models.smtpayar
 @{
-    ViewBag.Title = "Giris";
+    ViewBag.Title = "Parola Sıfırla";
     Layout = null;
-
 }
 
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-    <title>Survey by Aslana Teknoloji</title>
-    <!-- HTML5 Shim and Respond.js IE10 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 10]>
-      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-      <![endif]-->
-    <!-- Meta -->
+    <title>Parola Sıfırla | Survey by Aslana Teknoloji</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="description" content="#">
-    <meta name="keywords"
-          content="Admin , Responsive, Landing, Bootstrap, App, Template, Mobile, iOS, Android, apple, creative app">
-    <meta name="author" content="#">
-    <!-- Favicon icon -->
+    <meta name="description" content="Survey by Aslana Teknoloji parola sıfırlama ekranı">
     <link rel="icon" href="~/Content/img/aslana-favicon.png" type="image/png">
-    <!-- Google font-->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,800" rel="stylesheet">
-    <!-- Required Fremwork -->
     <link rel="stylesheet" type="text/css" href="~/files/bower_components/bootstrap/dist/css/bootstrap.min.css">
-    <!-- themify-icons line icon -->
     <link rel="stylesheet" type="text/css" href="~/files/assets/icon/themify-icons/themify-icons.css">
-    <!-- ico font -->
-    <link rel="stylesheet" type="text/css" href="~/files/assets/icon/icofont/css/icofont.css">
-    <!-- Style.css -->
-    <link rel="stylesheet" type="text/css" href="~/files/assets/css/style.css">
+    <style>
+        :root {
+            --ink: #152033;
+            --muted: #64748b;
+            --line: #dbe6f4;
+            --teal: #15b8a6;
+            --cyan: #28c7d9;
+            --indigo: #4257e8;
+            --violet: #7c3aed;
+            --amber: #ffb84d;
+            --coral: #ff6b5d;
+            --navy: #10192c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            font-family: "Segoe UI", Arial, sans-serif;
+            background:
+                linear-gradient(134deg, rgba(21, 184, 166, .22) 0 20%, transparent 20% 100%),
+                linear-gradient(152deg, transparent 0 48%, rgba(66, 87, 232, .11) 48% 70%, rgba(255, 184, 77, .18) 70% 100%),
+                linear-gradient(22deg, transparent 0 62%, rgba(255, 79, 139, .12) 62% 100%),
+                repeating-linear-gradient(90deg, rgba(16, 25, 44, .04) 0 1px, transparent 1px 76px),
+                repeating-linear-gradient(0deg, rgba(16, 25, 44, .035) 0 1px, transparent 1px 76px),
+                linear-gradient(180deg, #ffffff 0%, #f7fbff 48%, #eef7ff 100%);
+        }
+
+        a,
+        a:hover {
+            text-decoration: none;
+        }
+
+        .reset-page {
+            position: relative;
+            width: min(1120px, calc(100% - 32px));
+            min-height: 100vh;
+            margin: 0 auto;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 26px;
+            padding: 26px 0 52px;
+        }
+
+        .reset-page::before {
+            content: "";
+            position: absolute;
+            top: 88px;
+            left: -92px;
+            width: 390px;
+            height: 300px;
+            clip-path: polygon(0 14%, 88% 0, 100% 64%, 23% 100%);
+            background: linear-gradient(135deg, rgba(125, 244, 199, .38), rgba(56, 189, 248, .18), rgba(255, 107, 93, .10));
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .reset-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .brand-lockup,
+        .back-link,
+        .submit-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: 850;
+        }
+
+        .brand-lockup {
+            gap: 12px;
+            min-height: 58px;
+            padding: 9px 16px 9px 12px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, .16);
+            background: linear-gradient(135deg, #121a2b 0%, #26384f 58%, #24325f 100%);
+            box-shadow: 0 18px 42px rgba(21, 32, 51, .18);
+        }
+
+        .brand-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--teal), var(--indigo));
+        }
+
+        .brand-copy strong,
+        .brand-copy span {
+            display: block;
+            line-height: 1;
+        }
+
+        .brand-copy strong {
+            color: #fff;
+            font-size: 25px;
+            font-weight: 900;
+            text-transform: lowercase;
+        }
+
+        .brand-copy span {
+            margin-top: 4px;
+            color: rgba(255, 255, 255, .74);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .back-link {
+            gap: 8px;
+            min-height: 42px;
+            padding: 0 14px;
+            color: #26344c;
+            border: 1px solid rgba(132, 151, 176, .38);
+            background: rgba(255, 255, 255, .82);
+            box-shadow: 0 12px 28px rgba(49, 73, 118, .08);
+        }
+
+        .reset-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 440px;
+            align-items: center;
+            gap: 46px;
+        }
+
+        .reset-story {
+            max-width: 620px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+            padding: 0 12px;
+            border: 1px solid rgba(21, 184, 166, .34);
+            border-radius: 999px;
+            color: #0f766e;
+            background: rgba(21, 184, 166, .12);
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 16px 0 0;
+            color: #111827;
+            font-size: 46px;
+            line-height: 1.06;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        h1 span {
+            color: transparent;
+            background: linear-gradient(90deg, var(--indigo), var(--violet), var(--teal), var(--coral));
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .story-copy {
+            margin: 16px 0 0;
+            color: #536174;
+            font-size: 16px;
+            line-height: 1.72;
+            font-weight: 550;
+        }
+
+        .reset-points {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        .reset-point {
+            min-height: 92px;
+            padding: 14px;
+            border: 1px solid rgba(132, 151, 176, .28);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .90), rgba(255, 255, 255, .70)),
+                linear-gradient(135deg, rgba(21, 184, 166, .12), rgba(66, 87, 232, .10));
+            box-shadow: 0 16px 36px rgba(49, 73, 118, .10);
+        }
+
+        .reset-point i {
+            color: var(--teal);
+            font-size: 18px;
+        }
+
+        .reset-point strong {
+            display: block;
+            margin-top: 8px;
+            color: #172033;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .reset-point span {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.38;
+        }
+
+        .reset-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(132, 151, 176, .34);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .90)),
+                linear-gradient(145deg, rgba(21, 184, 166, .10), rgba(66, 87, 232, .10), rgba(255, 184, 77, .10));
+            box-shadow: 0 30px 90px rgba(49, 73, 118, .22);
+        }
+
+        .reset-card::before {
+            position: absolute;
+            inset: 0 0 auto;
+            height: 5px;
+            background: linear-gradient(90deg, var(--teal), var(--cyan), var(--indigo), var(--violet), var(--coral), var(--amber));
+            content: "";
+        }
+
+        .reset-card-inner {
+            padding: 28px;
+        }
+
+        .card-trust {
+            display: grid;
+            grid-template-columns: 42px 1fr;
+            gap: 11px;
+            margin-bottom: 18px;
+            padding: 12px;
+            border: 1px solid rgba(21, 184, 166, .22);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(21, 184, 166, .10), rgba(66, 87, 232, .08), rgba(255, 184, 77, .10)),
+                rgba(255, 255, 255, .88);
+        }
+
+        .card-trust i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--teal), var(--indigo));
+        }
+
+        .card-trust strong {
+            display: block;
+            color: #142033;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .card-trust span {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.38;
+        }
+
+        .reset-title {
+            margin: 0 0 6px;
+            color: #142033;
+            font-size: 25px;
+            font-weight: 900;
+        }
+
+        .reset-copy {
+            margin: 0 0 18px;
+            color: #687789;
+            font-size: 13px;
+            line-height: 1.58;
+        }
+
+        .form-field {
+            margin-bottom: 14px;
+        }
+
+        .form-field label {
+            display: block;
+            margin-bottom: 7px;
+            color: #344054;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .form-field input {
+            width: 100%;
+            min-height: 48px;
+            border: 1px solid #d8e4f2;
+            border-radius: 8px;
+            outline: none;
+            padding: 0 13px;
+            color: #172033;
+            background: rgba(255, 255, 255, .88);
+            transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+        }
+
+        .form-field input:focus {
+            border-color: rgba(66, 87, 232, .68);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(66, 87, 232, .11);
+        }
+
+        .form-field input::placeholder {
+            color: #9aa8ba;
+        }
+
+        .submit-btn {
+            gap: 9px;
+            width: 100%;
+            min-height: 50px;
+            border: 0;
+            color: #fff;
+            background: linear-gradient(135deg, var(--navy), var(--indigo) 48%, var(--teal));
+            box-shadow: 0 18px 38px rgba(66, 87, 232, .24);
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 20px 40px rgba(66, 87, 232, .24);
+        }
+
+        .reset-alert,
+        .validation-summary-errors {
+            margin-bottom: 14px;
+            padding: 11px 12px;
+            border: 1px solid rgba(21, 184, 166, .30);
+            border-radius: 8px;
+            color: #0f766e;
+            background: rgba(21, 184, 166, .10);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .validation-summary-errors {
+            border-color: rgba(255, 107, 93, .30);
+            color: #9c2f25;
+            background: rgba(255, 107, 93, .10);
+        }
+
+        .reset-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 14px;
+            color: #687789;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+
+        .reset-foot a {
+            color: var(--indigo);
+            font-weight: 900;
+        }
+
+        @@media (max-width: 900px) {
+            .reset-layout {
+                grid-template-columns: 1fr;
+                align-items: start;
+            }
+
+            .reset-story,
+            .reset-card {
+                max-width: 620px;
+                width: 100%;
+                margin: 0 auto;
+            }
+        }
+
+        @@media (max-width: 640px) {
+            .reset-page {
+                width: min(100% - 22px, 1120px);
+                padding-top: 16px;
+            }
+
+            .reset-nav {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .brand-lockup,
+            .back-link {
+                width: 100%;
+            }
+
+            h1 {
+                font-size: 36px;
+            }
+
+            .reset-points {
+                grid-template-columns: 1fr;
+            }
+
+            .reset-card-inner {
+                padding: 22px 18px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    @using (Html.BeginForm("SifremiUnuttum", "Home", FormMethod.Post))
-    {
-        @Html.AntiForgeryToken()
-        @Html.ValidationSummary(true)
+    <main class="reset-page">
+        <nav class="reset-nav">
+            <a class="brand-lockup" href="@Url.Action("Giris", "Home")" aria-label="Survey ana sayfa">
+                <span class="brand-mark"><i class="ti-check-box"></i></span>
+                <span class="brand-copy">
+                    <strong>survey</strong>
+                    <span>by Aslana Teknoloji</span>
+                </span>
+            </a>
+            <a class="back-link" href="@Url.Action("Giris", "Home")"><i class="ti-arrow-left"></i> Giriş ekranına dön</a>
+        </nav>
 
-        <section class="login-block">
-            <!-- Container-fluid starts -->
-            <div class="container">
-                <div class="row">
-                    <div class="col-sm-12">
-                        <!-- Authentication card start -->
-                        <br />
-                        <br />
-                        <br />
-
-                        <form class="md-float-material form-material">
-                            <div class="text-center">
-                                <img src="~/Content/img/aslana-logo.png" alt="Survey by Aslana Teknoloji">
-                            </div>
-                            <div class="auth-box card">
-                                <div class="card-block">
-                                    <div class="row m-b-20">
-                                        <div class="col-md-12">
-                                            <h3 class="text-center">Parola Sıfırla</h3>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3 form-primary">
-                                        <input name="email" type="text" class="form-control" required=""
-                                               placeholder="Mail Adresiniz" />
-                                        <span class="form-bar"></span>
-                                    </div>
-                                    <div class="row m-t-30">
-                                        <div class="col-md-12">
-                                            <div class="d-grid">
-                                                <button type="submit" class="btn btn-primary btn-md waves-effect waves-light text-center m-b-20">
-                                                    Sıfırla
-                                                </button>
-                                                <a class="btn btn-primary btn-md waves-effect waves-light text-center m-b-20" href="@Url.Action("Giris", "Home")">Giriş Ekranına Dön</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @if (@ViewBag.Uyari != null)
-                                    {
-                                        <div style="border: 1px solid red">
-                                            @ViewBag.Uyari
-                                        </div>
-                                    }
-
-                                    <hr />
-                                    <div class="row">
-                                        <div class="col-md-10">
-                                            <a href="@Url.Action("Giris", "Home")">
-                                                <p class="text-inverse text-start m-b-0">&copy; Survey by Aslana Teknoloji</p>
-
-                                            </a>
-
-                                        </div>
-                                        <div class="col-md-2">
-                                            <img width="82" src="~/Content/img/aslana-logo.png"
-                                                 alt="Survey by Aslana Teknoloji">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                        <!-- end of form -->
-                    </div>
-                    <!-- end of col-sm-12 -->
+        <section class="reset-layout">
+            <div class="reset-story">
+                <span class="eyebrow"><i class="ti-lock"></i> Güvenli hesap kurtarma</span>
+                <h1>Parolanızı <span>hızlı ve güvenli</span> şekilde yenileyin.</h1>
+                <p class="story-copy">
+                    Kayıtlı e-posta adresinizi yazın; sistem geçici parolanızı mail adresinize iletsin. Ardından panele giriş yapıp kendi şifrenizi güncelleyebilirsiniz.
+                </p>
+                <div class="reset-points" aria-label="Parola sıfırlama güven bilgileri">
+                    <div class="reset-point"><i class="ti-email"></i><strong>E-posta kontrolü</strong><span>Bilgi yalnızca kayıtlı mail adresine gönderilir.</span></div>
+                    <div class="reset-point"><i class="ti-timer"></i><strong>Hızlı işlem</strong><span>Form tek alandan oluşur, gereksiz adım yoktur.</span></div>
+                    <div class="reset-point"><i class="ti-shield"></i><strong>Panel güvenliği</strong><span>Giriş sonrası şifrenizi panelden yenileyebilirsiniz.</span></div>
                 </div>
-                <!-- end of row -->
             </div>
-            <!-- end of container-fluid -->
+
+            <section class="reset-card" aria-label="Parola sıfırlama formu">
+                <div class="reset-card-inner">
+                    <div class="card-trust">
+                        <i class="ti-shield"></i>
+                        <span>
+                            <strong>Survey hesap kurtarma</strong>
+                            <span>Aslana Teknoloji çalışma alanı hesabınız için güvenli parola sıfırlama.</span>
+                        </span>
+                    </div>
+
+                    @using (Html.BeginForm("SifremiUnuttum", "Ayar", FormMethod.Post, new { @class = "reset-form", autocomplete = "on" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.ValidationSummary(true)
+
+                        <h2 class="reset-title">Parola sıfırla</h2>
+                        <p class="reset-copy">Kayıtlı e-posta adresinizi yazın. Geçici parola mail adresinize gönderilecek.</p>
+
+                        @if (ViewBag.Uyari != null)
+                        {
+                            <div class="reset-alert">@ViewBag.Uyari</div>
+                        }
+
+                        <div class="form-field">
+                            <label for="email">E-posta adresiniz</label>
+                            <input id="email" name="email" type="email" required maxlength="80" placeholder="mail@firma.com" />
+                        </div>
+
+                        <button type="submit" class="submit-btn">
+                            <i class="ti-email"></i>
+                            Sıfırlama maili gönder
+                        </button>
+
+                        <div class="reset-foot">
+                            <span>Şifrenizi hatırladınız mı?</span>
+                            <a href="@Url.Action("Giris", "Home")">Panele giriş yap</a>
+                        </div>
+                    }
+                </div>
+            </section>
         </section>
-    }
-
-
-
+    </main>
 
     <script type="text/javascript" src="~/files/bower_components/jquery/dist/jquery.min.js"></script>
-    <script type="text/javascript" src="~/files/bower_components/jquery-ui/jquery-ui.min.js"></script>
     <script type="text/javascript" src="~/files/bower_components/popper.js/dist/umd/popper.min.js"></script>
     <script type="text/javascript" src="~/files/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-    <!-- jquery slimscroll js -->
-    <script type="text/javascript" src="~/files/bower_components/jquery-slimscroll/jquery.slimscroll.js"></script>
-    <!-- modernizr js -->
-    <script type="text/javascript" src="~/files/bower_components/modernizr/modernizr.js"></script>
-    <script type="text/javascript" src="~/files/bower_components/modernizr/feature-detects/css-scrollbars.js"></script>
-    <!-- i18next.min.js -->
-    <script type="text/javascript" src="~/files/bower_components/i18next/i18next.min.js"></script>
-    <script type="text/javascript"
-            src="~/files/bower_components/i18next-xhr-backend/i18nextXHRBackend.min.js"></script>
-    <script type="text/javascript"
-            src="~/files/bower_components/i18next-browser-languagedetector/i18nextBrowserLanguageDetector.min.js"></script>
-    <script type="text/javascript" src="~/files/bower_components/jquery-i18next/jquery-i18next.min.js"></script>
-    <script type="text/javascript" src="~/files/assets/js/common-pages.js"></script>
-
 </body>
 </html>

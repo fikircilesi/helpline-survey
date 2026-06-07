@@ -1,0 +1,182 @@
+<div class="image-cropper" data-avatar-crop>
+    <input type="file" name="resimDosyasi" class="form-control" accept=".jpg,.jpeg,.png,.webp,.gif,image/*" data-avatar-crop-file />
+    <input type="hidden" name="kirpilmisResim" data-avatar-crop-output />
+    <div class="image-cropper-stage" data-avatar-crop-stage hidden>
+        <div class="image-cropper-frame" data-avatar-crop-frame>
+            <canvas class="image-cropper-canvas" width="512" height="512" data-avatar-crop-canvas></canvas>
+        </div>
+        <div class="image-cropper-tools">
+            <button type="button" data-avatar-crop-nudge="-18,0" title="Sola kaydır"><i class="fa fa-arrow-left"></i></button>
+            <button type="button" data-avatar-crop-nudge="18,0" title="Sağa kaydır"><i class="fa fa-arrow-right"></i></button>
+            <button type="button" data-avatar-crop-nudge="0,-18" title="Yukarı kaydır"><i class="fa fa-arrow-up"></i></button>
+            <button type="button" data-avatar-crop-nudge="0,18" title="Aşağı kaydır"><i class="fa fa-arrow-down"></i></button>
+            <i class="fa fa-search-minus" aria-hidden="true"></i>
+            <input type="range" min="1" max="3" value="1" step="0.01" data-avatar-crop-zoom />
+            <i class="fa fa-search-plus" aria-hidden="true"></i>
+        </div>
+        <p class="image-cropper-note">Fotoğrafı sürükleyip pencereye oturtabilirsiniz. Kayıtta kare WebP olarak küçültülür.</p>
+    </div>
+</div>
+
+<script>
+    (() => {
+        if (window.__aslanaAvatarCropperLoaded) {
+            window.__aslanaAvatarCropperBoot && window.__aslanaAvatarCropperBoot();
+            return;
+        }
+
+        const outputSize = 512;
+
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+        const boot = () => {
+            document.querySelectorAll("[data-avatar-crop]").forEach(root => {
+                if (root.dataset.cropReady === "1") {
+                    return;
+                }
+
+                root.dataset.cropReady = "1";
+                const file = root.querySelector("[data-avatar-crop-file]");
+                const output = root.querySelector("[data-avatar-crop-output]");
+                const stage = root.querySelector("[data-avatar-crop-stage]");
+                const frame = root.querySelector("[data-avatar-crop-frame]");
+                const canvas = root.querySelector("[data-avatar-crop-canvas]");
+                const zoom = root.querySelector("[data-avatar-crop-zoom]");
+                const context = canvas.getContext("2d");
+                const state = {
+                    image: null,
+                    fitScale: 1,
+                    zoom: 1,
+                    offsetX: 0,
+                    offsetY: 0,
+                    dragging: false,
+                    lastX: 0,
+                    lastY: 0
+                };
+
+                const constrain = () => {
+                    if (!state.image) {
+                        return;
+                    }
+
+                    const scale = state.fitScale * state.zoom;
+                    const scaledWidth = state.image.width * scale;
+                    const scaledHeight = state.image.height * scale;
+                    const maxX = Math.max(0, (scaledWidth - outputSize) / 2);
+                    const maxY = Math.max(0, (scaledHeight - outputSize) / 2);
+                    state.offsetX = clamp(state.offsetX, -maxX, maxX);
+                    state.offsetY = clamp(state.offsetY, -maxY, maxY);
+                };
+
+                const draw = () => {
+                    if (!state.image) {
+                        return;
+                    }
+
+                    constrain();
+                    const scale = state.fitScale * state.zoom;
+                    const width = state.image.width * scale;
+                    const height = state.image.height * scale;
+                    const x = (outputSize - width) / 2 + state.offsetX;
+                    const y = (outputSize - height) / 2 + state.offsetY;
+
+                    context.clearRect(0, 0, outputSize, outputSize);
+                    context.fillStyle = "#f8fbff";
+                    context.fillRect(0, 0, outputSize, outputSize);
+                    context.drawImage(state.image, x, y, width, height);
+                    output.value = canvas.toDataURL("image/webp", 0.82);
+                };
+
+                const loadImage = selectedFile => {
+                    if (!selectedFile) {
+                        output.value = "";
+                        stage.hidden = true;
+                        return;
+                    }
+
+                    const image = new Image();
+                    const url = URL.createObjectURL(selectedFile);
+                    image.onload = () => {
+                        URL.revokeObjectURL(url);
+                        state.image = image;
+                        state.fitScale = Math.max(outputSize / image.width, outputSize / image.height);
+                        state.zoom = 1;
+                        state.offsetX = 0;
+                        state.offsetY = 0;
+                        zoom.value = "1";
+                        stage.hidden = false;
+                        draw();
+                    };
+                    image.onerror = () => {
+                        URL.revokeObjectURL(url);
+                        output.value = "";
+                        stage.hidden = true;
+                    };
+                    image.src = url;
+                };
+
+                file.addEventListener("change", () => loadImage(file.files && file.files[0]));
+                zoom.addEventListener("input", () => {
+                    state.zoom = Number(zoom.value) || 1;
+                    draw();
+                });
+
+                root.querySelectorAll("[data-avatar-crop-nudge]").forEach(button => {
+                    button.addEventListener("click", () => {
+                        const parts = (button.dataset.avatarCropNudge || "0,0").split(",");
+                        state.offsetX += Number(parts[0]) || 0;
+                        state.offsetY += Number(parts[1]) || 0;
+                        draw();
+                    });
+                });
+
+                frame.addEventListener("pointerdown", event => {
+                    if (!state.image) {
+                        return;
+                    }
+
+                    state.dragging = true;
+                    state.lastX = event.clientX;
+                    state.lastY = event.clientY;
+                    frame.setPointerCapture(event.pointerId);
+                });
+
+                frame.addEventListener("pointermove", event => {
+                    if (!state.dragging) {
+                        return;
+                    }
+
+                    const ratio = outputSize / frame.clientWidth;
+                    state.offsetX += (event.clientX - state.lastX) * ratio;
+                    state.offsetY += (event.clientY - state.lastY) * ratio;
+                    state.lastX = event.clientX;
+                    state.lastY = event.clientY;
+                    draw();
+                });
+
+                frame.addEventListener("pointerup", event => {
+                    state.dragging = false;
+                    frame.releasePointerCapture(event.pointerId);
+                });
+
+                const form = root.closest("form");
+                if (form) {
+                    form.addEventListener("submit", () => {
+                        if (output.value) {
+                            file.value = "";
+                        }
+                    });
+                }
+            });
+        };
+
+        window.__aslanaAvatarCropperLoaded = true;
+        window.__aslanaAvatarCropperBoot = boot;
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", boot);
+        } else {
+            boot();
+        }
+    })();
+</script>

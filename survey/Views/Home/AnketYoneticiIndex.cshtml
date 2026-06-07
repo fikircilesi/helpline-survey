@@ -1,7 +1,9 @@
 @model IEnumerable<survey.Models.Havuz>
+@using System.Collections.Generic
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var yoneticiResimleri = ViewBag.YoneticiResimleri as IDictionary<int, string> ?? new Dictionary<int, string>();
 }
 
 <!-- Sadece CDN DataTables -->
@@ -162,7 +164,19 @@
                                             <td>@item.First().User.Sube.SubeAdi</td>
                                             <td>@item.First().User.Unvan.UnvanAdi</td>
                                             <td>@item.First().User.Yaka.YakaAdi</td>
-                                            <td>@item.First().User.Yonetici.YoneticiAdi</td>
+                                            <td>
+                                                @{
+                                                    var yonetici = item.First().User.Yonetici;
+                                                    var yoneticiResim = item.First().User.UserYoneticisi.HasValue && yoneticiResimleri.TryGetValue(item.First().User.UserYoneticisi.Value, out var resim) ? resim : null;
+                                                }
+                                                <div class="profile-window compact">
+                                                    @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = yonetici?.YoneticiAdi, Resim = yoneticiResim, Klasor = "Yonetici", Size = "sm" })
+                                                    <div class="profile-window-text">
+                                                        <strong>@yonetici?.YoneticiAdi</strong>
+                                                        <span>Yönetici</span>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td>
                                                 @if (ViewBag.sinav != true)
                                                 {

@@ -5,7 +5,7 @@
 
 <h2>Yeni Kayıt</h2>
 
-@using (Html.BeginForm())
+@using (Html.BeginForm("YoneticiCreate", "Ayar", FormMethod.Post, new { enctype = "multipart/form-data" }))
 {
     @Html.AntiForgeryToken()
 
@@ -15,8 +15,14 @@
 
         <div class="form-group">
             <div class="col-md-10">
+                <h5>Yönetici Adı</h5>
                 @Html.TextBoxFor(model => model.YoneticiAdi, new { @class = "form-control", @maxlength = "50", @Required = "" })
                 @Html.ValidationMessageFor(model => model.YoneticiAdi, "", new { @class = "text-danger" })
+            </div>
+            <div class="col-md-10">
+                <h5>Yönetici Fotoğrafı</h5>
+                @await Html.PartialAsync("_ResimKirpici")
+                <small class="text-muted">Fotoğraf yoksa yönetici avatar ile gösterilir.</small>
             </div>
 
         </div>

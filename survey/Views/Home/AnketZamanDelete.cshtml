@@ -5,15 +5,15 @@
 
     var anketAdi = (ViewBag.ank as string) ?? Model?.Anket?.AnketAdi ?? "Çalışma";
     var fallbackId = Model == null ? "-" : (Model.UseId?.ToString() ?? Model.IzleId.ToString());
-    var kullaniciAdi = (ViewBag.adi as string) ?? Model?.User?.UserAdi ?? ("Katılımcı #" + fallbackId);
+    var kullaniciAdi = (ViewBag.adi as string) ?? Model?.User?.UserAdi ?? ("Süre kaydı #" + fallbackId);
     var mevcutAralik = (Model?.IzTarih?.ToString("dd.MM.yyyy HH:mm") ?? "-")
         + " - "
         + (Model?.BitisZaman?.ToString("dd.MM.yyyy HH:mm") ?? "sınırsız");
 
     ViewData["DeleteEyebrow"] = "Süre kaydı";
     ViewData["DeleteTitle"] = "Süre kaydı sıfırlansın mı?";
-    ViewData["DeleteDescription"] = "Bu işlem katılımcının mevcut zaman kaydını siler. Kişi çalışmaya tekrar girdiğinde süre yeniden başlatılır.";
-    ViewData["DeleteItemLabel"] = "Katılımcı / çalışma";
+    ViewData["DeleteDescription"] = "Bu işlem sadece mevcut zaman kaydını siler. Kişi çalışmaya tekrar girdiğinde süre yeniden başlatılır.";
+    ViewData["DeleteItemLabel"] = "Süre kaydı / çalışma";
     ViewData["DeleteItemName"] = kullaniciAdi + " - " + anketAdi + " (" + mevcutAralik + ")";
     ViewData["DeleteWarning"] = "Bu işlem mevcut süre takibini geri alınamaz şekilde sıfırlar; cevap kayıtları silinmez.";
     ViewData["DeleteBackUrl"] = Url.Action("AnketZamanIndex1", "Home", new { id = ViewBag.ankid });

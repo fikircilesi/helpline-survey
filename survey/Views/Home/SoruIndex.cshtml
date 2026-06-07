@@ -2,6 +2,7 @@
 @using System
 @using System.Globalization
 @using System.Linq
+@using System.Text.RegularExpressions
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -11,6 +12,19 @@
     var toplamPuan = sorular.Sum(x => x.SoruPuan ?? 0);
     Func<string, string> safe = value => string.IsNullOrWhiteSpace(value) ? "Tanımsız" : value.Trim();
     Func<double?, string> number = value => value.HasValue ? value.Value.ToString("0.##", new CultureInfo("tr-TR")) : "0";
+    var imageBaseUrl = Url.Content("~/Content/AnketGorsel/");
+    Func<string, Tuple<string, string>> splitImage = value =>
+    {
+        value = value ?? "";
+        var match = Regex.Match(value, @"\s*\[\[gorsel:(?<file>[^\]]+)\]\]\s*$", RegexOptions.IgnoreCase);
+        if (!match.Success)
+        {
+            return Tuple.Create(safe(value), "");
+        }
+
+        var cleanText = Regex.Replace(value, @"\s*\[\[gorsel:[^\]]+\]\]\s*$", "", RegexOptions.IgnoreCase).Trim();
+        return Tuple.Create(safe(cleanText), match.Groups["file"].Value.Trim());
+    };
 }
 
 <div class="bank-page">
@@ -61,7 +75,8 @@
                     {
                         var kategori = safe(item.SoruGrup?.SoruGrupAdi);
                         var grup = safe(item.CevapGrup?.CevapGrupAdi);
-                        var search = (safe(item.SoruAdi) + " " + kategori + " " + grup).ToLower(new CultureInfo("tr-TR"));
+                        var soruMetni = splitImage(item.SoruAdi);
+                        var search = (soruMetni.Item1 + " " + kategori + " " + grup).ToLower(new CultureInfo("tr-TR"));
                         <tr data-bank-row data-search="@search">
                             <td>
                                 <div class="bank-row-actions">
@@ -74,8 +89,18 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="bank-primary-text">@safe(item.SoruAdi)</div>
-                                <span class="bank-muted">#@item.SoruId</span>
+                                <div class="bank-question-cell">
+                                    @if (!string.IsNullOrWhiteSpace(soruMetni.Item2))
+                                    {
+                                        <span class="bank-question-thumb">
+                                            <img src="@(imageBaseUrl + Uri.EscapeDataString(soruMetni.Item2))" alt="" loading="lazy" />
+                                        </span>
+                                    }
+                                    <div>
+                                        <div class="bank-primary-text">@soruMetni.Item1</div>
+                                        <span class="bank-muted">#@item.SoruId</span>
+                                    </div>
+                                </div>
                             </td>
                             <td><span class="bank-pill">@kategori</span></td>
                             <td><span class="bank-pill soft bank-option-pill">@grup</span></td>
@@ -122,6 +147,9 @@
     .bank-table th { background: #f7fbff; color: #20314d; font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .03em; padding: 15px 14px; border-bottom: 1px solid #d6e2f3; }
     .bank-table td { min-width: 0; padding: 14px; border-bottom: 1px solid #e6edf7; vertical-align: middle; font-weight: 700; }
     .bank-table tbody tr:hover { background: #fbfdff; }
+    .bank-question-cell { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+    .bank-question-thumb { width: 58px; height: 46px; flex: 0 0 58px; overflow: hidden; border: 1px solid #d6e2f3; border-radius: 8px; background: #f8fbff; }
+    .bank-question-thumb img { width: 100%; height: 100%; display: block; object-fit: cover; }
     .bank-primary-text { max-width: 680px; color: #071832; font-size: 15px; font-weight: 850; line-height: 1.45; }
     .bank-muted { margin-top: 7px; padding: 5px 9px; color: #687892; background: #f2f6fb; }
     .bank-pill.soft { color: #3b4a67; background: #f5f7fb; }

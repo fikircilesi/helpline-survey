@@ -2,6 +2,29 @@
 @using System
 @using System.Globalization
 @using System.Linq
+@using System.Text.RegularExpressions
+
+@functions {
+    public (string Metin, string Gorsel) GorselliMetniCoz(string value)
+    {
+        var text = value ?? string.Empty;
+        var match = Regex.Match(
+            text,
+            @"\s*\[\[gorsel:(?<file>[^\]]+)\]\]\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        if (!match.Success)
+        {
+            return (text.Trim(), string.Empty);
+        }
+
+        var cleanText = Regex.Replace(text, @"\s*\[\[gorsel:[^\]]+\]\]\s*$", "", RegexOptions.IgnoreCase).Trim();
+        var fileName = System.IO.Path.GetFileName((match.Groups["file"].Value ?? string.Empty).Trim());
+        return string.Equals(System.IO.Path.GetExtension(fileName), ".webp", StringComparison.OrdinalIgnoreCase)
+            ? (cleanText, fileName)
+            : (cleanText, string.Empty);
+    }
+}
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -11,6 +34,12 @@
     var ortalamaPuan = cevaplar.Any() ? cevaplar.Average(x => x.CevapPuan ?? 0) : 0;
     Func<string, string> safe = value => string.IsNullOrWhiteSpace(value) ? "Tanımsız" : value.Trim();
     Func<double?, string> number = value => value.HasValue ? value.Value.ToString("0.##", new CultureInfo("tr-TR")) : "0";
+    var imageBaseUrl = Url.Content("~/Content/AnketGorsel/");
+    Func<string, string> imageUrl = file =>
+    {
+        file = (file ?? string.Empty).Trim();
+        return string.IsNullOrWhiteSpace(file) ? string.Empty : imageBaseUrl + Uri.EscapeDataString(file);
+    };
 }
 
 <div class="bank-page">
@@ -65,7 +94,8 @@
                     {
                         var grup = safe(item.CevapGrup?.CevapGrupAdi);
                         var isCorrect = item.Dogru == true;
-                        var search = (safe(item.CevapAdi) + " " + grup).ToLower(new CultureInfo("tr-TR"));
+                        var cevapGorselli = GorselliMetniCoz(item.CevapAdi);
+                        var search = (safe(cevapGorselli.Metin) + " " + grup).ToLower(new CultureInfo("tr-TR"));
                         <tr data-bank-row data-type="@(isCorrect ? "correct" : "option")" data-search="@search">
                             <td>
                                 <div class="bank-row-actions">
@@ -78,8 +108,16 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="bank-primary-text">@safe(item.CevapAdi)</div>
-                                <span class="bank-muted">#@item.CevapId</span>
+                                <div class="bank-option-media @(string.IsNullOrWhiteSpace(cevapGorselli.Gorsel) ? "no-image" : "")">
+                                    @if (!string.IsNullOrWhiteSpace(cevapGorselli.Gorsel))
+                                    {
+                                        <span class="bank-option-image"><img src="@imageUrl(cevapGorselli.Gorsel)" alt="" loading="lazy" /></span>
+                                    }
+                                    <div>
+                                        <div class="bank-primary-text">@safe(cevapGorselli.Metin)</div>
+                                        <span class="bank-muted">#@item.CevapId</span>
+                                    </div>
+                                </div>
                             </td>
                             <td><span class="bank-pill soft bank-option-pill">@grup</span></td>
                             <td><strong>@number(item.CevapPuan)</strong></td>
@@ -137,6 +175,10 @@
     .bank-table th { background: #f7fbff; color: #20314d; font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .03em; padding: 15px 14px; border-bottom: 1px solid #d6e2f3; }
     .bank-table td { min-width: 0; padding: 14px; border-bottom: 1px solid #e6edf7; vertical-align: middle; font-weight: 700; }
     .bank-table tbody tr:hover { background: #fbfdff; }
+    .bank-option-media { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 12px; align-items: center; min-width: 0; }
+    .bank-option-media.no-image { grid-template-columns: minmax(0, 1fr); }
+    .bank-option-image { width: 54px; aspect-ratio: 4 / 3; border: 1px solid #d6e2f3; border-radius: 10px; background: #fff; overflow: hidden; }
+    .bank-option-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .bank-primary-text { max-width: 100%; color: #071832; font-size: 15px; font-weight: 850; line-height: 1.45; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
     .bank-muted { margin-top: 7px; padding: 5px 9px; color: #687892; background: #f2f6fb; }
     .bank-pill.soft, .bank-status.neutral { color: #3b4a67; background: #f5f7fb; }

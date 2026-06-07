@@ -8,6 +8,8 @@
         ?? new System.Collections.Generic.Dictionary<int, int>();
     var bittiMap = ViewBag.ZamanBitti as System.Collections.Generic.Dictionary<int, int>
         ?? new System.Collections.Generic.Dictionary<int, int>();
+    var cevapliKatilimMap = ViewBag.ZamanCevapliKatilim as System.Collections.Generic.Dictionary<int, int>
+        ?? new System.Collections.Generic.Dictionary<int, int>();
 }
 
 <style>
@@ -122,8 +124,8 @@
 <div class="time-reset-shell">
     <div class="time-reset-head">
         <div>
-            <h2>Sure Sifirlama</h2>
-            <p>Burada sadece katilim veya sure kaydi olusan calismalar gorunur.</p>
+            <h2>Süre Kayıtları</h2>
+            <p>Bu liste cevap katılımını değil, sınav zaman takibini gösterir. Kişi çalışmayı açınca süre kaydı oluşabilir.</p>
         </div>
         <a class="time-action" href="@Url.Action("Indexgosterge", "Home")">Geri</a>
     </div>
@@ -132,7 +134,7 @@
         @if (!Model.Any())
         {
             <div class="empty-time-state">
-                Bu calisma alaninda suresi sifirlanabilecek bir katilim kaydi yok.
+                Bu çalışma alanında sıfırlanabilecek süre kaydı yok.
             </div>
         }
         else
@@ -140,11 +142,12 @@
             <table class="time-table">
                 <thead>
                     <tr>
-                        <th>Calisma</th>
-                        <th>Sinav suresi</th>
-                        <th>Kayit</th>
+                        <th>Çalışma</th>
+                        <th>Sınav süresi</th>
+                        <th>Süre kaydı</th>
+                        <th>Cevaplı katılım</th>
                         <th>Devam eden</th>
-                        <th>Suresi dolan</th>
+                        <th>Süresi dolan</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -152,17 +155,19 @@
                     @foreach (var item in Model)
                     {
                         var toplam = toplamMap.ContainsKey(item.AnketId) ? toplamMap[item.AnketId] : 0;
+                        var cevapliKatilim = cevapliKatilimMap.ContainsKey(item.AnketId) ? cevapliKatilimMap[item.AnketId] : 0;
                         var devam = devamMap.ContainsKey(item.AnketId) ? devamMap[item.AnketId] : 0;
                         var bitti = bittiMap.ContainsKey(item.AnketId) ? bittiMap[item.AnketId] : 0;
                         <tr>
                             <td class="time-name">@item.AnketAdi</td>
-                            <td>@(item.Zaman.HasValue && item.Zaman.Value > 0 ? item.Zaman + " dk" : "Sinirsiz")</td>
-                            <td><span class="time-pill">@toplam kayit</span></td>
+                            <td>@(item.Zaman.HasValue && item.Zaman.Value > 0 ? item.Zaman + " dk" : "Sınırsız")</td>
+                            <td><span class="time-pill">@toplam süre kaydı</span></td>
+                            <td><span class="time-pill">@cevapliKatilim cevaplı</span></td>
                             <td><span class="time-pill live">@devam</span></td>
                             <td><span class="time-pill done">@bitti</span></td>
                             <td>
                                 <a class="time-action" href="@Url.Action("AnketZamanIndex1", "Home", new { id = item.AnketId })">
-                                    Katilimcilari gor
+                                    Süre kayıtlarını gör
                                 </a>
                             </td>
                         </tr>

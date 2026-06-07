@@ -3,14 +3,14 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    ViewData["DeleteEyebrow"] = "Çalışma kırılımı";
-    ViewData["DeleteTitle"] = "Soru grubu bu çalışmadan kaldırılsın mı?";
-    ViewData["DeleteDescription"] = "Bu işlem soru grubunu bankadan silmez; yalnızca seçili çalışmadaki bağlantıyı kaldırır.";
-    ViewData["DeleteItemLabel"] = "Soru grubu";
+    ViewData["DeleteEyebrow"] = "Rapor başlığı";
+    ViewData["DeleteTitle"] = "Rapor başlığı bu çalışmadan kaldırılsın mı?";
+    ViewData["DeleteDescription"] = "Bu işlem başlığı bankadan silmez; yalnızca seçili çalışmadaki rapor bağlantısını kaldırır.";
+    ViewData["DeleteItemLabel"] = "Rapor başlığı";
     ViewData["DeleteItemName"] = Model?.SoruGrup?.SoruGrupAdi;
-    ViewData["DeleteWarning"] = "Bu kırılıma ait katılım cevabı varsa bağlantı kaldırılmaz. Önce ilgili katılım verilerini temizleyin.";
+    ViewData["DeleteWarning"] = "Bu rapor başlığına ait katılım cevabı varsa bağlantı kaldırılmaz. Önce ilgili katılım verilerini temizleyin.";
     ViewData["DeleteBackUrl"] = Url.Action("AnketGrupIndex", "Home", new { id = ViewBag.id, adi = ViewBag.adi });
-    ViewData["DeleteSubmitText"] = "Kırılımı kaldır";
+    ViewData["DeleteSubmitText"] = "Rapor başlığını kaldır";
     ViewData["DeleteHiddenFields"] = new[]
     {
         new System.Collections.Generic.KeyValuePair<string, string>("ank", Convert.ToString(ViewBag.id)),

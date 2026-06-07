@@ -15,6 +15,10 @@
     var toplamSoru = ViewBag.ToplamSoru ?? 0;
     var toplamPuan = ViewBag.ToplamPuan ?? 0d;
     var anketAdi = Convert.ToString(ViewBag.adi);
+    var returnUrl = string.IsNullOrWhiteSpace(Convert.ToString(ViewBag.ReturnUrl))
+        ? Url.Action("Indexgosterge", "Home")
+        : Convert.ToString(ViewBag.ReturnUrl);
+    var currentUrl = Context.Request.Path.ToString() + Context.Request.QueryString.ToString();
 
     Func<int?, int> soruSayisiBul = soruGrupId =>
         soruGrupId.HasValue && soruSayilari.ContainsKey(soruGrupId.Value)
@@ -316,22 +320,28 @@
 <div class="group-map">
     <section class="group-hero">
         <div>
-            <p class="group-kicker">Rapor Kırılımı</p>
-            <h1 class="group-title">Soru Grupları</h1>
+            <p class="group-kicker">Rapor Başlıkları</p>
+            <h1 class="group-title">Rapor Başlıkları</h1>
             <p class="group-copy">
-                @anketAdi çalışmasındaki sorular bu başlıklara bağlanır. Memnuniyet anketlerinde her başlık ayrı raporlanır; sınavlarda ise soru setini düzenli tutar.
+                @anketAdi çalışmasındaki sorular raporda ayrı izlemek istediğiniz başlıklara bağlanır. Ürün memnuniyetinde her ürün, bölüm veya konu ayrı başlık olabilir; sınavlarda soru setini düzenli tutar.
             </p>
         </div>
 
         <div class="group-actions">
-            <a class="group-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = ViewBag.id })">
-                <i class="fa fa-arrow-left"></i> Ayarlara Dön
+            <a class="group-btn" href="@returnUrl">
+                <i class="fa fa-arrow-left"></i> Çalışmalarıma Dön
+            </a>
+            <a class="group-btn" href="@Url.Action("AnketSoruYonetim", "Home", new { id = ViewBag.id, returnUrl = returnUrl })">
+                <i class="fa fa-question-circle"></i> Soruları Yönet
+            </a>
+            <a class="group-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = ViewBag.id, returnUrl = returnUrl })">
+                <i class="fa fa-sliders"></i> Yayın Ayarlarını Tamamla
             </a>
             <a class="group-btn primary" href="@Url.Action("AnketGrupCreate", "Home", new { id = ViewBag.id, adi = ViewBag.adi })">
-                <i class="fa fa-plus"></i> Yeni Kırılım
+                <i class="fa fa-plus"></i> Rapor Başlığı Ekle
             </a>
-            <a class="group-btn" href="@Url.Action("DogruCevapEditor", "Home", new { id = ViewBag.id })">
-                <i class="fa fa-check-circle"></i> Doğru Cevaplar
+            <a class="group-btn" href="@Url.Action("DogruCevapEditor", "Home", new { id = ViewBag.id, returnUrl = returnUrl })">
+                <i class="fa fa-check-circle"></i> Cevap Anahtarı
             </a>
         </div>
     </section>
@@ -339,7 +349,7 @@
     <div class="group-stats">
         <div class="group-stat">
             <strong>@gruplar.Count</strong>
-            <span>Rapor kırılımı</span>
+            <span>Rapor başlığı</span>
         </div>
         <div class="group-stat">
             <strong>@toplamSoru</strong>
@@ -353,14 +363,14 @@
 
     <section class="group-panel">
         <div class="group-panel-head">
-            <h2>Tanımlı kırılımlar</h2>
-            <input class="group-search" id="groupSearch" type="search" placeholder="Kırılım ara" autocomplete="off" />
+            <h2>Tanımlı rapor başlıkları</h2>
+            <input class="group-search" id="groupSearch" type="search" placeholder="Başlık ara" autocomplete="off" />
         </div>
 
         @if (!gruplar.Any())
         {
             <div class="group-empty">
-                Henüz soru grubu bağlanmamış. Rapor kırılımı oluşturmak için Yeni Kırılım butonunu kullanın.
+                Henüz rapor başlığı bağlanmamış. İlk rapor başlığını eklemek için Rapor Başlığı Ekle butonunu kullanın.
             </div>
         }
         else
@@ -383,10 +393,10 @@
                         </div>
 
                         <div class="group-card-actions">
-                            <a class="group-btn icon" title="Kırılımı değiştir" aria-label="Kırılımı değiştir" href="@Url.Action("AnketGrupEdit", "Home", new { id = item.AnketGupId, sr = item.SoruGrupId, ank = ViewBag.id, adi = ViewBag.adi })">
+                            <a class="group-btn icon" title="Rapor başlığını değiştir" aria-label="Rapor başlığını değiştir" href="@Url.Action("AnketGrupEdit", "Home", new { id = item.AnketGupId, sr = item.SoruGrupId, ank = ViewBag.id, adi = ViewBag.adi })">
                                 <i class="fa fa-pencil"></i>
                             </a>
-                            <a class="group-btn icon danger" title="Kırılımı çıkar" aria-label="Kırılımı çıkar" href="@Url.Action("AnketGrupDelete", "Home", new { id = item.AnketGupId, sr = item.SoruGrupId, ank = ViewBag.id, adi = ViewBag.adi })">
+                            <a class="group-btn icon danger" title="Rapor başlığını çıkar" aria-label="Rapor başlığını çıkar" href="@Url.Action("AnketGrupDelete", "Home", new { id = item.AnketGupId, sr = item.SoruGrupId, ank = ViewBag.id, adi = ViewBag.adi })">
                                 <i class="fa fa-trash"></i>
                             </a>
                         </div>

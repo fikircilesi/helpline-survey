@@ -2,31 +2,9 @@
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["CevapGrupFormBaslik"] = "Seçenek Grubu Düzenle";
+    ViewData["CevapGrupFormAltBaslik"] = "Bu grubun adını soru bankasında, sınavda ve raporlarda anlaşılır görünecek şekilde düzenle";
+    ViewData["CevapGrupFormAksiyon"] = "CevapGrupEdit";
 }
 
-@using (Html.BeginForm())
-{
-    @Html.AntiForgeryToken()
-    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-    @Html.HiddenFor(model => model.CevapGrupId)
-
-    <div class="panel">
-        <div>
-            <h4>Seçenek Grubu Düzenle</h4>
-        </div>
-        <div class="panel-body">
-
-            <div class="col-md-10">
-                <h5>Seçenek Grubu Adı</h5>
-                @Html.EditorFor(model => model.CevapGrupAdi, new { htmlAttributes = new { @class = "form-control", @Required = "", autofocus = "", @maxlength = "50" } })
-                @Html.ValidationMessageFor(model => model.CevapGrupAdi, "", new { @class = "text-danger" })
-            </div>
-
-            <div class="col-lg-9"></div>
-            <div class="col-lg-3">
-                <a style="background-color:green; color:white" class="btn btn-default" href="@Url.Action("CevapGrupIndex", "Home")">Geri</a>
-                <input type="submit" style="background-color:blue; color:white" class="btn btn-default" value="Kayıt" />
-            </div>
-        </div>
-    </div>
-}
+@await Html.PartialAsync("_CevapGrupForm", Model ?? new survey.Models.CevapGrup())

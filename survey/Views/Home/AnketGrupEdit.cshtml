@@ -12,7 +12,7 @@
 
     <div class="panel">
         <div>
-            <h4>ANKET GRUP LİSTESİ</h4>
+            <h4>RAPOR BAŞLIĞI DÜZENLE</h4>
         </div>
         <div class="panel-body">
 
@@ -21,7 +21,7 @@
                 @Html.ValidationMessageFor(model => model.AnketId, "", new { @class = "text-danger" })
             </div>
             <div class="col-md-10">
-                <h5>Soru Adı</h5>
+                <h5>Rapor başlığı</h5>
                 @Html.DropDownListFor(m => m.SoruGrupId, (List<SelectListItem>)ViewBag.Sor, "Seçim", new { @class = "form-control", @Required = "" })
                 @Html.ValidationMessageFor(model => model.SoruGrupId, "", new { @class = "text-danger" })
             </div>
