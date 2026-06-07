@@ -430,7 +430,7 @@
 
     @if (!Model.TamiHazir)
     {
-        <div class="billing-alert">Tami ödeme ayarları henüz tamamlanmamış. Ücretsiz plan çalışır; ücretli paketler için Tami bilgileri appsettings üzerinden girilmeli.</div>
+        <div class="billing-alert">Ödeme sistemi henüz aktif değil. Ücretsiz plan çalışır; ücretli paketler için ödeme altyapısı tamamlandığında butonlar açılacak.</div>
     }
 
     @if (Model.PaketYonetimiAktif && Model.Paketler.Any())
@@ -548,7 +548,7 @@
                         {
                             <form method="post" action="@Url.Action("PaketSec", "Odeme", new { id = paket.OdemePaketiId })">
                                 @Html.AntiForgeryToken()
-                                <button class="billing-button" type="submit" @(Model.TamiHazir ? "" : "disabled")>Tami ile ödeme yap</button>
+                                <button class="billing-button" type="submit" @(Model.TamiHazir ? "" : "disabled")>Ödeme yap</button>
                             </form>
                         }
                     </div>

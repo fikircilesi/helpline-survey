@@ -189,7 +189,7 @@ namespace survey.Controllers
             var ayarlar = TamiAyarlari();
             if (!ayarlar.HostedOdemeHazirMi())
             {
-                return RedirectToAction("Index", new { mesaj = "Tami ayarları eksik. Ödeme almadan önce Tami üye işyeri bilgileri girilmeli." });
+                return RedirectToAction("Index", new { mesaj = "Ödeme sistemi henüz aktif değil. Ücretli paketler için ödeme altyapısı tamamlanmalı." });
             }
 
             var siparisNo = SiparisNoUret();
@@ -221,7 +221,7 @@ namespace survey.Controllers
         {
             if (string.IsNullOrWhiteSpace(siparisNo))
             {
-                return RedirectToAction("Index", new { mesaj = "Tami dönüşünde sipariş numarası alınamadı." });
+                return RedirectToAction("Index", new { mesaj = "Ödeme dönüşünde sipariş numarası alınamadı." });
             }
 
             var odeme = OdemeIslemiGetir(siparisNo);
@@ -233,8 +233,8 @@ namespace survey.Controllers
             var ayarlar = TamiAyarlari();
             if (!ayarlar.SorgulamaHazirMi())
             {
-                OdemeHatasiKaydet(odeme.OdemeIslemiId, "Tami sorgulama ayarları eksik olduğu için ödeme doğrulanamadı.");
-                return RedirectToAction("Index", new { mesaj = "Ödeme dönüşü alındı, ancak Tami sorgulama ayarları eksik. Kid ve K değeri girilmeli." });
+                OdemeHatasiKaydet(odeme.OdemeIslemiId, "Ödeme sorgulama ayarları eksik olduğu için ödeme doğrulanamadı.");
+                return RedirectToAction("Index", new { mesaj = "Ödeme dönüşü alındı, ancak ödeme sorgulama ayarları eksik." });
             }
 
             var sorgu = await new TamiOdemeClient(ayarlar).OdemeSorgulaAsync(siparisNo);
@@ -296,7 +296,7 @@ namespace survey.Controllers
             var ayarlar = TamiAyarlari();
             if (!ayarlar.SorgulamaHazirMi())
             {
-                return RedirectToAction("Index", new { mesaj = "Tami sorgulama ayarları eksik." });
+                return RedirectToAction("Index", new { mesaj = "Ödeme sorgulama ayarları eksik." });
             }
 
             var sorgu = await new TamiOdemeClient(ayarlar).OdemeSorgulaAsync(odeme.SiparisNo);

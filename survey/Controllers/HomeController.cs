@@ -2946,7 +2946,7 @@ Yalnizca su JSON semasinda cevap ver:
                              CAST(ISNULL(SertifikaAktif, ISNULL(Sonuc, 0)) AS bit) AS SertifikaAktif,
                              CAST(ISNULL(SertifikaKatilimciErisimi, 1) AS bit) AS SertifikaKatilimciErisimi,
                              ISNULL(NULLIF(SertifikaVerilisZamani, N''), N'SureBitince') AS SertifikaVerilisZamani,
-                             ISNULL(NULLIF(SertifikaBaslik, N''), N'KatÄ±lÄ±m SertifikasÄ±') AS SertifikaBaslik,
+                             ISNULL(NULLIF(SertifikaBaslik, N''), N'Katılım Sertifikası') AS SertifikaBaslik,
                              SertifikaMetni,
                              YayinBitisTarihi
                       FROM dbo.Anket
@@ -3005,7 +3005,7 @@ Yalnizca su JSON semasinda cevap ver:
                     SertifikaAktif = anket?.Sonuc == true,
                     SertifikaKatilimciErisimi = true,
                     SertifikaVerilisZamani = "SureBitince",
-                    SertifikaBaslik = "KatÄ±lÄ±m SertifikasÄ±",
+                    SertifikaBaslik = "Katılım Sertifikası",
                     SertifikaTema = "Modern",
                     SertifikaVurguRengi = "#2563eb",
                     SertifikaCerceve = "Classic",
@@ -3027,11 +3027,13 @@ Yalnizca su JSON semasinda cevap ver:
         {
             if (string.IsNullOrWhiteSpace(value))
             {
-                return "KatÄ±lÄ±m SertifikasÄ±";
+                return "Katılım Sertifikası";
             }
 
             var baslik = value.Trim();
-            return baslik == "KatÃ„Â±lÃ„Â±m SertifikasÃ„Â±" ? "KatÄ±lÄ±m SertifikasÄ±" : baslik;
+            return baslik == "KatÃ„Â±lÃ„Â±m SertifikasÃ„Â±" || baslik == "KatÄ±lÄ±m SertifikasÄ±"
+                ? "Katılım Sertifikası"
+                : baslik;
         }
 
         private static string NormalizeSertifikaTema(string value)
@@ -9146,7 +9148,7 @@ Yalnizca su JSON semasinda cevap ver:
                 SertifikaVerilisZamani = NormalizeSertifikaZamani(ayar?.SertifikaVerilisZamani),
                 SertifikaNotu = anket.SertifikaNotu ?? 70,
                 EgitimVeren = anket.EgitimVeren,
-                SertifikaBaslik = ayar?.SertifikaBaslik ?? "KatÄ±lÄ±m SertifikasÄ±",
+                SertifikaBaslik = ayar?.SertifikaBaslik ?? "Katılım Sertifikası",
                 SertifikaMetni = ayar?.SertifikaMetni,
                 SertifikaTema = NormalizeSertifikaTema(ayar?.SertifikaTema),
                 SertifikaLogo = ayar?.SertifikaLogo,
@@ -9200,7 +9202,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (string.IsNullOrWhiteSpace(form.SertifikaBaslik))
             {
-                form.SertifikaBaslik = "KatÄ±lÄ±m SertifikasÄ±";
+                form.SertifikaBaslik = "Katılım Sertifikası";
             }
 
             if (ImzaDosyasi != null && ImzaDosyasi.Length > 0 && !SertifikaGorseliUzantisiGecerli(ImzaDosyasi.FileName))
