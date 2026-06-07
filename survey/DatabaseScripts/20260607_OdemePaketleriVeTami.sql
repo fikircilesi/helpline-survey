@@ -110,12 +110,19 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_UcretsizDenemeKaydi_E
     CREATE UNIQUE INDEX UX_UcretsizDenemeKaydi_EpostaAnahtari ON dbo.UcretsizDenemeKaydi(EpostaAnahtari);
 GO
 
+DECLARE @UcretsizAdi NVARCHAR(120) = NCHAR(220) + N'cretsiz';
+DECLARE @BaslangicAdi NVARCHAR(120) = N'Ba' + NCHAR(351) + N'lang' + NCHAR(305) + NCHAR(231);
+DECLARE @UcretsizAciklama NVARCHAR(600) = N'K' + NCHAR(252) + NCHAR(231) + NCHAR(252) + N'k i' + NCHAR(351) + N'letmelerin temel anket ihtiyac' + NCHAR(305) + N'n' + NCHAR(305) + N' ger' + NCHAR(231) + N'ekten ' + NCHAR(231) + NCHAR(246) + N'zer. Survey by Aslana Teknoloji marka izi g' + NCHAR(246) + N'r' + NCHAR(252) + N'n' + NCHAR(252) + N'r.';
+DECLARE @BaslangicAciklama NVARCHAR(600) = N'D' + NCHAR(252) + N'zenli anket kullanan k' + NCHAR(252) + NCHAR(231) + NCHAR(252) + N'k ekipler i' + NCHAR(231) + N'in daha fazla kapasite ve marka izi kald' + NCHAR(305) + N'rma.';
+DECLARE @ProfesyonelAciklama NVARCHAR(600) = N'Raporlama, d' + NCHAR(305) + NCHAR(351) + N'a aktarma ve b' + NCHAR(252) + N'y' + NCHAR(252) + N'yen ekip kullan' + NCHAR(305) + N'm' + NCHAR(305) + N' i' + NCHAR(231) + N'in ana paket.';
+DECLARE @KurumsalAciklama NVARCHAR(600) = N'Y' + NCHAR(252) + N'ksek hacimli kurumlar, ' + NCHAR(246) + N'zel destek ve y' + NCHAR(305) + N'll' + NCHAR(305) + N'k kullan' + NCHAR(305) + N'm i' + NCHAR(231) + N'in.';
+
 MERGE dbo.OdemePaketi AS hedef
 USING (VALUES
-    (N'UCRETSIZ', N'Ücretsiz', N'Küçük işletmelerin temel anket ihtiyacını gerçekten çözer. Survey by Aslana Teknoloji marka izi görünür.', 0.00, N'TRY', 365, 2, 3, 250, 1, 1, 0, 0, 0, 10, 0),
-    (N'BASLANGIC', N'Başlangıç', N'Düzenli anket kullanan küçük ekipler için daha fazla kapasite ve marka izi kaldırma.', 499.00, N'TRY', 30, 5, 10, 2500, 0, 1, 0, 1, 0, 20, 0),
-    (N'PROFESYONEL', N'Profesyonel', N'Raporlama, dışa aktarma ve büyüyen ekip kullanımı için ana paket.', 1499.00, N'TRY', 30, 15, 40, 15000, 0, 1, 1, 1, 1, 30, 0),
-    (N'KURUMSAL', N'Kurumsal', N'Yüksek hacimli kurumlar, özel destek ve yıllık kullanım için.', 14999.00, N'TRY', 365, 50, 250, 250000, 0, 1, 1, 1, 1, 40, 0)
+    (N'UCRETSIZ', @UcretsizAdi, @UcretsizAciklama, 0.00, N'TRY', 365, 2, 3, 250, 1, 1, 0, 0, 0, 10, 0),
+    (N'BASLANGIC', @BaslangicAdi, @BaslangicAciklama, 499.00, N'TRY', 30, 5, 10, 2500, 0, 1, 0, 1, 0, 20, 0),
+    (N'PROFESYONEL', N'Profesyonel', @ProfesyonelAciklama, 1499.00, N'TRY', 30, 15, 40, 15000, 0, 1, 1, 1, 1, 30, 0),
+    (N'KURUMSAL', N'Kurumsal', @KurumsalAciklama, 14999.00, N'TRY', 365, 50, 250, 250000, 0, 1, 1, 1, 1, 40, 0)
 ) AS kaynak
 (
     PaketKodu,

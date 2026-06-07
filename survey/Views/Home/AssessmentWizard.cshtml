@@ -684,6 +684,67 @@
             gap: 10px;
         }
 
+        .question-image-editor {
+            display: grid;
+            grid-template-columns: 74px minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            border: 1px dashed #cbd7e8;
+            border-radius: 8px;
+            background: #f8fbff;
+        }
+
+        .question-image-thumb,
+        .answer-image-thumb {
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            border: 1px solid #d8e2f0;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--wiz-muted);
+        }
+
+        .question-image-thumb {
+            width: 74px;
+            height: 54px;
+        }
+
+        .question-image-thumb img,
+        .answer-image-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .question-image-copy {
+            min-width: 0;
+        }
+
+        .question-image-copy strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 900;
+            color: var(--wiz-ink);
+        }
+
+        .question-image-copy span {
+            display: block;
+            margin-top: 3px;
+            color: var(--wiz-muted);
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .question-image-actions,
+        .answer-image-actions {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
         .answer-list {
             display: grid;
             gap: 6px;
@@ -691,13 +752,19 @@
 
         .answer-row {
             display: grid;
-            grid-template-columns: 24px minmax(0, 1fr) 34px;
+            grid-template-columns: 24px minmax(0, 1fr) auto 34px;
             gap: 8px;
             align-items: center;
         }
 
         .answer-row.survey-score {
-            grid-template-columns: minmax(0, 1fr) 86px 34px;
+            grid-template-columns: minmax(0, 1fr) 86px auto 34px;
+        }
+
+        .answer-image-thumb {
+            width: 34px;
+            height: 34px;
+            border-radius: 7px;
         }
 
         .answer-row input[type="radio"],
@@ -779,6 +846,17 @@
             color: #38455c;
             font-size: 11px;
             font-weight: 800;
+        }
+
+        .participant-flow-image {
+            display: block;
+            width: 100%;
+            max-height: 130px;
+            margin-top: 10px;
+            border: 1px solid var(--wiz-line);
+            border-radius: 8px;
+            object-fit: cover;
+            background: #fff;
         }
 
         .participant-flow-list {
@@ -1035,7 +1113,7 @@
         .toast-line {
             position: fixed;
             right: 20px;
-            bottom: 20px;
+            top: 20px;
             z-index: 9999;
             min-width: 260px;
             max-width: 380px;
@@ -1044,7 +1122,7 @@
             background: #172033;
             color: #fff;
             box-shadow: 0 18px 42px rgba(23, 32, 51, .22);
-            transform: translateY(20px);
+            transform: translateY(-12px);
             opacity: 0;
             pointer-events: none;
             transition: opacity .18s ease, transform .18s ease;
@@ -1053,6 +1131,74 @@
         .toast-line.show {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        .wizard-inline-alert {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto auto;
+            gap: 12px;
+            align-items: center;
+            margin-top: 14px;
+            padding: 14px;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            background: #fff7f7;
+            color: #7f1d1d;
+            box-shadow: 0 16px 34px rgba(127, 29, 29, .08);
+        }
+
+        .wizard-inline-alert[hidden] {
+            display: none;
+        }
+
+        .wizard-inline-alert i {
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .wizard-inline-alert strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 900;
+            margin-bottom: 3px;
+        }
+
+        .wizard-inline-alert p {
+            margin: 0;
+            color: #7f1d1d;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .wizard-alert-action {
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 9px 11px;
+            background: #fff;
+            color: #991b1b;
+            font-size: 12px;
+            font-weight: 850;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .wizard-alert-action[hidden] {
+            display: none;
+        }
+
+        .wizard-alert-close {
+            border: 0;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: #fee2e2;
+            color: #991b1b;
+            cursor: pointer;
         }
 
         .ghost-preview {
@@ -1125,6 +1271,15 @@
                 justify-content: flex-start;
             }
 
+            .wizard-inline-alert {
+                grid-template-columns: auto minmax(0, 1fr) auto;
+            }
+
+            .wizard-alert-action {
+                grid-column: 2 / -1;
+                width: max-content;
+            }
+
             .wizard-steps {
                 grid-template-columns: 1fr 1fr;
             }
@@ -1135,6 +1290,20 @@
 
             .question-row {
                 grid-template-columns: 1fr;
+            }
+
+            .question-image-editor {
+                grid-template-columns: 64px minmax(0, 1fr);
+            }
+
+            .question-image-actions {
+                grid-column: 1 / -1;
+                justify-content: flex-start;
+            }
+
+            .answer-row,
+            .answer-row.survey-score {
+                grid-template-columns: minmax(0, 1fr) auto;
             }
         }
     </style>
@@ -1159,6 +1328,18 @@
                 <button type="button" class="wiz-btn primary" id="publishPreviewBtn"><i class="feather icon-send"></i> Yayına Hazırla</button>
                 <input type="file" id="importDraftInput" accept="application/json,.json" hidden />
             </div>
+        </div>
+
+        <div class="wizard-inline-alert" id="wizardInlineAlert" role="alert" aria-live="assertive" hidden>
+            <i class="feather icon-alert-triangle" aria-hidden="true"></i>
+            <div>
+                <strong>Yayına alma engellendi</strong>
+                <p id="wizardInlineAlertText"></p>
+            </div>
+            <a class="wizard-alert-action" id="wizardInlineAlertAction" href="@Url.Action("Index", "Odeme")" hidden>Paketleri gör</a>
+            <button type="button" class="wizard-alert-close" id="wizardInlineAlertClose" aria-label="Uyarıyı kapat">
+                <i class="feather icon-x" aria-hidden="true"></i>
+            </button>
         </div>
 
         <div class="wizard-steps" aria-label="Sihirbaz adımları">
@@ -1379,6 +1560,8 @@
             const storageKey = "survey.assessmentWizard.v1";
             const publishUrl = "@Url.Action("AssessmentWizardPublish", "Home")";
             const generateAiUrl = "@Url.Action("AssessmentWizardGenerateAi", "Home")";
+            const imageUploadUrl = "@Url.Action("AssessmentWizardImageUpload", "Home")";
+            const imageBaseUrl = "@Url.Content("~/Content/AnketGorsel/")";
             const typeCatalog = {
                 multiple: { label: "Çoktan Seçmeli", hint: "Tek doğru cevap", icon: "A", color: "var(--wiz-blue)" },
                 truefalse: { label: "Doğru / Yanlış", hint: "Hızlı sınav sorusu", icon: "D", color: "var(--wiz-green)" },
@@ -1485,6 +1668,10 @@
                 summaryChecklist: document.getElementById("summaryChecklist"),
                 audienceChips: document.getElementById("audienceChips"),
                 toast: document.getElementById("wizardToast"),
+                inlineAlert: document.getElementById("wizardInlineAlert"),
+                inlineAlertText: document.getElementById("wizardInlineAlertText"),
+                inlineAlertAction: document.getElementById("wizardInlineAlertAction"),
+                inlineAlertClose: document.getElementById("wizardInlineAlertClose"),
                 bulkImport: document.getElementById("bulkImport"),
                 aiTopic: document.getElementById("aiTopicInput"),
                 aiCount: document.getElementById("aiCountInput"),
@@ -1631,11 +1818,13 @@
                     type: type,
                     group: group || "",
                     title: title || catalog.label + " soru",
+                    image: "",
                     points: type === "info" || type === "text" ? 0 : 10,
                     required: type !== "info",
                     answers: safeAnswers.map((text, index) => ({
                         id: "a_" + Math.random().toString(36).slice(2, 8),
                         text: text,
+                        image: "",
                         correct: index === (correctIndex || 0),
                         score: surveyScoreForAnswer(text, index, safeAnswers.length)
                     }))
@@ -1724,11 +1913,76 @@
                     .replace(/"/g, "&quot;");
             }
 
-            function showToast(message) {
+            function cleanImageName(value) {
+                return String(value || "").split(/[\\/]/).pop().trim();
+            }
+
+            function imageUrl(fileName) {
+                const cleanName = cleanImageName(fileName);
+                return cleanName ? imageBaseUrl + encodeURIComponent(cleanName) : "";
+            }
+
+            function imagePreview(fileName, iconName) {
+                const url = imageUrl(fileName);
+                if (url) {
+                    return `<img src="${url}" alt="" loading="lazy" />`;
+                }
+
+                return `<i class="feather ${iconName || "icon-image"}"></i>`;
+            }
+
+            function pickWizardImageFile() {
+                return new Promise(resolve => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/jpeg,image/png,image/webp,image/gif";
+                    input.addEventListener("change", () => resolve(input.files && input.files[0] ? input.files[0] : null), { once: true });
+                    input.click();
+                });
+            }
+
+            async function uploadWizardImage() {
+                const file = await pickWizardImageFile();
+                if (!file) return null;
+
+                const token = document.querySelector("input[name='__RequestVerificationToken']")?.value || "";
+                const form = new FormData();
+                form.append("__RequestVerificationToken", token);
+                form.append("file", file);
+
+                const response = await fetch(imageUploadUrl, {
+                    method: "POST",
+                    body: form
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    showToast(result.message || "Gorsel yuklenemedi.");
+                    return null;
+                }
+
+                showToast(result.message || "Gorsel WebP olarak yuklendi.");
+                return result.fileName || "";
+            }
+
+            function showToast(message, duration) {
                 refs.toast.textContent = message;
                 refs.toast.classList.add("show");
                 window.clearTimeout(showToast.timer);
-                showToast.timer = window.setTimeout(() => refs.toast.classList.remove("show"), 2600);
+                showToast.timer = window.setTimeout(() => refs.toast.classList.remove("show"), duration || 7000);
+            }
+
+            function hideInlineAlert() {
+                refs.inlineAlert.hidden = true;
+                refs.inlineAlertText.textContent = "";
+                refs.inlineAlertAction.hidden = true;
+            }
+
+            function showPublishWarning(message) {
+                refs.inlineAlertText.textContent = message;
+                refs.inlineAlertAction.hidden = !/\b(paket|limit|abonelik|yükselt|yukselt)\b/i.test(message || "");
+                refs.inlineAlert.hidden = false;
+                refs.inlineAlert.scrollIntoView({ behavior: "smooth", block: "start" });
+                showToast(message, 9000);
             }
 
             function renderTools() {
@@ -1776,6 +2030,53 @@
                 }
 
                 refs.canvas.innerHTML = state.questions.map((question, index) => renderQuestionCard(question, index)).join("");
+                hydrateAnswerImageControls();
+            }
+
+            function renderQuestionImageEditor(question) {
+                const hasImage = Boolean(cleanImageName(question.image));
+                return `
+                    <div class="question-image-editor">
+                        <div class="question-image-thumb">${imagePreview(question.image, "icon-image")}</div>
+                        <div class="question-image-copy">
+                            <strong>Urun / soru gorseli</strong>
+                            <span>${hasImage ? escapeHtml(cleanImageName(question.image)) : "Katilimci bu soruda urunu gorerek degerlendirebilir."}</span>
+                        </div>
+                        <div class="question-image-actions">
+                            <button type="button" class="wiz-btn" data-action="upload-question-image" data-id="${question.id}">
+                                <i class="feather icon-image"></i> ${hasImage ? "Degistir" : "Gorsel Ekle"}
+                            </button>
+                            ${hasImage ? `<button type="button" class="icon-btn" title="Gorseli kaldir" data-action="remove-question-image" data-id="${question.id}"><i class="feather icon-x"></i></button>` : ""}
+                        </div>
+                    </div>`;
+            }
+
+            function renderAnswerImageControls(question, answer, answerIndex) {
+                const hasImage = Boolean(cleanImageName(answer.image));
+                return `
+                    <div class="answer-image-actions">
+                        <div class="answer-image-thumb" title="${hasImage ? escapeHtml(cleanImageName(answer.image)) : "Cevap gorseli yok"}">${imagePreview(answer.image, "icon-image")}</div>
+                        <button type="button" class="icon-btn" title="${hasImage ? "Cevap gorselini degistir" : "Cevap gorseli ekle"}" data-action="upload-answer-image" data-id="${question.id}" data-answer-index="${answerIndex}"><i class="feather icon-image"></i></button>
+                        ${hasImage ? `<button type="button" class="icon-btn" title="Cevap gorselini kaldir" data-action="remove-answer-image" data-id="${question.id}" data-answer-index="${answerIndex}"><i class="feather icon-x"></i></button>` : ""}
+                    </div>`;
+            }
+
+            function hydrateAnswerImageControls() {
+                refs.canvas.querySelectorAll(".answer-row").forEach(row => {
+                    if (row.querySelector(".answer-image-actions")) return;
+                    const answerInput = row.querySelector("[data-action='answer'][data-answer-index]");
+                    const deleteButton = row.querySelector("button[data-action='delete-answer']");
+                    if (!answerInput || !deleteButton) return;
+
+                    const question = getQuestion(answerInput.dataset.id);
+                    const answerIndex = Number(answerInput.dataset.answerIndex);
+                    const answer = question?.answers?.[answerIndex];
+                    if (!question || !answer) return;
+
+                    const holder = document.createElement("div");
+                    holder.innerHTML = renderAnswerImageControls(question, answer, answerIndex).trim();
+                    row.insertBefore(holder.firstElementChild, deleteButton);
+                });
             }
 
             function renderQuestionCard(question, index) {
@@ -1809,6 +2110,7 @@
                                     <input type="number" min="0" max="100" value="${question.points}" data-action="points" data-id="${question.id}" />
                                 </div>
                             </div>
+                            ${renderQuestionImageEditor(question)}
                             ${answerHtml}
                             <div>
                                 <button type="button" class="wiz-btn" data-action="add-answer" data-id="${question.id}"><i class="feather icon-plus"></i> Cevap Ekle</button>
@@ -1923,6 +2225,7 @@
                 refs.previewBarTitle.textContent = modeLabel(state.mode) + " Akışı";
 
                 const firstQuestion = state.questions[0];
+                const firstQuestionImage = firstQuestion ? imageUrl(firstQuestion.image) : "";
                 const resultText = isSurveyMode()
                     ? "Cevap puanları rapora işlenecek."
                     : `${state.passScore || 0} geçme notu ile sonuç hesaplanacak.`;
@@ -1964,6 +2267,7 @@
                         </div>
                     </div>
                     <div class="participant-flow-note">
+                        ${firstQuestionImage ? `<img class="participant-flow-image" src="${firstQuestionImage}" alt="" loading="lazy" />` : ""}
                         <strong>İlk soru:</strong> ${escapeHtml(firstQuestion ? firstQuestion.title : "Henüz soru eklenmedi.")}
                     </div>`;
 
@@ -2169,6 +2473,7 @@
                         .slice(0, 8)
                         .map((answer, index) => ({
                             text: cleanGeneratedAnswerText(answer.text),
+                            image: cleanImageName(answer.image),
                             correct: !isSurveyMode() && Boolean(answer.correct),
                             score: surveyScoreForAnswer(answer.text, index, item.answers.length, answer.score)
                         }))
@@ -2193,9 +2498,11 @@
 
                 question.points = Number(item?.points || 10);
                 question.required = item?.required !== false;
+                question.image = cleanImageName(item?.image);
                 question.answers = answers.map(answer => ({
                     id: "a_" + Math.random().toString(36).slice(2, 8),
                     text: answer.text,
+                    image: cleanImageName(answer.image),
                     correct: answer.correct,
                     score: answer.score
                 }));
@@ -2329,7 +2636,7 @@
                 });
 
                 if (errors.length) {
-                    showToast(errors[0]);
+                    showPublishWarning(errors[0]);
                     return false;
                 }
 
@@ -2346,7 +2653,7 @@
                     question.type !== "info" &&
                     !question.answers.some(answer => answer.correct));
                 if (missingCorrect) {
-                    showToast("Yayına almadan önce her sınav sorusunda doğru cevabı işaretleyin.");
+                    showPublishWarning("Yayına almadan önce her sınav sorusunda doğru cevabı işaretleyin.");
                     return;
                 }
 
@@ -2367,17 +2674,18 @@
                     });
                     const result = await response.json();
                     if (!result.success) {
-                        showToast(result.message || "Değerlendirme kaydedilemedi.");
+                        showPublishWarning(result.message || "Değerlendirme kaydedilemedi.");
                         return;
                     }
 
+                    hideInlineAlert();
                     localStorage.removeItem(storageKey);
-                    showToast("Değerlendirme yayına alındı. Yönetim ekranına gidiliyor.");
+                    showToast("Değerlendirme yayına alındı. Yönetim ekranına gidiliyor.", 3000);
                     window.setTimeout(() => {
                         window.location.href = result.redirectUrl;
                     }, 900);
                 } catch (error) {
-                    showToast("Sunucuya ulaşılamadı. Lütfen tekrar deneyin.");
+                    showPublishWarning("Sunucuya ulaşılamadı. Lütfen tekrar deneyin.");
                 } finally {
                     button.disabled = false;
                     button.innerHTML = '<i class="feather icon-send"></i> Yayına Hazırla';
@@ -2413,13 +2721,15 @@
                         ...question,
                         id: question.id || "q_" + Math.random().toString(36).slice(2, 9),
                         type: typeCatalog[question.type] ? question.type : "multiple",
+                        image: cleanImageName(question.image),
                         answers: Array.isArray(question.answers)
                             ? question.answers
                                 .filter(answer => answer && typeof answer === "object")
                                 .map(answer => ({
                                     ...answer,
                                     id: answer.id || "a_" + Math.random().toString(36).slice(2, 8),
-                                    text: String(answer.text || "")
+                                    text: String(answer.text || ""),
+                                    image: cleanImageName(answer.image)
                                 }))
                             : []
                     }));
@@ -2516,12 +2826,50 @@
                     renderPreview();
                 });
 
-                refs.canvas.addEventListener("click", event => {
+                refs.canvas.addEventListener("click", async event => {
                     const button = event.target.closest("button[data-action]");
                     if (!button) return;
                     const action = button.dataset.action;
                     const id = button.dataset.id;
                     const question = getQuestion(id);
+
+                    if (action === "upload-question-image" && question) {
+                        question.isModeSample = false;
+                        const fileName = await uploadWizardImage();
+                        if (fileName) {
+                            question.image = cleanImageName(fileName);
+                            renderAll();
+                        }
+                        return;
+                    }
+
+                    if (action === "remove-question-image" && question) {
+                        question.isModeSample = false;
+                        question.image = "";
+                        renderAll();
+                        return;
+                    }
+
+                    if (action === "upload-answer-image" && question) {
+                        question.isModeSample = false;
+                        const index = Number(button.dataset.answerIndex);
+                        const fileName = await uploadWizardImage();
+                        if (fileName && question.answers[index]) {
+                            question.answers[index].image = cleanImageName(fileName);
+                            renderAll();
+                        }
+                        return;
+                    }
+
+                    if (action === "remove-answer-image" && question) {
+                        question.isModeSample = false;
+                        const index = Number(button.dataset.answerIndex);
+                        if (question.answers[index]) {
+                            question.answers[index].image = "";
+                            renderAll();
+                        }
+                        return;
+                    }
 
                     if (action === "delete") {
                         state.questions = state.questions.filter(item => item.id !== id);
@@ -2539,6 +2887,7 @@
                         question.answers.push({
                             id: "a_" + Math.random().toString(36).slice(2, 8),
                             text: "Yeni cevap",
+                            image: "",
                             correct: false,
                             score: surveyScoreForAnswer("Yeni cevap", question.answers.length, question.answers.length + 1)
                         });
@@ -2591,6 +2940,7 @@
                 refs.randomQuestions.addEventListener("change", event => { state.randomQuestions = event.target.checked; });
                 refs.randomAnswers.addEventListener("change", event => { state.randomAnswers = event.target.checked; });
                 refs.certificate.addEventListener("change", event => { state.certificate = event.target.checked; renderPreview(); });
+                refs.inlineAlertClose.addEventListener("click", hideInlineAlert);
 
                 document.getElementById("addMultipleBtn").addEventListener("click", () => addQuestion("multiple"));
                 document.getElementById("parseImportBtn").addEventListener("click", parseImport);
