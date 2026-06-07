@@ -1,4 +1,4 @@
-@model survey.Controllers.HomeController.KatilimciDogrulamaFormu
+﻿@model survey.Controllers.HomeController.KatilimciDogrulamaFormu
 @{
     ViewBag.Title = "Katılımcı Doğrulama";
     Layout = null;
@@ -11,7 +11,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <title>Aslana Survey Studio | Katılımcı Doğrulama</title>
+    <title>Survey by Aslana Teknoloji | Katılımcı Doğrulama</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -358,8 +358,8 @@
 <body>
     <main class="participant-shell">
         <nav class="participant-nav">
-            <a class="participant-logo" href="@Url.Action("Giris", "Home")" aria-label="Aslana Survey Studio ana sayfa">
-                <img src="@Url.Content("~/Content/img/aslana-logo.png")" alt="Aslana Survey Studio">
+            <a class="participant-logo" href="@Url.Action("Giris", "Home")" aria-label="Survey by Aslana Teknoloji ana sayfa">
+                <img src="@Url.Content("~/Content/img/aslana-logo.png")" alt="Survey by Aslana Teknoloji">
             </a>
             <a class="participant-back" href="@Url.Action("Giris", "Home", new { panel = "participant" })">
                 <i class="ti-arrow-left"></i>
@@ -407,7 +407,7 @@
                     </span>
                 </div>
 
-                @using (Html.BeginForm("KatilimciDogrula", "Home", FormMethod.Post, new { @class = "identity-form", autocomplete = "on" }))
+                @using (Html.BeginForm("KatilimciDogrula", "Home", FormMethod.Post, new { @class = "identity-form", autocomplete = "off" }))
                 {
                     @Html.AntiForgeryToken()
                     @Html.HiddenFor(x => x.Token)
@@ -430,13 +430,13 @@
                     {
                         <div class="form-field">
                             <label for="AdSoyad">Ad soyad</label>
-                            @Html.TextBoxFor(x => x.AdSoyad, new { id = "AdSoyad", required = "required", maxlength = "50", placeholder = "Adınız ve soyadınız" })
+                            @Html.TextBoxFor(x => x.AdSoyad, new { id = "AdSoyad", required = "required", maxlength = "50", autocomplete = "off", placeholder = "Adınız ve soyadınız" })
                         </div>
                     }
 
                     <div class="form-field">
                         <label for="TcKimlikNo">TC / katılımcı numarası</label>
-                        @Html.TextBoxFor(x => x.TcKimlikNo, new { id = "TcKimlikNo", maxlength = "50", placeholder = kayitliZorunlu ? "Kayıtlı TC / numara" : "Varsa TC / numara" })
+                        @Html.TextBoxFor(x => x.TcKimlikNo, new { id = "TcKimlikNo", maxlength = "50", autocomplete = "off", placeholder = kayitliZorunlu ? "Kayıtlı TC / numara" : "Varsa TC / numara" })
                     </div>
 
                     @if (bilgiFormu)

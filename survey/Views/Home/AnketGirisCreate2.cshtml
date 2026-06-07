@@ -1,4 +1,4 @@
-@model survey.Models.Tumcontroller
+﻿@model survey.Models.Tumcontroller
 @{
     Layout = "~/Views/Shared/_AnketLayout.cshtml";
 
@@ -46,6 +46,42 @@
     var calismaTuruKucuk = calismaTuru.ToLower(new System.Globalization.CultureInfo("tr-TR"));
     var bitirMetni = calismaTuru == "Anket" ? "Anketi Bitir" : (calismaTuru == "Eğitim" ? "Eğitimi Bitir" : "Sınavı Bitir");
     var tamamlandiBaslik = calismaTuru + " tamamlandı";
+    var katilimciAdi = Convert.ToString(ViewBag.katilimciAdi ?? Session["adi"] ?? string.Empty);
+    var katilimciResim = Convert.ToString(ViewBag.katilimciResim ?? string.Empty);
+    var katilimciCinsiyet = Convert.ToString(ViewBag.katilimciCinsiyet ?? string.Empty);
+    var karsilamaMetni = !string.IsNullOrWhiteSpace(katilimciAdi)
+        ? "Sayın " + katilimciAdi + ", hoş geldiniz"
+        : "Hoş geldiniz";
+}
+
+@functions {
+    private sealed class GorselliMetin
+    {
+        public string Metin { get; set; }
+        public string GorselUrl { get; set; }
+    }
+
+    private GorselliMetin GorselliMetniCoz(string value)
+    {
+        var text = value ?? string.Empty;
+        var match = System.Text.RegularExpressions.Regex.Match(
+            text,
+            @"\s*\[\[gorsel:(?<file>[^\]]+)\]\]\s*$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        if (!match.Success)
+        {
+            return new GorselliMetin { Metin = text, GorselUrl = string.Empty };
+        }
+
+        var fileName = System.IO.Path.GetFileName(match.Groups["file"].Value.Trim());
+        var cleanText = text.Substring(0, match.Index).Trim();
+        var url = string.IsNullOrWhiteSpace(fileName)
+            ? string.Empty
+            : Url.Content("~/Content/AnketGorsel/" + System.Uri.EscapeDataString(fileName));
+
+        return new GorselliMetin { Metin = cleanText, GorselUrl = url };
+    }
 }
 
 <style>
@@ -78,6 +114,13 @@
         font-size: 20px;
         font-weight: 900;
         line-height: 1.35;
+    }
+
+    .exam-identity {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
     }
 
     .exam-welcome,
@@ -168,6 +211,22 @@
         white-space: nowrap;
     }
 
+    .question-media {
+        margin: 14px 0 4px;
+        overflow: hidden;
+        border: 1px solid #dbe7f5;
+        border-radius: 8px;
+        background: #f8fbff;
+    }
+
+    .question-media img {
+        display: block;
+        width: 100%;
+        max-height: 360px;
+        object-fit: contain;
+        background: #fff;
+    }
+
     .answer-list {
         display: grid;
         gap: 8px;
@@ -193,6 +252,28 @@
         text-align: left;
         cursor: pointer;
         transition: border-color .16s ease, background .16s ease, color .16s ease, transform .16s ease;
+    }
+
+    .answer-option.has-media {
+        min-height: 82px;
+        gap: 12px;
+        border-color: #dbe7f5;
+        background: #fff;
+    }
+
+    .answer-media {
+        width: 78px;
+        height: 58px;
+        flex: 0 0 78px;
+        border: 1px solid #dbe7f5;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #f8fbff;
+    }
+
+    .answer-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .answer-option:hover {
@@ -502,6 +583,7 @@
 
     @@media (max-width: 700px) {
         .exam-hero,
+        .exam-identity,
         .question-head,
         .question-navigation {
             grid-template-columns: 1fr;
@@ -525,15 +607,16 @@
 
 <div class="exam-shell">
     <section class="exam-hero">
-        <div>
-            <h1 class="exam-title">@ViewBag.ankadi</h1>
-            <p class="exam-welcome">
-                @(ViewBag.kod != null ? "Hoş geldiniz" : $"Sayın {Session["adi"]}, hoş geldiniz")
-            </p>
-            <p class="exam-meta">
-                <span id="questionCounter">Soru 1 / @sorular.Count</span> ·
-                <span id="answeredCounter">@cevaplananSayisi / @sorular.Count cevaplandı</span>
-            </p>
+        <div class="exam-identity">
+            @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = katilimciAdi, Resim = katilimciResim, Cinsiyet = katilimciCinsiyet, Size = "lg" })
+            <div>
+                <h1 class="exam-title">@ViewBag.ankadi</h1>
+                <p class="exam-welcome">@karsilamaMetni</p>
+                <p class="exam-meta">
+                    <span id="questionCounter">Soru 1 / @sorular.Count</span> ·
+                    <span id="answeredCounter">@cevaplananSayisi / @sorular.Count cevaplandı</span>
+                </p>
+            </div>
         </div>
         <div class="timer-pill" id="kalanSure">Süre hazırlanıyor</div>
     </section>
@@ -559,6 +642,7 @@
         @for (var index = 0; index < sorular.Count; index++)
         {
             var item = sorular[index];
+            var soruGorsel = GorselliMetniCoz(item.SoruAdi);
             var secili = seciliBul(item);
             var soruCevaplari = cevaplar.Where(c => c.CevapGrupId == item.CevapGrupId).ToList();
             var answered = secili != null;
@@ -571,9 +655,16 @@
                 <div class="question-head">
                     <h2 class="question-title">
                         <span class="question-number">@(index + 1).</span>
-                        @item.SoruAdi
+                        @soruGorsel.Metin
                     </h2>
                 </div>
+
+                @if (!string.IsNullOrWhiteSpace(soruGorsel.GorselUrl))
+                {
+                    <div class="question-media">
+                        <img src="@soruGorsel.GorselUrl" alt="" loading="lazy" />
+                    </div>
+                }
 
                 <div class="answer-list">
                     @if (!soruCevaplari.Any())
@@ -585,12 +676,13 @@
                         foreach (var item1 in soruCevaplari)
                         {
                             var isSelected = secili?.CevapId == item1.CevapId;
+                            var cevapGorsel = GorselliMetniCoz(item1.CevapAdi);
                             <form method="post"
                                   action="@Url.Action("AnketGirisCreate2", "Home")"
                                   class="answer-form"
                                   data-soru="@item.SoruId"
                                   data-answer-id="@item1.CevapId"
-                                  data-answer-text="@item1.CevapAdi">
+                                  data-answer-text="@cevapGorsel.Metin">
                                 @Html.AntiForgeryToken()
 
                                 <input type="hidden" name="AnketId" value="@ViewBag.id" />
@@ -605,8 +697,12 @@
                                 <input type="hidden" name="Isimsiz" value="@(katilimKodu ?? 0)" />
                                 <input type="hidden" name="user" value="@(linkUserId ?? sessionUserId ?? katilimKodu ?? 0)" />
 
-                                <button type="submit" class="answer-option @(isSelected ? "is-selected" : "")">
-                                    @item1.CevapAdi
+                                <button type="submit" class="answer-option @(isSelected ? "is-selected" : "") @(string.IsNullOrWhiteSpace(cevapGorsel.GorselUrl) ? "" : "has-media")">
+                                    @if (!string.IsNullOrWhiteSpace(cevapGorsel.GorselUrl))
+                                    {
+                                        <img class="answer-media" src="@cevapGorsel.GorselUrl" alt="" loading="lazy" />
+                                    }
+                                    <span class="answer-text">@cevapGorsel.Metin</span>
                                 </button>
                             </form>
                         }
@@ -616,7 +712,8 @@
                 <div class="selected-answer-label" data-selected-label>
                     @if (answered)
                     {
-                        <span>Seçiminiz: @(secili.Cevap != null ? secili.Cevap.CevapAdi : "")</span>
+                        var seciliMetin = secili.Cevap != null ? GorselliMetniCoz(secili.Cevap.CevapAdi).Metin : "";
+                        <span>Seçiminiz: @seciliMetin</span>
                     }
                 </div>
             </article>
@@ -666,7 +763,7 @@
             <span></span><span></span><span></span><span></span><span></span><span></span>
         </div>
         <div class="completion-mark" aria-hidden="true"></div>
-        <p class="completion-kicker">Aslana Survey Studio</p>
+        <p class="completion-kicker">Survey by Aslana Teknoloji</p>
         <h2 class="completion-title" id="completionTitle">@tamamlandiBaslik</h2>
         <p class="completion-message" id="completionMessage">
             Cevaplarınız güvenle kaydedildi. Katılımınız için teşekkür ederiz.

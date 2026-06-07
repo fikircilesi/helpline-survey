@@ -1,4 +1,4 @@
-@{
+﻿@{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -247,10 +247,483 @@
             transform: translate(2px, -2px);
         }
 
+        .settings-card-static,
+        .settings-card-static:hover,
+        .settings-card-static:focus {
+            transform: none;
+            cursor: default;
+            border-color: #e8edf5;
+            box-shadow: 0 12px 28px rgba(20, 32, 51, .06);
+        }
+
+        .settings-lock {
+            justify-self: end;
+            min-height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 10px;
+            border-radius: 999px;
+            color: #475569;
+            background: #f1f5f9;
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .settings-default-alert {
+            margin: 0 0 18px;
+            padding: 12px 14px;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            color: #065f46;
+            background: #ecfdf5;
+            font-weight: 800;
+        }
+
+        .settings-defaults-panel {
+            margin: 0 0 24px;
+            border: 1px solid #d9e5f5;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 14px 34px rgba(20, 32, 51, .06);
+            overflow: hidden;
+        }
+
+        .settings-defaults-panel summary {
+            cursor: pointer;
+            padding: 14px 16px;
+            color: #10233b;
+            font-size: 15px;
+            font-weight: 900;
+            background: #fbfdff;
+            border-bottom: 1px solid #e6edf7;
+        }
+
+        .settings-defaults-body {
+            padding: 16px;
+        }
+
+        .settings-defaults-body p {
+            margin: 0 0 14px;
+            color: #465a78;
+            font-size: 13px;
+            line-height: 1.45;
+            font-weight: 700;
+        }
+
+        .settings-defaults-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .settings-defaults-group {
+            border: 1px solid #dce7f7;
+            border-radius: 8px;
+            padding: 12px;
+            background: #fff;
+        }
+
+        .settings-defaults-group-head {
+            align-items: center;
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .settings-defaults-group-head strong {
+            color: #10233b;
+            font-weight: 900;
+        }
+
+        .settings-defaults-group-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .settings-defaults-mini {
+            border: 1px solid #cfe0f6;
+            border-radius: 6px;
+            background: #f8fbff;
+            color: #173a67;
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1;
+            padding: 6px 8px;
+            white-space: nowrap;
+        }
+
+        .settings-defaults-items {
+            display: grid;
+            gap: 6px;
+            max-height: 220px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .settings-defaults-items label {
+            align-items: center;
+            display: flex;
+            gap: 8px;
+            color: #142033;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .settings-defaults-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .settings-defaults-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 16px;
+            border: 0;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 900;
+            font-size: 13px;
+            box-shadow: 0 12px 28px rgba(20, 32, 51, .12);
+        }
+
+        .settings-defaults-button.primary { background: #0f766e; }
+        .settings-defaults-button.muted { background: #64748b; }
+        .settings-defaults-button.secondary { background: #2563eb; }
+
+        .settings-defaults-section {
+            margin: 0 0 28px;
+        }
+
+        .settings-defaults-heading {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .settings-defaults-heading h2 {
+            margin: 0;
+            color: #101827;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .settings-defaults-heading p {
+            margin: 4px 0 0;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .settings-defaults-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 32px;
+            padding: 0 12px;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            color: #854d0e;
+            background: #fffbeb;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .settings-defaults-panel {
+            margin: 0;
+            border-color: #f3d68d;
+            background: #fff;
+            box-shadow: 0 18px 42px rgba(20, 32, 51, .08);
+        }
+
+        .settings-defaults-panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .settings-defaults-summary {
+            display: grid;
+            grid-template-columns: 54px minmax(0, 1fr) auto auto;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 20px;
+            border-bottom: 0;
+            background: linear-gradient(135deg, #fff8e6, #f7fbff);
+            list-style: none;
+        }
+
+        .settings-defaults-panel[open] .settings-defaults-summary {
+            border-bottom: 1px solid #eadfbf;
+        }
+
+        .settings-defaults-icon {
+            width: 54px;
+            height: 54px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            color: #a16207;
+            background: #fffbeb;
+            font-size: 22px;
+        }
+
+        .settings-defaults-eyebrow {
+            display: block;
+            color: #b45309;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .settings-defaults-copy strong {
+            display: block;
+            margin-top: 3px;
+            color: #0f172a;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .settings-defaults-copy span {
+            display: block;
+            margin-top: 4px;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .settings-defaults-summary-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 6px;
+            max-width: 460px;
+        }
+
+        .settings-defaults-summary-tags span {
+            min-height: 28px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 10px;
+            border-radius: 999px;
+            color: #173a67;
+            background: #eff6ff;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .settings-defaults-toggle {
+            min-width: 118px;
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #fff;
+            background: #0f766e;
+            font-size: 13px;
+            font-weight: 900;
+            box-shadow: 0 12px 24px rgba(15, 118, 110, .18);
+        }
+
+        .settings-defaults-toggle::before {
+            content: "Sihirbazı aç";
+        }
+
+        .settings-defaults-panel[open] .settings-defaults-toggle::before {
+            content: "Sihirbazı kapat";
+        }
+
+        .settings-defaults-body {
+            padding: 18px;
+            background: #fff;
+        }
+
+        .settings-defaults-body p {
+            margin-bottom: 0;
+        }
+
+        .settings-defaults-steps {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .settings-defaults-step {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+            min-height: 66px;
+            padding: 10px;
+            border: 1px solid #e5edf8;
+            border-radius: 8px;
+            background: #f8fbff;
+        }
+
+        .settings-defaults-step em {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #fff;
+            background: #2563eb;
+            font-style: normal;
+            font-weight: 900;
+        }
+
+        .settings-defaults-step strong,
+        .settings-defaults-step span {
+            display: block;
+        }
+
+        .settings-defaults-step strong {
+            color: #10233b;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .settings-defaults-step span {
+            margin-top: 2px;
+            color: #667085;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .settings-defaults-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            align-items: stretch;
+        }
+
+        .settings-defaults-lane {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            border: 1px solid #dbe7f5;
+            border-radius: 8px;
+            background: #fbfdff;
+            overflow: hidden;
+        }
+
+        .settings-defaults-lane-head {
+            display: grid;
+            grid-template-columns: 40px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #e4ecf7;
+            background: #fff;
+        }
+
+        .settings-defaults-lane-icon {
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #0f766e;
+            background: #e9fbf6;
+            font-size: 18px;
+        }
+
+        .settings-defaults-lane-head strong,
+        .settings-defaults-lane-head span {
+            display: block;
+        }
+
+        .settings-defaults-lane-head strong {
+            color: #0f172a;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .settings-defaults-lane-head span {
+            margin-top: 3px;
+            color: #667085;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .settings-defaults-lane-body {
+            display: grid;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .settings-defaults-group {
+            border: 0;
+            border-radius: 8px;
+            padding: 0;
+            background: transparent;
+        }
+
+        .settings-defaults-group-head {
+            margin-bottom: 7px;
+        }
+
+        .settings-defaults-items {
+            max-height: 170px;
+            padding: 9px;
+            border: 1px solid #e4ecf7;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .settings-defaults-actions {
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid #e6edf7;
+        }
+
+        .settings-defaults-action-note {
+            color: #667085;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .settings-defaults-action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
         @@media (max-width: 1399px) {
             .settings-grid,
             .settings-overview {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .settings-defaults-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-defaults-summary {
+                grid-template-columns: 54px minmax(0, 1fr);
+            }
+
+            .settings-defaults-summary-tags,
+            .settings-defaults-toggle {
+                justify-self: start;
             }
         }
 
@@ -276,6 +749,41 @@
             .settings-overview {
                 grid-template-columns: 1fr;
             }
+
+            .settings-defaults-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-defaults-heading,
+            .settings-defaults-group-head {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .settings-defaults-heading {
+                display: flex;
+            }
+
+            .settings-defaults-summary {
+                grid-template-columns: 1fr;
+                padding: 16px;
+            }
+
+            .settings-defaults-summary-tags {
+                justify-content: flex-start;
+            }
+
+            .settings-defaults-steps {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-defaults-button {
+                width: 100%;
+            }
+
+            .settings-defaults-action-buttons {
+                width: 100%;
+            }
         }
     </style>
 }
@@ -285,7 +793,7 @@
         <div>
             <span class="settings-kicker">
                 <i class="feather icon-settings"></i>
-                Aslana Survey Studio yönetim alanı
+                Survey by Aslana Teknoloji yönetim alanı
             </span>
             <h1 class="settings-title">Ayarlar</h1>
             <p class="settings-subtitle">Personel, katılımcı, organizasyon ve sistem tanımlarını tek ekranda düzenleyin.</p>
@@ -324,6 +832,132 @@
             <span>Studio AI ve platform ayarları</span>
         </div>
     </div>
+
+    @{
+        var varsayilanGruplar = (ViewBag.VarsayilanSecenekGruplari as IEnumerable<survey.Controllers.AyarController.VarsayilanSecenekGrubu> ?? new List<survey.Controllers.AyarController.VarsayilanSecenekGrubu>()).ToList();
+    }
+    @if (TempData["UserImportMesaj"] != null)
+    {
+        <div class="settings-default-alert">@TempData["UserImportMesaj"]</div>
+    }
+    @if (varsayilanGruplar.Any())
+    {
+        var varsayilanBloklar = new[]
+        {
+            new { Baslik = "Organizasyon", Aciklama = "Ünvan ve departman omurgası", Ikon = "icon-briefcase", Tipler = new[] { "Unvan", "Departman" } },
+            new { Baslik = "Profil", Aciklama = "Cinsiyet ve eğitim kırılımları", Ikon = "icon-user-check", Tipler = new[] { "Cinsiyet", "Egitim" } },
+            new { Baslik = "Lokasyon", Aciklama = "Bölge ve şehir haritası", Ikon = "icon-map-pin", Tipler = new[] { "Bolge", "Sehir" } }
+        };
+
+        <section class="settings-defaults-section">
+            <div class="settings-defaults-heading">
+                <div>
+                    <h2>Hazır Kurulum Sihirbazı</h2>
+                    <p>Çalışma alanına başlangıç listelerini seçerek ekleyin; Excel importu bu listeleri akıllı eşleştirme için kullanır.</p>
+                </div>
+                <span class="settings-defaults-badge"><i class="feather icon-zap"></i> Hızlı başlangıç</span>
+            </div>
+
+            <details class="settings-defaults-panel">
+                <summary class="settings-defaults-summary">
+                    <span class="settings-defaults-icon"><i class="feather icon-star"></i></span>
+                    <span class="settings-defaults-copy">
+                        <span class="settings-defaults-eyebrow">Hazır veri kütüphanesi</span>
+                        <strong>Ünvan, departman, profil ve lokasyon listelerini tek akışta kurun</strong>
+                        <span>İstemediğiniz seçenekleri çıkarın; kalanlar mevcut çalışma alanına temiz biçimde eklenir.</span>
+                    </span>
+                    <span class="settings-defaults-summary-tags">
+                        <span>Ünvan</span>
+                        <span>Departman</span>
+                        <span>Eğitim</span>
+                        <span>Cinsiyet</span>
+                        <span>Bölge</span>
+                        <span>Şehir</span>
+                    </span>
+                    <span class="settings-defaults-toggle" aria-hidden="true"></span>
+                </summary>
+                <div class="settings-defaults-body">
+                    <div class="settings-defaults-steps">
+                        <div class="settings-defaults-step">
+                            <em>1</em>
+                            <span>
+                                <strong>İlgili listeleri açın</strong>
+                                <span>Organizasyon, profil ve lokasyon ayrı ayrı seçilir.</span>
+                            </span>
+                    </div>
+                    <div class="settings-defaults-step">
+                        <em>2</em>
+                        <span>
+                            <strong>Gereksizleri çıkarın</strong>
+                            <span>Her blokta tümünü seçme ve temizleme var.</span>
+                        </span>
+                    </div>
+                    <div class="settings-defaults-step">
+                        <em>3</em>
+                        <span>
+                            <strong>Çalışma alanına ekleyin</strong>
+                            <span>Excel importu yakın yazımları bu havuza göre düzeltir.</span>
+                        </span>
+                    </div>
+                </div>
+                @using (Html.BeginForm("VarsayilanSecenekleriEkle", "Ayar", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="donus" value="Index" />
+                    <div class="settings-defaults-grid">
+                        @foreach (var blok in varsayilanBloklar)
+                        {
+                            var blokGruplari = varsayilanGruplar.Where(g => blok.Tipler.Contains(g.Tip)).ToList();
+                            if (blokGruplari.Any())
+                            {
+                                <div class="settings-defaults-lane">
+                                    <div class="settings-defaults-lane-head">
+                                        <span class="settings-defaults-lane-icon"><i class="feather @blok.Ikon"></i></span>
+                                        <span>
+                                            <strong>@blok.Baslik</strong>
+                                            <span>@blok.Aciklama</span>
+                                        </span>
+                                    </div>
+                                    <div class="settings-defaults-lane-body">
+                                        @foreach (var grup in blokGruplari)
+                                        {
+                                            <div class="settings-defaults-group">
+                                                <div class="settings-defaults-group-head">
+                                                    <strong>@grup.Baslik</strong>
+                                                    <div class="settings-defaults-group-actions">
+                                                        <button class="settings-defaults-mini" type="button" data-settings-defaults-group-all>Tümünü seç</button>
+                                                        <button class="settings-defaults-mini" type="button" data-settings-defaults-group-clear>Temizle</button>
+                                                    </div>
+                                                </div>
+                                                <div class="settings-defaults-items">
+                                                    @foreach (var secenek in grup.Secenekler)
+                                                    {
+                                                        <label>
+                                                            <input type="checkbox" name="secenekler" value="@($"{grup.Tip}|{secenek}")" checked />
+                                                            <span>@secenek</span>
+                                                        </label>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <div class="settings-defaults-actions">
+                        <span class="settings-defaults-action-note">Seçili olanlar eklenir; mevcut kayıtlar yeniden oluşturulmaz.</span>
+                        <span class="settings-defaults-action-buttons">
+                            <button class="settings-defaults-button muted" type="button" data-settings-defaults-clear>Seçimleri temizle</button>
+                            <button class="settings-defaults-button secondary" type="button" data-settings-defaults-all>Tümünü seç</button>
+                            <button class="settings-defaults-button primary" type="submit">Sihirbazı çalıştır</button>
+                        </span>
+                    </div>
+                }
+            </div>
+        </details>
+        </section>
+    }
 
     <section class="settings-section">
         <div class="settings-section-head">
@@ -433,19 +1067,87 @@
     <section class="settings-section">
         <div class="settings-section-head">
             <div>
-                <h2 class="settings-section-title">Sistem</h2>
-                <p class="settings-section-note">Platform davranışı ve yapay zeka destekli kurulum ayarları.</p>
+                <h2 class="settings-section-title">Paket ve Ödeme</h2>
+                <p class="settings-section-note">Ücretsiz kullanım hakkı, paket limitleri ve Tami ödeme işlemleri.</p>
             </div>
         </div>
         <div class="settings-grid">
-            <a class="settings-card" href="@Url.Action("AiAyar", "Ayar")">
-                <span class="settings-icon"><i class="feather icon-cpu"></i></span>
+            <a class="settings-card" href="@Url.Action("Index", "Odeme")">
+                <span class="settings-icon"><i class="feather icon-dollar-sign"></i></span>
                 <span>
-                    <span class="settings-card-title">Yapay Zeka Ayarları</span>
-                    <span class="settings-card-meta">Studio AI bağlantısı</span>
+                    <span class="settings-card-title">Paketler ve Ödeme</span>
+                    <span class="settings-card-meta">Survey by Aslana Teknoloji planları</span>
                 </span>
                 <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
             </a>
         </div>
     </section>
+
+    @{
+        var platformSahibiMi = ViewBag.PlatformSahibiMi == true;
+    }
+    <section class="settings-section">
+        <div class="settings-section-head">
+            <div>
+                <h2 class="settings-section-title">Sistem</h2>
+                <p class="settings-section-note">Yapay zeka altyapısı platform tarafından korunur; çalışma alanları sadece üretim akışını kullanır.</p>
+            </div>
+        </div>
+        <div class="settings-grid">
+            @if (platformSahibiMi)
+            {
+                <a class="settings-card" href="@Url.Action("AiAyar", "Ayar")">
+                    <span class="settings-icon"><i class="feather icon-cpu"></i></span>
+                    <span>
+                        <span class="settings-card-title">Platform AI Ayarları</span>
+                        <span class="settings-card-meta">Model, endpoint ve gizli API anahtarı</span>
+                    </span>
+                    <span class="settings-arrow"><i class="feather icon-arrow-up-right"></i></span>
+                </a>
+            }
+            else
+            {
+                <div class="settings-card settings-card-static">
+                    <span class="settings-icon"><i class="feather icon-cpu"></i></span>
+                    <span>
+                        <span class="settings-card-title">Studio AI</span>
+                        <span class="settings-card-meta">Soru üretimi platform tarafından yönetilir</span>
+                    </span>
+                    <span class="settings-lock">Korumalı</span>
+                </div>
+            }
+        </div>
+    </section>
 </div>
+
+<script>
+    document.querySelector("[data-settings-defaults-clear]")?.addEventListener("click", function () {
+        document.querySelectorAll(".settings-defaults-panel input[type='checkbox']").forEach(function (input) {
+            input.checked = false;
+        });
+    });
+
+    document.querySelector("[data-settings-defaults-all]")?.addEventListener("click", function () {
+        document.querySelectorAll(".settings-defaults-panel input[type='checkbox']").forEach(function (input) {
+            input.checked = true;
+        });
+    });
+
+    document.querySelectorAll("[data-settings-defaults-group-clear]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const group = button.closest(".settings-defaults-group");
+            group?.querySelectorAll("input[type='checkbox']").forEach(function (input) {
+                input.checked = false;
+            });
+        });
+    });
+
+    document.querySelectorAll("[data-settings-defaults-group-all]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const group = button.closest(".settings-defaults-group");
+            group?.querySelectorAll("input[type='checkbox']").forEach(function (input) {
+                input.checked = true;
+            });
+        });
+    });
+</script>

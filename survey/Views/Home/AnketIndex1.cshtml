@@ -1,4 +1,4 @@
-@model IEnumerable<survey.Models.Havuz>
+﻿@model IEnumerable<survey.Models.Havuz>
 @using System
 @using System.Collections.Generic
 @using System.Globalization
@@ -13,6 +13,9 @@
         public int Soru { get; set; }
         public double Puan { get; set; }
         public string Link { get; set; }
+        public string Resim { get; set; }
+        public string Cinsiyet { get; set; }
+        public string AvatarKlasor { get; set; }
     }
 
     public class BreakdownBlock
@@ -167,6 +170,10 @@
     var anketAdi = Convert.ToString(ViewBag.adi ?? kayitlar.FirstOrDefault()?.Anket?.AnketAdi ?? "Çalışma raporu");
     var anketId = 0;
     int.TryParse(Convert.ToString(ViewBag.id), out anketId);
+    var returnUrl = string.IsNullOrWhiteSpace(Convert.ToString(ViewBag.ReturnUrl))
+        ? Url.Action("Indexgosterge", "Home")
+        : Convert.ToString(ViewBag.ReturnUrl);
+    var yoneticiResimleri = ViewBag.YoneticiResimleri as IDictionary<int, string> ?? new Dictionary<int, string>();
 
     Func<string, int?, string> detayLink = (action, idValue) =>
         idValue.HasValue && idValue.Value > 0
@@ -294,7 +301,16 @@
     var yoneticiRows = kayitlar
         .Where(x => x.User?.Yonetici != null)
         .GroupBy(x => new { Id = x.User.UserYoneticisi, Ad = x.User.Yonetici.YoneticiAdi })
-        .Select(g => new ReportRow { Ad = SafeText(g.Key.Ad), Kisi = KisiSayisi(g), Soru = toplamSoru, Puan = OrtalamaPuan(g, sinavMi), Link = detayLink("AnketYoneticiIndex", g.Key.Id) })
+        .Select(g => new ReportRow
+        {
+            Ad = SafeText(g.Key.Ad),
+            Kisi = KisiSayisi(g),
+            Soru = toplamSoru,
+            Puan = OrtalamaPuan(g, sinavMi),
+            Link = detayLink("AnketYoneticiIndex", g.Key.Id),
+            Resim = g.Key.Id.HasValue && yoneticiResimleri.TryGetValue(g.Key.Id.Value, out var resim) ? resim : null,
+            AvatarKlasor = "Yonetici"
+        })
         .OrderByDescending(x => x.Puan)
         .ToList();
 
@@ -324,7 +340,9 @@
                 Kisi = SonSoruCevaplari(g).Count,
                 Soru = toplamSoru,
                 Puan = KisiPuani(g, sinavMi),
-                Link = detayId != null ? Url.Action("AnketUserIndex", "Home", new { id = detayId.Value, ank = anketId }) : null
+                Link = detayId != null ? Url.Action("AnketUserIndex", "Home", new { id = detayId.Value, ank = anketId }) : null,
+                Resim = user?.UserResim,
+                Cinsiyet = user?.Cinsiyet?.CinsiyetAdi
             };
         })
         .OrderByDescending(x => x.Puan)
@@ -349,269 +367,10 @@
     var enDusukGrup = soruGrubuRows.OrderBy(x => x.Puan).FirstOrDefault();
     var enIyiSoru = soruRows.OrderByDescending(x => x.Puan).FirstOrDefault();
     var enDusukSoru = soruRows.OrderBy(x => x.Puan).FirstOrDefault();
+    var soruGrubuDetayLink = soruGrubuRows.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Link))?.Link ?? genelLink;
 }
 
-<div class="report-showcase">
-    <section class="report-hero">
-        <div>
-            <span class="eyebrow">Aslana Survey Studio</span>
-            <h1>@anketAdi</h1>
-            <p>@calismaTuru sonuçları tek ekranda; katılım, genel skor, soru kırılımları ve kişi bazlı performans birlikte okunur.</p>
-            <div class="hero-chips">
-                <span><i class="fa fa-poll"></i> @calismaTuru</span>
-                <span><i class="fa fa-users"></i> @toplamKatilim katılımcı</span>
-                <span><i class="fa fa-list-check"></i> @toplamSoru soru</span>
-                <span><i class="fa fa-chart-line"></i> @FormatScore(genelPuan)%</span>
-            </div>
-        </div>
-        <div class="hero-actions">
-            @if (!sinavMi)
-            {
-                <a class="showcase-btn primary" target="_blank" href="@Url.Action("MemnuniyetRaporu", "Home", new { id = anketId })">
-                    <i class="fa fa-file-pdf"></i> Memnuniyet Raporu
-                </a>
-            }
-            @if (!string.IsNullOrWhiteSpace(genelLink))
-            {
-                <a class="showcase-btn" href="@genelLink">
-                    <i class="fa fa-table"></i> Detay Rapor
-                </a>
-            }
-            <a class="showcase-btn" href="@Url.Action("AnketIndex", "Home", new { id = anketId })">
-                <i class="fa fa-layer-group"></i> Rapor Merkezi
-            </a>
-        </div>
-    </section>
-
-    <section class="metric-grid">
-        <div class="metric-card">
-            <span>Genel skor</span>
-            <strong>@FormatScore(genelPuan)%</strong>
-            <small>@(sinavMi ? "Doğru cevap başarısı" : "Memnuniyet ortalaması")</small>
-        </div>
-        <div class="metric-card">
-            <span>Katılım</span>
-            <strong>@toplamKatilim</strong>
-            <small>@tanimli tanımlı, @tanimsiz tanımsız</small>
-        </div>
-        <div class="metric-card">
-            <span>Yanıt kapsamı</span>
-            <strong>@FormatScore(tamamlama)%</strong>
-            <small>@toplamYanıt / @beklenenYanıt yanıt</small>
-        </div>
-        <div class="metric-card">
-            <span>Soru grubu</span>
-            <strong>@soruGrubuRows.Count</strong>
-            <small>@toplamSoru soru raporlandı</small>
-        </div>
-    </section>
-
-    <section class="visual-grid">
-        <article class="score-panel">
-            <div class="score-ring" style="--score:@PercentWidth(genelPuan)">
-                <div>
-                    <strong>@FormatOne(genelPuan)</strong>
-                    <span>%</span>
-                </div>
-            </div>
-            <div class="score-copy">
-                <span>Genel görünüm</span>
-                <h2>@(genelPuan >= 80 ? "Güçlü tablo" : genelPuan >= 60 ? "Geliştirilebilir alanlar var" : "Dikkat isteyen sonuç")</h2>
-                <p>@(sinavMi ? "Sınav puanı doğru cevaplara göre ağırlıklı hesaplandı." : "Anket puanı cevap puanlarının 100 üzerinden normalize edilmiş ortalamasıdır.")</p>
-            </div>
-        </article>
-
-        <article class="insight-board">
-            <div class="insight-card positive">
-                <span>En güçlü kırılım</span>
-                <strong>@(enIyiGrup?.Ad ?? "Henüz yok")</strong>
-                <small>@(enIyiGrup == null ? "Veri oluşmadı" : FormatScore(enIyiGrup.Puan) + "%")</small>
-            </div>
-            <div class="insight-card warning">
-                <span>İyileştirme adayı</span>
-                <strong>@(enDusukGrup?.Ad ?? "Henüz yok")</strong>
-                <small>@(enDusukGrup == null ? "Veri oluşmadı" : FormatScore(enDusukGrup.Puan) + "%")</small>
-            </div>
-            <div class="insight-card blue">
-                <span>En yüksek soru</span>
-                <strong>@(enIyiSoru?.Ad ?? "Henüz yok")</strong>
-                <small>@(enIyiSoru == null ? "Veri oluşmadı" : FormatScore(enIyiSoru.Puan) + "%")</small>
-            </div>
-            <div class="insight-card coral">
-                <span>En düşük soru</span>
-                <strong>@(enDusukSoru?.Ad ?? "Henüz yok")</strong>
-                <small>@(enDusukSoru == null ? "Veri oluşmadı" : FormatScore(enDusukSoru.Puan) + "%")</small>
-            </div>
-        </article>
-    </section>
-
-    <section class="report-section">
-        <div class="section-head">
-            <div>
-                <span>Rapor kırılımı</span>
-                <h2>Soru grupları</h2>
-            </div>
-            <small>@soruGrubuRows.Count kırılım</small>
-        </div>
-
-        @if (soruGrubuRows.Any())
-        {
-            <div class="ranking-list">
-                @foreach (var row in soruGrubuRows)
-                {
-                    <div class="ranking-row">
-                        <div class="ranking-title">
-                            <strong>@row.Ad</strong>
-                            <span>@row.Soru soru · @row.Kisi katılımcı</span>
-                        </div>
-                        <div class="ranking-score">
-                            <b>@FormatScore(row.Puan)%</b>
-                            <div class="score-bar"><i style="width:@PercentWidth(row.Puan)"></i></div>
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(row.Link))
-                        {
-                            <a href="@row.Link" class="row-action" title="Detay">
-                                <i class="fa fa-arrow-right"></i>
-                            </a>
-                        }
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="empty-state">
-                <i class="fa fa-circle-info"></i>
-                Bu çalışma için soru grubu kırılımı bulunamadı.
-            </div>
-        }
-    </section>
-
-    <section class="report-section">
-        <div class="section-head">
-            <div>
-                <span>Soru performansı</span>
-                <h2>Tek tek sorular</h2>
-            </div>
-            <small>@soruRows.Count soru</small>
-        </div>
-
-        @if (soruRows.Any())
-        {
-            <div class="question-grid">
-                @foreach (var row in soruRows)
-                {
-                    <a class="question-card" href="@(row.Link ?? "#")">
-                        <div>
-                            <span>@row.Alt</span>
-                            <strong>@row.Ad</strong>
-                        </div>
-                        <div class="question-score">
-                            <b>@FormatScore(row.Puan)%</b>
-                            <div class="score-bar"><i style="width:@PercentWidth(row.Puan)"></i></div>
-                        </div>
-                    </a>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="empty-state">
-                <i class="fa fa-circle-info"></i>
-                Bu çalışma için soru sonucu oluşmadı.
-            </div>
-        }
-    </section>
-
-    <section class="report-section">
-        <div class="section-head">
-            <div>
-                <span>Organizasyon kırılımları</span>
-                <h2>Profil bazlı okumalar</h2>
-            </div>
-            <small>@breakdowns.Count aktif kırılım</small>
-        </div>
-
-        @if (breakdowns.Any())
-        {
-            <div class="breakdown-grid">
-                @foreach (var block in breakdowns)
-                {
-                    <article class="breakdown-card">
-                        <div class="breakdown-head">
-                            <i class="fa @block.Ikon"></i>
-                            <strong>@block.Baslik</strong>
-                        </div>
-                        @foreach (var row in block.Satirlar.Take(6))
-                        {
-                            <div class="mini-row">
-                                <div>
-                                    <strong>@row.Ad</strong>
-                                    <span>@row.Kisi katılımcı</span>
-                                </div>
-                                <div>
-                                    <b>@FormatScore(row.Puan)%</b>
-                                    <div class="score-bar tiny"><i style="width:@PercentWidth(row.Puan)"></i></div>
-                                </div>
-                                @if (!string.IsNullOrWhiteSpace(row.Link))
-                                {
-                                    <a href="@row.Link" title="Detay">
-                                        <i class="fa fa-arrow-right"></i>
-                                    </a>
-                                }
-                            </div>
-                        }
-                    </article>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="empty-state">
-                <i class="fa fa-circle-info"></i>
-                Bu çalışma katılım kodu ile tanımsız tamamlandığı için profil kırılımları boş olabilir.
-            </div>
-        }
-    </section>
-
-    <section class="report-section">
-        <div class="section-head">
-            <div>
-                <span>Katılımcı görünümü</span>
-                <h2>Kişiye göre sonuçlar</h2>
-            </div>
-            <small>@kisiRows.Count kayıt</small>
-        </div>
-
-        @if (kisiRows.Any())
-        {
-            <div class="person-list">
-                @foreach (var row in kisiRows)
-                {
-                    <a class="person-card" href="@(row.Link ?? "#")">
-                        <div class="person-avatar">@row.Ad.Substring(0, 1).ToUpper(new CultureInfo("tr-TR"))</div>
-                        <div class="person-info">
-                            <strong>@row.Ad</strong>
-                            <span>@row.Alt</span>
-                        </div>
-                        <div class="person-progress">
-                            <b>@FormatScore(row.Puan)%</b>
-                            <small>@row.Kisi / @row.Soru cevap</small>
-                        </div>
-                    </a>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="empty-state">
-                <i class="fa fa-circle-info"></i>
-                Katılımcı sonucu henüz oluşmadı.
-            </div>
-        }
-    </section>
-</div>
-
+@section HeadExtra {
 <style>
     .report-showcase {
         width: min(1580px, calc(100% - 48px));
@@ -687,6 +446,10 @@
         gap: 10px;
         flex-wrap: wrap;
         min-width: 330px;
+    }
+
+    .hero-actions [hidden] {
+        display: none !important;
     }
 
     .showcase-btn,
@@ -917,6 +680,31 @@
         font-weight: 950;
     }
 
+    .person-tools {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .person-search {
+        width: min(260px, 100%);
+        min-height: 38px;
+        border: 1px solid #cfe0f6;
+        border-radius: 10px;
+        padding: 0 12px;
+        color: #071832;
+        background: #fff;
+        font-weight: 800;
+        outline: none;
+    }
+
+    .person-search:focus {
+        border-color: #5065f6;
+        box-shadow: 0 0 0 3px rgba(80, 101, 246, .12);
+    }
+
     .ranking-list {
         display: grid;
         gap: 10px;
@@ -924,13 +712,25 @@
 
     .ranking-row {
         display: grid;
-        grid-template-columns: minmax(260px, 1fr) minmax(260px, .8fr) 44px;
+        grid-template-columns: minmax(260px, 1fr) minmax(260px, .74fr) minmax(164px, auto);
         gap: 16px;
         align-items: center;
-        padding: 14px;
+        padding: 16px;
         border: 1px solid #dce8f7;
         border-radius: 12px;
         background: linear-gradient(90deg, #ffffff, #f8fbff);
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .ranking-row-link {
+        cursor: pointer;
+    }
+
+    .ranking-row-link:hover,
+    .ranking-row-link:focus-within {
+        transform: translateY(-2px);
+        border-color: #9ec2f2;
+        box-shadow: 0 20px 42px rgba(19, 42, 80, .14);
     }
 
     .ranking-title strong,
@@ -985,8 +785,31 @@
     }
 
     .row-action {
-        width: 38px;
-        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+    }
+
+    .report-entry-action {
+        justify-self: end;
+        min-width: 164px;
+        min-height: 48px;
+        padding: 0 16px;
+        border-color: transparent;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #16bca9, #3562f4);
+        color: #ffffff;
+        box-shadow: 0 16px 32px rgba(34, 105, 244, .18);
+        white-space: nowrap;
+    }
+
+    .report-entry-action span {
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .ranking-row-link:hover .report-entry-action,
+    .ranking-row-link:focus-within .report-entry-action {
+        box-shadow: 0 18px 36px rgba(34, 105, 244, .26);
     }
 
     .question-grid {
@@ -1061,6 +884,17 @@
         border-top: 1px solid #edf2f9;
     }
 
+    .mini-row-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .mini-row-title > div {
+        min-width: 0;
+    }
+
     .mini-row a {
         width: 30px;
         height: 30px;
@@ -1070,6 +904,9 @@
     .person-list {
         display: grid;
         gap: 10px;
+        max-height: 620px;
+        overflow-y: auto;
+        padding-right: 6px;
     }
 
     .person-card {
@@ -1179,5 +1016,326 @@
         .person-progress {
             text-align: left;
         }
+
+        .report-entry-action {
+            justify-self: stretch;
+            width: 100%;
+        }
     }
 </style>
+}
+
+<div class="report-showcase">
+    <section class="report-hero">
+        <div>
+            <span class="eyebrow">Survey by Aslana Teknoloji</span>
+            <h1>@anketAdi</h1>
+            <p>@calismaTuru sonuçları tek ekranda; katılım, genel skor, soru kırılımları ve kişi bazlı performans birlikte okunur.</p>
+            <div class="hero-chips">
+                <span><i class="fa fa-poll"></i> @calismaTuru</span>
+                <span><i class="fa fa-users"></i> @toplamKatilim katılımcı</span>
+                <span><i class="fa fa-list-check"></i> @toplamSoru soru</span>
+                <span><i class="fa fa-chart-line"></i> @FormatScore(genelPuan)%</span>
+            </div>
+        </div>
+        <div class="hero-actions">
+            <a class="showcase-btn" href="@returnUrl">
+                <i class="fa fa-arrow-left"></i> Çalışmalarıma Dön
+            </a>
+            <a class="showcase-btn" hidden href="@Url.Action("AnketGrupIndex", "Home", new { id = anketId, adi = anketAdi, returnUrl = returnUrl })">
+                <i class="fa fa-list"></i> Rapor Başlıkları
+            </a>
+            <a class="showcase-btn" hidden href="@Url.Action("AnketAdEdit", "Home", new { id = anketId, returnUrl = returnUrl })">
+                <i class="fa fa-cog"></i> Ayarlar
+            </a>
+            @if (!sinavMi)
+            {
+                <a class="showcase-btn primary" target="_blank" href="@Url.Action("MemnuniyetRaporu", "Home", new { id = anketId })">
+                    <i class="fa fa-file-pdf"></i> Memnuniyet Raporu
+                </a>
+            }
+            @if (!string.IsNullOrWhiteSpace(soruGrubuDetayLink))
+            {
+                <a class="showcase-btn primary" href="@soruGrubuDetayLink">
+                    <i class="fa fa-table"></i> Detay Rapor
+                </a>
+            }
+            <a class="showcase-btn" hidden href="@Url.Action("AnketIndex", "Home", new { id = anketId })">
+                <i class="fa fa-layer-group"></i> Rapor Merkezi
+            </a>
+        </div>
+    </section>
+
+    <section class="metric-grid">
+        <div class="metric-card">
+            <span>Genel skor</span>
+            <strong>@FormatScore(genelPuan)%</strong>
+            <small>@(sinavMi ? "Doğru cevap başarısı" : "Memnuniyet ortalaması")</small>
+        </div>
+        <div class="metric-card">
+            <span>Katılım</span>
+            <strong>@toplamKatilim</strong>
+            <small>@tanimli tanımlı, @tanimsiz tanımsız</small>
+        </div>
+        <div class="metric-card">
+            <span>Yanıt kapsamı</span>
+            <strong>@FormatScore(tamamlama)%</strong>
+            <small>@toplamYanıt / @beklenenYanıt yanıt</small>
+        </div>
+        <div class="metric-card">
+            <span>Soru grubu</span>
+            <strong>@soruGrubuRows.Count</strong>
+            <small>@toplamSoru soru raporlandı</small>
+        </div>
+    </section>
+
+    <section class="visual-grid">
+        <article class="score-panel">
+            <div class="score-ring" style="--score:@PercentWidth(genelPuan)">
+                <div>
+                    <strong>@FormatOne(genelPuan)</strong>
+                    <span>%</span>
+                </div>
+            </div>
+            <div class="score-copy">
+                <span>Genel görünüm</span>
+                <h2>@(genelPuan >= 80 ? "Güçlü tablo" : genelPuan >= 60 ? "Geliştirilebilir alanlar var" : "Dikkat isteyen sonuç")</h2>
+                <p>@(sinavMi ? "Sınav puanı doğru cevaplara göre ağırlıklı hesaplandı." : "Anket puanı cevap puanlarının 100 üzerinden normalize edilmiş ortalamasıdır.")</p>
+            </div>
+        </article>
+
+        <article class="insight-board">
+            <div class="insight-card positive">
+                <span>En güçlü kırılım</span>
+                <strong>@(enIyiGrup?.Ad ?? "Henüz yok")</strong>
+                <small>@(enIyiGrup == null ? "Veri oluşmadı" : FormatScore(enIyiGrup.Puan) + "%")</small>
+            </div>
+            <div class="insight-card warning">
+                <span>İyileştirme adayı</span>
+                <strong>@(enDusukGrup?.Ad ?? "Henüz yok")</strong>
+                <small>@(enDusukGrup == null ? "Veri oluşmadı" : FormatScore(enDusukGrup.Puan) + "%")</small>
+            </div>
+            <div class="insight-card blue">
+                <span>En yüksek soru</span>
+                <strong>@(enIyiSoru?.Ad ?? "Henüz yok")</strong>
+                <small>@(enIyiSoru == null ? "Veri oluşmadı" : FormatScore(enIyiSoru.Puan) + "%")</small>
+            </div>
+            <div class="insight-card coral">
+                <span>En düşük soru</span>
+                <strong>@(enDusukSoru?.Ad ?? "Henüz yok")</strong>
+                <small>@(enDusukSoru == null ? "Veri oluşmadı" : FormatScore(enDusukSoru.Puan) + "%")</small>
+            </div>
+        </article>
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <div>
+                <span>Rapor kırılımı</span>
+                <h2>Soru grupları</h2>
+            </div>
+            <small>@soruGrubuRows.Count kırılım</small>
+        </div>
+
+        @if (soruGrubuRows.Any())
+        {
+            <div class="ranking-list">
+                @foreach (var row in soruGrubuRows)
+                {
+                    <div class="ranking-row @(string.IsNullOrWhiteSpace(row.Link) ? "" : "ranking-row-link")" data-report-link="@row.Link">
+                        <div class="ranking-title">
+                            <strong>@row.Ad</strong>
+                            <span>@row.Soru soru · @row.Kisi katılımcı</span>
+                        </div>
+                        <div class="ranking-score">
+                            <b>@FormatScore(row.Puan)%</b>
+                            <div class="score-bar"><i style="width:@PercentWidth(row.Puan)"></i></div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(row.Link))
+                        {
+                            <a href="@row.Link" class="row-action report-entry-action" title="Raporu A&ccedil;">
+                                <i class="fa fa-bar-chart"></i>
+                                <span>Raporu A&ccedil;</span>
+                                <i class="fa fa-arrow-right"></i>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa fa-circle-info"></i>
+                Bu çalışma için soru grubu kırılımı bulunamadı.
+            </div>
+        }
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <div>
+                <span>Soru performansı</span>
+                <h2>Tek tek sorular</h2>
+            </div>
+            <small>@soruRows.Count soru</small>
+        </div>
+
+        @if (soruRows.Any())
+        {
+            <div class="question-grid">
+                @foreach (var row in soruRows)
+                {
+                    <a class="question-card" href="@(row.Link ?? "#")">
+                        <div>
+                            <span>@row.Alt</span>
+                            <strong>@row.Ad</strong>
+                        </div>
+                        <div class="question-score">
+                            <b>@FormatScore(row.Puan)%</b>
+                            <div class="score-bar"><i style="width:@PercentWidth(row.Puan)"></i></div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa fa-circle-info"></i>
+                Bu çalışma için soru sonucu oluşmadı.
+            </div>
+        }
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <div>
+                <span>Organizasyon kırılımları</span>
+                <h2>Profil bazlı okumalar</h2>
+            </div>
+            <small>@breakdowns.Count aktif kırılım</small>
+        </div>
+
+        @if (breakdowns.Any())
+        {
+            <div class="breakdown-grid">
+                @foreach (var block in breakdowns)
+                {
+                    <article class="breakdown-card">
+                        <div class="breakdown-head">
+                            <i class="fa @block.Ikon"></i>
+                            <strong>@block.Baslik</strong>
+                        </div>
+                        @foreach (var row in block.Satirlar.Take(6))
+                        {
+                            <div class="mini-row">
+                                <div class="mini-row-title">
+                                    @if (!string.IsNullOrWhiteSpace(row.AvatarKlasor))
+                                    {
+                                        @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = row.Ad, Resim = row.Resim, Klasor = row.AvatarKlasor, Size = "sm" })
+                                    }
+                                    <div>
+                                        <strong>@row.Ad</strong>
+                                        <span>@row.Kisi katılımcı</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <b>@FormatScore(row.Puan)%</b>
+                                    <div class="score-bar tiny"><i style="width:@PercentWidth(row.Puan)"></i></div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(row.Link))
+                                {
+                                    <a href="@row.Link" title="Detay">
+                                        <i class="fa fa-arrow-right"></i>
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa fa-circle-info"></i>
+                Bu çalışma katılım kodu ile tanımsız tamamlandığı için profil kırılımları boş olabilir.
+            </div>
+        }
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <div>
+                <span>Katılımcı görünümü</span>
+                <h2>Kişiye göre sonuçlar</h2>
+            </div>
+            <div class="person-tools">
+                <input type="search" class="person-search" data-person-search placeholder="Katılımcı ara" />
+                <small>@kisiRows.Count kayıt</small>
+            </div>
+        </div>
+
+        @if (kisiRows.Any())
+        {
+            <div class="person-list">
+                @foreach (var row in kisiRows)
+                {
+                    <a class="person-card" href="@(row.Link ?? "#")" data-person-card data-search="@($"{row.Ad} {row.Alt}")">
+                        @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = row.Ad, Resim = row.Resim, Cinsiyet = row.Cinsiyet, Size = "md" })
+                        <div class="person-info">
+                            <strong>@row.Ad</strong>
+                            <span>@row.Alt</span>
+                        </div>
+                        <div class="person-progress">
+                            <b>@FormatScore(row.Puan)%</b>
+                            <small>@row.Kisi / @row.Soru cevap</small>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa fa-circle-info"></i>
+                Katılımcı sonucu henüz oluşmadı.
+            </div>
+        }
+    </section>
+</div>
+
+
+
+<script>
+    (() => {
+        const reportRows = Array.from(document.querySelectorAll("[data-report-link]"))
+            .filter(row => (row.dataset.reportLink || "").trim().length > 0);
+
+        reportRows.forEach(row => {
+            row.addEventListener("click", event => {
+                if (event.target.closest("a, button")) {
+                    return;
+                }
+                window.location.href = row.dataset.reportLink;
+            });
+        });
+    })();
+
+    (() => {
+        const search = document.querySelector("[data-person-search]");
+        const cards = Array.from(document.querySelectorAll("[data-person-card]"));
+        if (!search || cards.length === 0) {
+            return;
+        }
+
+        search.addEventListener("input", () => {
+            const query = search.value.toLocaleLowerCase("tr-TR").trim();
+            cards.forEach(card => {
+                const haystack = (card.dataset.search || "").toLocaleLowerCase("tr-TR");
+                card.hidden = query.length > 0 && !haystack.includes(query);
+            });
+        });
+    })();
+</script>

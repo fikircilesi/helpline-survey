@@ -1,7 +1,10 @@
-@model survey.Controllers.HomeController.DogruCevapEditorModel
+﻿@model survey.Controllers.HomeController.DogruCevapEditorModel
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var returnUrl = string.IsNullOrWhiteSpace(Model.ReturnUrl)
+        ? Url.Action("Indexgosterge", "Home")
+        : Model.ReturnUrl;
 }
 
 <style>
@@ -225,17 +228,20 @@
 <main class="answer-editor-shell">
     <section class="answer-editor-hero">
         <div>
-            <div class="answer-editor-kicker">Aslana Survey Studio</div>
+            <div class="answer-editor-kicker">Survey by Aslana Teknoloji</div>
             <h1 class="answer-editor-title">Doğru Cevapları Düzenle</h1>
             <p class="answer-editor-copy">
                 @Model.AnketAdi için sınavda doğru kabul edilecek şıkları buradan seçin. Kaydettiğinizde mevcut katılımcı puanları aynı kurala göre yeniden hesaplanır.
             </p>
         </div>
         <div class="answer-editor-actions">
-            <a class="answer-editor-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi })">
+            <a class="answer-editor-btn" href="@returnUrl">
+                <i class="fa fa-arrow-left"></i> Çalışmalarıma Dön
+            </a>
+            <a class="answer-editor-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi, returnUrl = returnUrl })">
                 <i class="fa fa-arrow-left"></i> Soru Grupları
             </a>
-            <a class="answer-editor-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = Model.AnketId })">
+            <a class="answer-editor-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = Model.AnketId, returnUrl = returnUrl })">
                 <i class="fa fa-cog"></i> Ayarlar
             </a>
         </div>
@@ -263,6 +269,7 @@
         {
             @Html.AntiForgeryToken()
             <input type="hidden" name="AnketId" value="@Model.AnketId" />
+            <input type="hidden" name="ReturnUrl" value="@returnUrl" />
 
             <section class="answer-question-list">
                 @foreach (var soru in Model.Sorular)
@@ -297,7 +304,7 @@
             </section>
 
             <div class="answer-savebar">
-                <a class="answer-editor-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi })">Vazgeç</a>
+                <a class="answer-editor-btn" href="@returnUrl">Vazgeç</a>
                 <button type="submit" class="answer-editor-btn primary">
                     <i class="fa fa-check"></i> Doğru Cevapları Kaydet
                 </button>

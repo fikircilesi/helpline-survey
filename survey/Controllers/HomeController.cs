@@ -1,4 +1,4 @@
-using survey.Models;
+﻿using survey.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
@@ -24,6 +24,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using QRCoder;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 using System.Web.Security;
 
 namespace survey.Controllers
@@ -33,7 +36,14 @@ namespace survey.Controllers
         readonly SurveyEntities db = new SurveyEntities();
         readonly EnvanterTakipLisansEntities dbl = new EnvanterTakipLisansEntities();
         const int MailOnayKoduGecerlilikDakika = 20;
-        const string KatilimciKoduCookieAdi = "evalio_participant_code";
+        const string KatilimciKoduCookieAdi = "survey_participant_code";
+        const string BilgiFormuKatilimTokenSessionKey = "bilgi_formu_katilim_token";
+        const string BilgiFormuKullaniciAdresOnEki = "BilgiFormu:";
+        const string AnketGorselKlasoru = "~/Content/AnketGorsel/";
+        const string AnketGorselEtiketOnEk = "[[gorsel:";
+        const string AnketGorselEtiketSonEk = "]]";
+        const int AnketGorselWebpKalite = 84;
+        const int AnketGorselMaksimumKenar = 1400;
 
         public class KatilimPortalModel
         {
@@ -70,6 +80,7 @@ namespace survey.Controllers
         {
             public int AnketId { get; set; }
             public string AnketAdi { get; set; }
+            public string ReturnUrl { get; set; }
             public List<DogruCevapQuestionModel> Sorular { get; set; } = new List<DogruCevapQuestionModel>();
         }
 
@@ -94,6 +105,7 @@ namespace survey.Controllers
         public class DogruCevapSaveModel
         {
             public int AnketId { get; set; }
+            public string ReturnUrl { get; set; }
             public Dictionary<int, int> DogruCevaplar { get; set; } = new Dictionary<int, int>();
         }
 
@@ -173,7 +185,7 @@ namespace survey.Controllers
                 return new RecaptchaDogrulamaSonucu
                 {
                     Basarili = false,
-                    Mesaj = "Ben robot değilim kutusunu işaretleyin."
+                    Mesaj = "Ben robot deÄŸilim kutusunu iÅŸaretleyin."
                 };
             }
 
@@ -196,7 +208,7 @@ namespace survey.Controllers
                     return new RecaptchaDogrulamaSonucu
                     {
                         Basarili = false,
-                        Mesaj = "Google reCAPTCHA servisine ulaşılamadı. HTTP " + (int)response.StatusCode
+                        Mesaj = "Google reCAPTCHA servisine ulaÅŸÄ±lamadÄ±. HTTP " + (int)response.StatusCode
                     };
                 }
 
@@ -235,7 +247,7 @@ namespace survey.Controllers
                 return new RecaptchaDogrulamaSonucu
                 {
                     Basarili = false,
-                    Mesaj = "Google reCAPTCHA doğrulaması tamamlanamadı: " + ex.Message
+                    Mesaj = "Google reCAPTCHA doÄŸrulamasÄ± tamamlanamadÄ±: " + ex.Message
                 };
             }
         }
@@ -244,25 +256,25 @@ namespace survey.Controllers
         {
             if (hataKodlari == null || !hataKodlari.Any())
             {
-                return "Google reCAPTCHA doğrulaması başarısız oldu. Kutuyu tekrar işaretleyin.";
+                return "Google reCAPTCHA doÄŸrulamasÄ± baÅŸarÄ±sÄ±z oldu. Kutuyu tekrar iÅŸaretleyin.";
             }
 
             if (hataKodlari.Contains("missing-input-response"))
             {
-                return "Ben robot değilim kutusunu işaretleyin.";
+                return "Ben robot deÄŸilim kutusunu iÅŸaretleyin.";
             }
 
             if (hataKodlari.Contains("timeout-or-duplicate") || hataKodlari.Contains("invalid-input-response"))
             {
-                return "reCAPTCHA doğrulaması süresi doldu veya geçersizleşti. Kutuyu tekrar işaretleyip yeniden deneyin. Kod: " + string.Join(", ", hataKodlari);
+                return "reCAPTCHA doÄŸrulamasÄ± sÃ¼resi doldu veya geÃ§ersizleÅŸti. Kutuyu tekrar iÅŸaretleyip yeniden deneyin. Kod: " + string.Join(", ", hataKodlari);
             }
 
             if (hataKodlari.Contains("invalid-input-secret") || hataKodlari.Contains("missing-input-secret"))
             {
-                return "reCAPTCHA gizli anahtarı geçersiz. appsettings.json içindeki SecretKey kontrol edilmeli. Kod: " + string.Join(", ", hataKodlari);
+                return "reCAPTCHA gizli anahtarÄ± geÃ§ersiz. appsettings.json iÃ§indeki SecretKey kontrol edilmeli. Kod: " + string.Join(", ", hataKodlari);
             }
 
-            return "Google reCAPTCHA doğrulaması başarısız oldu: " + string.Join(", ", hataKodlari);
+            return "Google reCAPTCHA doÄŸrulamasÄ± baÅŸarÄ±sÄ±z oldu: " + string.Join(", ", hataKodlari);
         }
 
         private bool LocalhostGelistirmeOrtamiMi()
@@ -348,7 +360,7 @@ namespace survey.Controllers
                       VALUES
                         (@p0, @p1, @p2, 0, 0, GETDATE());
                       SELECT CAST(SCOPE_IDENTITY() AS int);",
-                    string.IsNullOrWhiteSpace(calismaAlaniAdi) ? "Çalışma Alanım" : calismaAlaniAdi,
+                    string.IsNullOrWhiteSpace(calismaAlaniAdi) ? "Ã‡alÄ±ÅŸma AlanÄ±m" : calismaAlaniAdi,
                     firmaAdi,
                     personelId).First();
 
@@ -382,7 +394,7 @@ namespace survey.Controllers
             var calismaAlaniId = CalismaAlaniHazirla(
                 personel.PersonelId,
                 personel.Adres,
-                $"{personel.PersonelAdi} Çalışma Alanı");
+                $"{personel.PersonelAdi} Ã‡alÄ±ÅŸma AlanÄ±");
 
             if (calismaAlaniId > 0)
             {
@@ -397,7 +409,7 @@ namespace survey.Controllers
             }
             catch
             {
-                // Güvenlik kolonları SQL tarafında henüz eklenmemişse giriş akışını kırmayalım.
+                // GÃ¼venlik kolonlarÄ± SQL tarafÄ±nda henÃ¼z eklenmemiÅŸse giriÅŸ akÄ±ÅŸÄ±nÄ± kÄ±rmayalÄ±m.
             }
         }
 
@@ -795,7 +807,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             var smtpAyar = db.smtpayar.OrderByDescending(x => x.MailId).FirstOrDefault();
             if (smtpAyar == null)
             {
-                hataMesaji = "SMTP ayarı bulunamadı.";
+                hataMesaji = "SMTP ayarÄ± bulunamadÄ±.";
                 return false;
             }
 
@@ -804,14 +816,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 using var msg = new MailMessage();
                 msg.To.Add(email);
                 msg.From = new MailAddress(smtpAyar.Gonderen);
-                msg.Subject = "Aslana Survey Studio e-posta doğrulama kodu";
+                msg.Subject = "Survey by Aslana Teknoloji e-posta doÄŸrulama kodu";
                 msg.IsBodyHtml = true;
                 msg.BodyEncoding = Encoding.UTF8;
                 msg.Body =
                     $"<h2>Merhaba {WebUtility.HtmlEncode(adSoyad)},</h2>" +
-                    "<p>Aslana Survey Studio hesabınızı aktifleştirmek için doğrulama kodunuz:</p>" +
+                    "<p>Survey by Aslana Teknoloji hesabÄ±nÄ±zÄ± aktifleÅŸtirmek iÃ§in doÄŸrulama kodunuz:</p>" +
                     $"<h1 style=\"letter-spacing:6px\">{kod}</h1>" +
-                    $"<p>Bu kod {MailOnayKoduGecerlilikDakika} dakika geçerlidir.</p>";
+                    $"<p>Bu kod {MailOnayKoduGecerlilikDakika} dakika geÃ§erlidir.</p>";
 
                 using var smtp = new SmtpClient
                 {
@@ -859,7 +871,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             }
             else if (!CaptchaDogruMu(guvenlikCevabi))
             {
-                ViewBag.Uyari = "Güvenlik sorusunu kontrol edin.";
+                ViewBag.Uyari = "GÃ¼venlik sorusunu kontrol edin.";
                 CaptchaYenile();
                 return View();
             }
@@ -871,7 +883,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 var guvenlik = GuvenlikBilgisiGetir(obj.PersonelId);
                 if (guvenlik?.MailOnaylandi == false)
                 {
-                    ViewBag.Uyari = "E-posta onayınız tamamlanmamış. Mail adresinize gelen kodu onaylayın.";
+                    ViewBag.Uyari = "E-posta onayÄ±nÄ±z tamamlanmamÄ±ÅŸ. Mail adresinize gelen kodu onaylayÄ±n.";
                     ViewBag.ActiveAuthPanel = "verify";
                     ViewBag.VerifyEmail = obj.Mail;
                     CaptchaYenile();
@@ -884,7 +896,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             else
             {
-                ViewBag.Uyari = "Kullanıcı Adı veya Şifreyi Kontrol Ediniz";
+                ViewBag.Uyari = "KullanÄ±cÄ± AdÄ± veya Åifreyi Kontrol Ediniz";
             }
             CaptchaYenile();
             return View();
@@ -897,7 +909,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             katilimKodu = (katilimKodu ?? string.Empty).Trim();
             if (!int.TryParse(katilimKodu, out var kod) || !KatilimciKoduGecerliMi(kod))
             {
-                ViewBag.KatilimSorguError = "Katılım kodu 9 haneli olmalı.";
+                ViewBag.KatilimSorguError = "KatÄ±lÄ±m kodu 9 haneli olmalÄ±.";
                 ViewBag.ActiveAuthPanel = "participant";
                 CaptchaYenile();
                 return View("Giris");
@@ -908,7 +920,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             if (!kodKullanilmis)
             {
-                ViewBag.KatilimSorguError = "Bu koda ait katılım kaydı bulunamadı.";
+                ViewBag.KatilimSorguError = "Bu koda ait katÄ±lÄ±m kaydÄ± bulunamadÄ±.";
                 ViewBag.ActiveAuthPanel = "participant";
                 CaptchaYenile();
                 return View("Giris");
@@ -923,7 +935,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
         {
             if (!CaptchaDogruMu(guvenlikCevabi))
             {
-                ViewBag.RegisterError = "Güvenlik sorusunu kontrol edin.";
+                ViewBag.RegisterError = "GÃ¼venlik sorusunu kontrol edin.";
                 ViewBag.ActiveAuthPanel = "register";
                 CaptchaYenile();
                 return View("Giris");
@@ -935,7 +947,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 string.IsNullOrWhiteSpace(username) ||
                 string.IsNullOrWhiteSpace(password))
             {
-                ViewBag.RegisterError = "Lütfen zorunlu alanları doldurun.";
+                ViewBag.RegisterError = "LÃ¼tfen zorunlu alanlarÄ± doldurun.";
                 ViewBag.ActiveAuthPanel = "register";
                 CaptchaYenile();
                 return View("Giris");
@@ -943,7 +955,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             if (!string.Equals(password, passwordConfirm, StringComparison.Ordinal))
             {
-                ViewBag.RegisterError = "Şifreler birbiriyle aynı olmalı.";
+                ViewBag.RegisterError = "Åifreler birbiriyle aynÄ± olmalÄ±.";
                 ViewBag.ActiveAuthPanel = "register";
                 CaptchaYenile();
                 return View("Giris");
@@ -955,7 +967,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             var kullaniciVar = db.Personel.Any(x => x.KullaniciAdi == username || x.Mail == email);
             if (kullaniciVar)
             {
-                ViewBag.RegisterError = "Bu kullanıcı adı veya e-posta ile kayıt var.";
+                ViewBag.RegisterError = "Bu kullanÄ±cÄ± adÄ± veya e-posta ile kayÄ±t var.";
                 ViewBag.ActiveAuthPanel = "register";
                 CaptchaYenile();
                 return View("Giris");
@@ -992,7 +1004,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             }
             catch
             {
-                ViewBag.RegisterError = "Güvenlik kolonları SQL tarafında henüz eklenmemiş görünüyor.";
+                ViewBag.RegisterError = "GÃ¼venlik kolonlarÄ± SQL tarafÄ±nda henÃ¼z eklenmemiÅŸ gÃ¶rÃ¼nÃ¼yor.";
                 ViewBag.ActiveAuthPanel = "register";
                 CaptchaYenile();
                 return View("Giris");
@@ -1000,14 +1012,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             if (!MailOnayKoduGonder(email, fullName, onayKodu, out var mailHatasi))
             {
-                ViewBag.RegisterError = $"Hesap oluşturuldu ama doğrulama maili gönderilemedi: {mailHatasi}";
+                ViewBag.RegisterError = $"Hesap oluÅŸturuldu ama doÄŸrulama maili gÃ¶nderilemedi: {mailHatasi}";
                 ViewBag.ActiveAuthPanel = "verify";
                 ViewBag.VerifyEmail = email;
                 CaptchaYenile();
                 return View("Giris");
             }
 
-            ViewBag.RegisterSuccess = "Doğrulama kodu mail adresinize gönderildi.";
+            ViewBag.RegisterSuccess = "DoÄŸrulama kodu mail adresinize gÃ¶nderildi.";
             ViewBag.ActiveAuthPanel = "verify";
             ViewBag.VerifyEmail = email;
             CaptchaYenile();
@@ -1019,7 +1031,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
         {
             if (!CaptchaDogruMu(guvenlikCevabi))
             {
-                ViewBag.VerifyError = "Güvenlik sorusunu kontrol edin.";
+                ViewBag.VerifyError = "GÃ¼venlik sorusunu kontrol edin.";
                 ViewBag.ActiveAuthPanel = "verify";
                 ViewBag.VerifyEmail = email;
                 CaptchaYenile();
@@ -1028,7 +1040,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(onayKodu))
             {
-                ViewBag.VerifyError = "E-posta ve doğrulama kodu zorunludur.";
+                ViewBag.VerifyError = "E-posta ve doÄŸrulama kodu zorunludur.";
                 ViewBag.ActiveAuthPanel = "verify";
                 ViewBag.VerifyEmail = email;
                 CaptchaYenile();
@@ -1041,7 +1053,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             var personel = db.Personel.FirstOrDefault(x => x.Mail == email);
             if (personel == null)
             {
-                ViewBag.VerifyError = "Bu e-posta adresiyle kayıt bulunamadı.";
+                ViewBag.VerifyError = "Bu e-posta adresiyle kayÄ±t bulunamadÄ±.";
                 ViewBag.ActiveAuthPanel = "verify";
                 ViewBag.VerifyEmail = email;
                 CaptchaYenile();
@@ -1054,7 +1066,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 guvenlik.MailOnayKoduTarihi == null ||
                 guvenlik.MailOnayKoduTarihi.Value.AddMinutes(MailOnayKoduGecerlilikDakika) < DateTime.Now)
             {
-                ViewBag.VerifyError = "Doğrulama kodu hatalı veya süresi dolmuş.";
+                ViewBag.VerifyError = "DoÄŸrulama kodu hatalÄ± veya sÃ¼resi dolmuÅŸ.";
                 ViewBag.ActiveAuthPanel = "verify";
                 ViewBag.VerifyEmail = email;
                 CaptchaYenile();
@@ -1082,7 +1094,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
         {
             if (!GoogleAyariHazirMi())
             {
-                ViewBag.Uyari = "Google giriş için ClientId ve ClientSecret appsettings.json içine eklenmeli.";
+                ViewBag.Uyari = "Google giriÅŸ iÃ§in ClientId ve ClientSecret appsettings.json iÃ§ine eklenmeli.";
                 CaptchaYenile();
                 return View("Giris");
             }
@@ -1097,7 +1109,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             var sonuc = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             if (!sonuc.Succeeded || sonuc.Principal == null)
             {
-                ViewBag.Uyari = "Google hesabı doğrulanamadı.";
+                ViewBag.Uyari = "Google hesabÄ± doÄŸrulanamadÄ±.";
                 CaptchaYenile();
                 return View("Giris");
             }
@@ -1110,14 +1122,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(googleKimlikId))
             {
-                ViewBag.Uyari = "Google hesabından e-posta bilgisi alınamadı.";
+                ViewBag.Uyari = "Google hesabÄ±ndan e-posta bilgisi alÄ±namadÄ±.";
                 CaptchaYenile();
                 return View("Giris");
             }
 
             if (email.Length > 50)
             {
-                ViewBag.Uyari = "E-posta adresi 50 karakterden uzun. Personel.Mail alanını büyütmemiz gerekiyor.";
+                ViewBag.Uyari = "E-posta adresi 50 karakterden uzun. Personel.Mail alanÄ±nÄ± bÃ¼yÃ¼tmemiz gerekiyor.";
                 CaptchaYenile();
                 return View("Giris");
             }
@@ -1137,7 +1149,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             }
             catch
             {
-                ViewBag.Uyari = "Google güvenlik kolonları SQL tarafında henüz eklenmemiş görünüyor.";
+                ViewBag.Uyari = "Google gÃ¼venlik kolonlarÄ± SQL tarafÄ±nda henÃ¼z eklenmemiÅŸ gÃ¶rÃ¼nÃ¼yor.";
                 CaptchaYenile();
                 return View("Giris");
             }
@@ -1161,7 +1173,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 {
                     PersonelAdi = string.IsNullOrWhiteSpace(adSoyad) ? email : adSoyad,
                     Mail = email,
-                    Adres = "Google Hesabı",
+                    Adres = "Google HesabÄ±",
                     KullaniciAdi = kullaniciAdi,
                     Sifre = Guid.NewGuid().ToString("N").Substring(0, 12),
                     KayitTarihi = DateTime.Now,
@@ -1202,7 +1214,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
         [ValidateAntiForgeryToken(), HttpPost]
         public ActionResult AnketGiris(string objUser)
         {
-            var obj = db.User.Where(a => a.UserTc.Equals(objUser)).FirstOrDefault();
+            var obj = KayitliKatilimciSorgusu().Where(a => a.UserTc.Equals(objUser)).FirstOrDefault();
 
             if (obj != null && obj.UserTc == objUser && obj.Pasif != true)
             {
@@ -1290,6 +1302,97 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             return View();
         }
 
+        private static bool AnketGorselUzantisiGecerliMi(string dosyaAdi)
+        {
+            var uzanti = Path.GetExtension(dosyaAdi ?? string.Empty).ToLowerInvariant();
+            return uzanti == ".jpg" || uzanti == ".jpeg" || uzanti == ".png" || uzanti == ".webp" || uzanti == ".gif";
+        }
+
+        private static string AnketGorselDosyaAdiTemizle(string dosyaAdi)
+        {
+            var fileName = Path.GetFileName((dosyaAdi ?? string.Empty).Trim());
+            var name = Path.GetFileNameWithoutExtension(fileName);
+            name = Regex.Replace(name ?? string.Empty, @"[^\p{L}\p{Nd}\-_ ]", "-");
+            name = Regex.Replace(name, @"\s+", "-").Trim('-', '_');
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = "anket-gorsel";
+            }
+
+            var maxNameLength = 42;
+            if (name.Length > maxNameLength)
+            {
+                name = name.Substring(0, maxNameLength).Trim('-', '_');
+            }
+
+            return name + "-" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".webp";
+        }
+
+        private void AnketGorselWebpKaydet(IFormFile dosya, string dosyaAdi)
+        {
+            using var stream = dosya.OpenReadStream();
+            using var image = SixLabors.ImageSharp.Image.Load(stream);
+            if (image.Width > AnketGorselMaksimumKenar || image.Height > AnketGorselMaksimumKenar)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new SixLabors.ImageSharp.Size(AnketGorselMaksimumKenar, AnketGorselMaksimumKenar)
+                }));
+            }
+
+            var hedefPath = MapPath(AnketGorselKlasoru + dosyaAdi);
+            var hedefKlasor = Path.GetDirectoryName(hedefPath);
+            if (!string.IsNullOrWhiteSpace(hedefKlasor) && !Directory.Exists(hedefKlasor))
+            {
+                Directory.CreateDirectory(hedefKlasor);
+            }
+
+            image.SaveAsWebp(hedefPath, new WebpEncoder { Quality = AnketGorselWebpKalite });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult AssessmentWizardImageUpload(IFormFile file)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return Json(new { success = false, message = "Oturum sureniz doldu. Lutfen tekrar giris yapin." });
+            }
+
+            if (file == null || file.Length <= 0)
+            {
+                return Json(new { success = false, message = "Yuklenecek gorsel bulunamadi." });
+            }
+
+            if (file.Length > 8 * 1024 * 1024)
+            {
+                return Json(new { success = false, message = "Gorsel en fazla 8 MB olabilir." });
+            }
+
+            if (!AnketGorselUzantisiGecerliMi(file.FileName))
+            {
+                return Json(new { success = false, message = "Gorsel jpg, jpeg, png, gif veya webp olmali." });
+            }
+
+            try
+            {
+                var dosyaAdi = AnketGorselDosyaAdiTemizle(file.FileName);
+                AnketGorselWebpKaydet(file, dosyaAdi);
+                return Json(new
+                {
+                    success = true,
+                    fileName = dosyaAdi,
+                    url = Url.Content(AnketGorselKlasoru + dosyaAdi),
+                    message = "Gorsel WebP olarak yuklendi."
+                });
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Gorsel okunamadi veya WebP'ye cevrilemedi." });
+            }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async System.Threading.Tasks.Task<ActionResult> AssessmentWizardGenerateAi(
@@ -1330,13 +1433,13 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             if (!aiAyar.Aktif)
             {
-                return Json(new { success = false, message = "AI uretimi ayarlarda pasif gorunuyor." });
+                return Json(new { success = false, message = "Studio AI uretimi platform tarafindan gecici olarak pasif durumda." });
             }
 
             if (string.IsNullOrWhiteSpace(aiAyar.ApiKey)
                 || aiAyar.ApiKey.Contains("BURAYA_OPENAI_API_KEY", StringComparison.OrdinalIgnoreCase))
             {
-                return Json(new { success = false, message = "OpenAI API anahtari tanimli degil. Ayarlar > Yapay Zeka Ayarlari ekranindan girin." });
+                return Json(new { success = false, message = "Studio AI baglantisi platform tarafinda tanimli degil. Lutfen platform yoneticisine bildirin." });
             }
 
             var endpoint = NormalizeOpenAiEndpoint(aiAyar.Endpoint);
@@ -1451,7 +1554,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
         {
             if (Session["id"] == null || Session["admin"] == null)
             {
-                return Json(new { success = false, message = "Oturum süreniz doldu. Lütfen tekrar giriş yapın." });
+                return Json(new { success = false, message = "Oturum sÃ¼reniz doldu. LÃ¼tfen tekrar giriÅŸ yapÄ±n." });
             }
 
             AssessmentWizardDraft draft;
@@ -1463,7 +1566,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
             }
             catch
             {
-                return Json(new { success = false, message = "Taslak okunamadı. Sayfayı yenileyip tekrar deneyin." });
+                return Json(new { success = false, message = "Taslak okunamadÄ±. SayfayÄ± yenileyip tekrar deneyin." });
             }
 
             var draftQuestions = draft?.Questions?
@@ -1481,8 +1584,8 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                 .Where(x => !string.IsNullOrWhiteSpace(x.Title))
                 .ToList();
 
-            var title = TrimWizardText(draft.Title, "Yeni Değerlendirme", 250);
-            var owner = TrimWizardText(draft.Owner, "İnsan Kaynakları", 250);
+            var title = TrimWizardText(draft.Title, "Yeni DeÄŸerlendirme", 250);
+            var owner = TrimWizardText(draft.Owner, "Ä°nsan KaynaklarÄ±", 250);
             var isSurvey = string.Equals(draft.Mode, "survey", StringComparison.OrdinalIgnoreCase);
             var duration = ClampWizardNumber(draft.Duration, 0, 240);
             var passScore = ClampWizardNumber(draft.PassScore, 0, 100);
@@ -1492,10 +1595,14 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                 : NormalizeExamPoints(rawQuestionPoints);
             var personelId = Convert.ToInt32(Session["id"]);
             BankaCalismaAlaniHazirla();
+            if (!PaketKullanimKontrolu.AktifAnketEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji))
+            {
+                return Json(new { success = false, message = paketLimitMesaji });
+            }
 
             if (!isSurvey && questions.Any(x => RequiresCorrectAnswer(x) && x.Answers?.Any(a => a.Correct) != true))
             {
-                return Json(new { success = false, message = "Yayına almadan önce her sınav sorusunda doğru cevabı işaretleyin." });
+                return Json(new { success = false, message = "YayÄ±na almadan Ã¶nce her sÄ±nav sorusunda doÄŸru cevabÄ± iÅŸaretleyin." });
             }
 
             using var tx = db.Database.BeginTransaction();
@@ -1543,8 +1650,8 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                         Question = question,
                         Points = publishQuestionPoints[questionIndex],
                         GroupName = TrimWizardText(
-                            string.IsNullOrWhiteSpace(question.Group) ? title + " Soruları" : question.Group,
-                            title + " Soruları",
+                            string.IsNullOrWhiteSpace(question.Group) ? title + " SorularÄ±" : question.Group,
+                            title + " SorularÄ±",
                             250)
                     })
                     .ToList();
@@ -1590,7 +1697,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                     var answers = NormalizeWizardAnswers(question, isSurvey);
                     var cevapGrup = new CevapGrup
                     {
-                        CevapGrupAdi = TrimWizardText(question.Title + " Cevapları", "Cevap Grubu", 250)
+                        CevapGrupAdi = TrimWizardText(question.Title + " CevaplarÄ±", "Cevap Grubu", 250)
                     };
                     db.CevapGrup.Add(cevapGrup);
                     db.SaveChanges();
@@ -1598,7 +1705,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
 
                     var soru = new Soru
                     {
-                        SoruAdi = TrimWizardText(question.Title, "Soru", 250),
+                        SoruAdi = WizardMetniGorselEtiketiyle(question.Title, question.Image, "Soru", 250),
                         SoruSira = order++,
                         SoruGrupId = soruGrup.SoruGrupId,
                         CevapGrupId = cevapGrup.CevapGrupId,
@@ -1611,7 +1718,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                     {
                         var cevap = new Cevap
                         {
-                            CevapAdi = TrimWizardText(answer.Text, "Cevap", 250),
+                            CevapAdi = WizardMetniGorselEtiketiyle(answer.Text, answer.Image, "Cevap", 250),
                             CevapGrupId = cevapGrup.CevapGrupId,
                             Dogru = isSurvey ? (bool?)null : answer.Correct,
                             CevapPuan = isSurvey ? ClampSurveyScore(answer.Score) : (answer.Correct ? questionPoints : 0)
@@ -1639,13 +1746,13 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                 {
                     success = true,
                     anketId = anket.AnketId,
-                    redirectUrl = Url.Action("AnketGrupIndex", "Home", new { id = anket.AnketId, adi = anket.AnketAdi })
+                    redirectUrl = Url.Action("AnketAdEdit", "Home", new { id = anket.AnketId, yayinaHazirlik = 1 })
                 });
             }
             catch (Exception ex)
             {
                 tx.Rollback();
-                return Json(new { success = false, message = "Değerlendirme kaydedilemedi: " + ex.Message });
+                return Json(new { success = false, message = "DeÄŸerlendirme kaydedilemedi: " + ex.Message });
             }
         }
 
@@ -1675,7 +1782,6 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                     @"SELECT TOP 1 AiAyarId, Provider, Endpoint, ChatModel, EmbeddingModel, ApiKey, Aktif, GuncellemeTarihi,
                              CAST(1 AS bit) AS TableReady
                       FROM dbo.AiAyar
-                      WHERE Aktif = 1
                       ORDER BY AiAyarId").FirstOrDefault();
 
                 return row ?? fallback;
@@ -1703,13 +1809,13 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                 @"\bselam+\b",
                 @"\bmerhaba+\b",
                 @"\blo+o+\b",
-                @"\bşaka\b",
+                @"\bÅŸaka\b",
                 @"\bespri\b",
                 @"\bsohbet\b",
                 @"\bhikaye\b",
-                @"\bşiir\b",
+                @"\bÅŸiir\b",
                 @"\bfilm\b",
-                @"\bmaç\b",
+                @"\bmaÃ§\b",
                 @"\bbahis\b",
                 @"\biddia\b",
                 @"\bwhatsapp\b",
@@ -1725,14 +1831,14 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
 
             var acceptedKeywords = new[]
             {
-                "egitim", "eğitim", "sinav", "sınav", "anket", "degerlendirme", "değerlendirme",
-                "test", "quiz", "oryantasyon", "farkindalik", "farkındalık", "prosedur", "prosedür",
-                "talimat", "politika", "surec", "süreç", "kalite", "guvenlik", "güvenlik",
-                "isg", "iş sağlığı", "is sagligi", "hijyen", "gida", "gıda", "haccp", "kkn",
-                "alerjen", "helal", "brcgs", "iso", "kvkk", "gdpr", "bilgi güvenliği",
-                "siber", "yangin", "yangın", "ilk yardim", "ilk yardım", "musteri", "müşteri",
-                "satis", "satış", "insan kaynaklari", "insan kaynakları", "ise alim", "işe alım",
-                "yetkinlik", "liderlik", "operasyon", "uretim", "üretim", "bakim", "bakım",
+                "egitim", "eÄŸitim", "sinav", "sÄ±nav", "anket", "degerlendirme", "deÄŸerlendirme",
+                "test", "quiz", "oryantasyon", "farkindalik", "farkÄ±ndalÄ±k", "prosedur", "prosedÃ¼r",
+                "talimat", "politika", "surec", "sÃ¼reÃ§", "kalite", "guvenlik", "gÃ¼venlik",
+                "isg", "iÅŸ saÄŸlÄ±ÄŸÄ±", "is sagligi", "hijyen", "gida", "gÄ±da", "haccp", "kkn",
+                "alerjen", "helal", "brcgs", "iso", "kvkk", "gdpr", "bilgi gÃ¼venliÄŸi",
+                "siber", "yangin", "yangÄ±n", "ilk yardim", "ilk yardÄ±m", "musteri", "mÃ¼ÅŸteri",
+                "satis", "satÄ±ÅŸ", "insan kaynaklari", "insan kaynaklarÄ±", "ise alim", "iÅŸe alÄ±m",
+                "yetkinlik", "liderlik", "operasyon", "uretim", "Ã¼retim", "bakim", "bakÄ±m",
                 "denetim", "sertifika", "uyum", "compliance", "risk", "pest", "temizlik"
             };
 
@@ -1746,7 +1852,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
                 return (true, null);
             }
 
-            if (Regex.IsMatch(topic.Trim(), @"^[A-ZÇĞİÖŞÜ0-9 .\-]{3,18}$"))
+            if (Regex.IsMatch(topic.Trim(), @"^[A-ZÃ‡ÄÄ°Ã–ÅÃœ0-9 .\-]{3,18}$"))
             {
                 return (true, null);
             }
@@ -1759,7 +1865,7 @@ Yeni sorularin group alaninda mumkunse mevcut soru gruplarindan birini kullan.",
             return (value ?? string.Empty)
                 .Trim()
                 .ToLowerInvariant()
-                .Replace('ı', 'i');
+                .Replace("Ä±", "i");
         }
 
         private static string NormalizeAssessmentMode(string mode)
@@ -2105,6 +2211,7 @@ Yalnizca su JSON semasinda cevap ver:
                     .Select((x, answerIndex) => new AssessmentWizardAnswer
                     {
                         Text = CleanGeneratedAnswerText(x.Text),
+                        Image = WizardGorselDosyaAdi(x.Image),
                         Correct = !isSurvey && x.Correct,
                         Score = isSurvey ? InferSurveyAnswerScore(x, answerIndex, item.Answers?.Count ?? 0) : x.Score
                     })
@@ -2155,6 +2262,7 @@ Yalnizca su JSON semasinda cevap ver:
                     Type = type,
                     Group = TrimWizardText(item.Group, string.Empty, 250),
                     Title = TrimWizardText(item.Title, "Soru", 250),
+                    Image = WizardGorselDosyaAdi(item.Image),
                     Points = item.Points > 0 ? item.Points : 10,
                     Required = true,
                     Answers = answers
@@ -2201,13 +2309,13 @@ Yalnizca su JSON semasinda cevap ver:
             return (value ?? string.Empty)
                 .Trim()
                 .ToLowerInvariant()
-                .Replace('ı', 'i')
-                .Replace('İ', 'i')
-                .Replace('ç', 'c')
-                .Replace('ğ', 'g')
-                .Replace('ö', 'o')
-                .Replace('ş', 's')
-                .Replace('ü', 'u');
+                .Replace("Ä±", "i")
+                .Replace("Ä°", "i")
+                .Replace("Ã§", "c")
+                .Replace("ÄŸ", "g")
+                .Replace("Ã¶", "o")
+                .Replace("ÅŸ", "s")
+                .Replace("Ã¼", "u");
         }
 
         private static double InferSurveyAnswerScore(AssessmentWizardAnswer answer, int index, int count)
@@ -2242,12 +2350,12 @@ Yalnizca su JSON semasinda cevap ver:
             var correctIsTrue = answers.FirstOrDefault(x => x.Correct)?.Text?.Trim()
                 .Equals("Yanlis", StringComparison.OrdinalIgnoreCase) != true
                 && answers.FirstOrDefault(x => x.Correct)?.Text?.Trim()
-                    .Equals("Yanlış", StringComparison.OrdinalIgnoreCase) != true;
+                    .Equals("YanlÄ±ÅŸ", StringComparison.OrdinalIgnoreCase) != true;
 
             return new List<AssessmentWizardAnswer>
             {
-                new AssessmentWizardAnswer { Text = "Doğru", Correct = correctIsTrue },
-                new AssessmentWizardAnswer { Text = "Yanlış", Correct = !correctIsTrue }
+                new AssessmentWizardAnswer { Text = "DoÄŸru", Correct = correctIsTrue },
+                new AssessmentWizardAnswer { Text = "YanlÄ±ÅŸ", Correct = !correctIsTrue }
             };
         }
 
@@ -2359,6 +2467,7 @@ Yalnizca su JSON semasinda cevap ver:
                 .Select((x, index) => new AssessmentWizardAnswer
                 {
                     Text = x.Text,
+                    Image = WizardGorselDosyaAdi(x.Image),
                     Correct = !isSurvey && x.Correct,
                     Score = isSurvey ? InferSurveyAnswerScore(x, index, rawAnswers.Count) : x.Score
                 })
@@ -2406,13 +2515,13 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (anket == null || soru == null || cevap == null)
             {
-                message = "Soru veya cevap kaydı bulunamadı.";
+                message = "Soru veya cevap kaydÄ± bulunamadÄ±.";
                 return false;
             }
 
             if (soru.CevapGrupId != cevap.CevapGrupId)
             {
-                message = "Seçilen cevap bu soruya ait değil.";
+                message = "SeÃ§ilen cevap bu soruya ait deÄŸil.";
                 return false;
             }
 
@@ -2422,7 +2531,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (!soruAnketeAit)
             {
-                message = "Seçilen soru bu çalışmaya ait değil.";
+                message = "SeÃ§ilen soru bu Ã§alÄ±ÅŸmaya ait deÄŸil.";
                 return false;
             }
 
@@ -2451,6 +2560,43 @@ Yalnizca su JSON semasinda cevap ver:
             return text.Length <= maxLength ? text : text.Substring(0, maxLength);
         }
 
+        private static string WizardGorselDosyaAdi(string value)
+        {
+            var fileName = Path.GetFileName((value ?? string.Empty).Trim());
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return string.Empty;
+            }
+
+            return string.Equals(Path.GetExtension(fileName), ".webp", StringComparison.OrdinalIgnoreCase)
+                ? fileName
+                : string.Empty;
+        }
+
+        private static string WizardGorselEtiketiniTemizle(string value)
+        {
+            return Regex.Replace(value ?? string.Empty, @"\s*\[\[gorsel:[^\]]+\]\]\s*$", "", RegexOptions.IgnoreCase).Trim();
+        }
+
+        private static string WizardMetniGorselEtiketiyle(string value, string image, string fallback, int maxLength)
+        {
+            var fileName = WizardGorselDosyaAdi(image);
+            var cleanText = WizardGorselEtiketiniTemizle(value);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return TrimWizardText(cleanText, fallback, maxLength);
+            }
+
+            var marker = " " + AnketGorselEtiketOnEk + fileName + AnketGorselEtiketSonEk;
+            var textRoom = Math.Max(1, maxLength - marker.Length);
+            var trimmedText = string.IsNullOrWhiteSpace(cleanText)
+                ? string.Empty
+                : TrimWizardText(cleanText, fallback, textRoom).TrimEnd();
+            return string.IsNullOrWhiteSpace(trimmedText)
+                ? (AnketGorselEtiketOnEk + fileName + AnketGorselEtiketSonEk)
+                : trimmedText + marker;
+        }
+
         public class AssessmentWizardDraft
         {
             public string Mode { get; set; }
@@ -2468,6 +2614,7 @@ Yalnizca su JSON semasinda cevap ver:
             public string Type { get; set; }
             public string Group { get; set; }
             public string Title { get; set; }
+            public string Image { get; set; }
             public int Points { get; set; }
             public bool Required { get; set; }
             public List<AssessmentWizardAnswer> Answers { get; set; }
@@ -2476,6 +2623,7 @@ Yalnizca su JSON semasinda cevap ver:
         public class AssessmentWizardAnswer
         {
             public string Text { get; set; }
+            public string Image { get; set; }
             public bool Correct { get; set; }
             public double? Score { get; set; }
         }
@@ -2533,6 +2681,7 @@ Yalnizca su JSON semasinda cevap ver:
         {
             public int AnketId { get; set; }
             public string AnketAdi { get; set; }
+            public string ReturnUrl { get; set; }
             public bool Sinav { get; set; }
             public bool SertifikaAktif { get; set; }
             public bool SertifikaKatilimciErisimi { get; set; }
@@ -2654,7 +2803,7 @@ Yalnizca su JSON semasinda cevap ver:
             return result;
         }
 
-        private void KatilimYonteminiKaydet(int anketId, string yontem)
+        private bool KatilimYonteminiKaydet(int anketId, string yontem)
         {
             KatilimYontemiKolonunuHazirla();
 
@@ -2666,10 +2815,41 @@ Yalnizca su JSON semasinda cevap ver:
                       WHERE AnketId = @p1",
                     NormalizeKatilimYontemi(yontem),
                     anketId);
+                return true;
             }
             catch
             {
                 // Kolon yoksa ya da yetki yoksa ana kayit akisini kirmayalim.
+                return false;
+            }
+        }
+
+        private static string KatilimYontemiEtiketi(string yontem)
+        {
+            switch (NormalizeKatilimYontemi(yontem))
+            {
+                case KatilimYontemiKayitli:
+                    return "KayÄ±tlÄ± kiÅŸiler";
+                case KatilimYontemiBilgiFormu:
+                    return "Bilgi formu";
+                case KatilimYontemiKisiyeOzel:
+                    return "KiÅŸiye Ã¶zel";
+                default:
+                    return "Herkese aÃ§Ä±k";
+            }
+        }
+
+        private static string KatilimYontemiPaylasimAciklamasi(string yontem)
+        {
+            switch (NormalizeKatilimYontemi(yontem))
+            {
+                case KatilimYontemiKayitli:
+                case KatilimYontemiKisiyeOzel:
+                    return "Bu baÄŸlantÄ± kayÄ±tlÄ± katÄ±lÄ±mcÄ±lara Ã¶zeldir. GiriÅŸ yapan uygun kiÅŸilerin sonuÃ§larÄ± kendi profiline iÅŸlenir.";
+                case KatilimYontemiBilgiFormu:
+                    return "Bu baÄŸlantÄ± bilgi formu ile aÃ§Ä±lÄ±r; katÄ±lÄ±mcÄ±dan ad soyad ve TC / numara veya e-posta alÄ±nÄ±r.";
+                default:
+                    return "Bu baÄŸlantÄ± herkese aÃ§Ä±ktÄ±r; giriÅŸ yapan kayÄ±tlÄ± kiÅŸiler kendi profiliyle, diÄŸerleri katÄ±lÄ±m koduyla izlenir.";
             }
         }
 
@@ -2751,7 +2931,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             catch
             {
-                // Veritabanı kullanıcısının DDL yetkisi yoksa SQL scripti elle çalıştırılabilir.
+                // VeritabanÄ± kullanÄ±cÄ±sÄ±nÄ±n DDL yetkisi yoksa SQL scripti elle Ã§alÄ±ÅŸtÄ±rÄ±labilir.
             }
         }
 
@@ -2766,7 +2946,7 @@ Yalnizca su JSON semasinda cevap ver:
                              CAST(ISNULL(SertifikaAktif, ISNULL(Sonuc, 0)) AS bit) AS SertifikaAktif,
                              CAST(ISNULL(SertifikaKatilimciErisimi, 1) AS bit) AS SertifikaKatilimciErisimi,
                              ISNULL(NULLIF(SertifikaVerilisZamani, N''), N'SureBitince') AS SertifikaVerilisZamani,
-                             ISNULL(NULLIF(SertifikaBaslik, N''), N'Katılım Sertifikası') AS SertifikaBaslik,
+                             ISNULL(NULLIF(SertifikaBaslik, N''), N'KatÄ±lÄ±m SertifikasÄ±') AS SertifikaBaslik,
                              SertifikaMetni,
                              YayinBitisTarihi
                       FROM dbo.Anket
@@ -2804,7 +2984,7 @@ Yalnizca su JSON semasinda cevap ver:
                     }
                     catch
                     {
-                        // Yeni tasarım kolonları eklenmemişse sertifika eski ayarlarla çalışmaya devam eder.
+                        // Yeni tasarÄ±m kolonlarÄ± eklenmemiÅŸse sertifika eski ayarlarla Ã§alÄ±ÅŸmaya devam eder.
                     }
 
                     ayar.SertifikaTema = NormalizeSertifikaTema(ayar.SertifikaTema);
@@ -2825,7 +3005,7 @@ Yalnizca su JSON semasinda cevap ver:
                     SertifikaAktif = anket?.Sonuc == true,
                     SertifikaKatilimciErisimi = true,
                     SertifikaVerilisZamani = "SureBitince",
-                    SertifikaBaslik = "Katılım Sertifikası",
+                    SertifikaBaslik = "KatÄ±lÄ±m SertifikasÄ±",
                     SertifikaTema = "Modern",
                     SertifikaVurguRengi = "#2563eb",
                     SertifikaCerceve = "Classic",
@@ -2847,11 +3027,11 @@ Yalnizca su JSON semasinda cevap ver:
         {
             if (string.IsNullOrWhiteSpace(value))
             {
-                return "Katılım Sertifikası";
+                return "KatÄ±lÄ±m SertifikasÄ±";
             }
 
             var baslik = value.Trim();
-            return baslik == "KatÄ±lÄ±m SertifikasÄ±" ? "Katılım Sertifikası" : baslik;
+            return baslik == "KatÃ„Â±lÃ„Â±m SertifikasÃ„Â±" ? "KatÄ±lÄ±m SertifikasÄ±" : baslik;
         }
 
         private static string NormalizeSertifikaTema(string value)
@@ -2953,7 +3133,7 @@ Yalnizca su JSON semasinda cevap ver:
                     return true;
                 }
 
-                mesaj = "Sertifika tüm sorular tamamlanınca açılacak.";
+                mesaj = "Sertifika tÃ¼m sorular tamamlanÄ±nca aÃ§Ä±lacak.";
                 return false;
             }
 
@@ -2965,8 +3145,8 @@ Yalnizca su JSON semasinda cevap ver:
                 }
 
                 mesaj = ayar?.YayinBitisTarihi != null
-                    ? $"Sertifika yayın bitişinde açılacak: {ayar.YayinBitisTarihi.Value:dd.MM.yyyy HH:mm}."
-                    : "Sertifika yayın bitişinde açılacak; önce çalışma bitiş tarihi belirlenmeli.";
+                    ? $"Sertifika yayÄ±n bitiÅŸinde aÃ§Ä±lacak: {ayar.YayinBitisTarihi.Value:dd.MM.yyyy HH:mm}."
+                    : "Sertifika yayÄ±n bitiÅŸinde aÃ§Ä±lacak; Ã¶nce Ã§alÄ±ÅŸma bitiÅŸ tarihi belirlenmeli.";
                 return false;
             }
 
@@ -2975,7 +3155,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return true;
             }
 
-            mesaj = "Sertifika sınav süresi kapandıktan sonra açılacak.";
+            mesaj = "Sertifika sÄ±nav sÃ¼resi kapandÄ±ktan sonra aÃ§Ä±lacak.";
             return false;
         }
 
@@ -3160,12 +3340,53 @@ Yalnizca su JSON semasinda cevap ver:
 
             var anketler = CalismaAlaniAnketleri();
             var anketIdleri = anketler.Select(x => (int?)x.AnketId).ToList();
+            var izlemeKayitlari = db.Izledim
+                .Where(x => anketIdleri.Contains(x.AnketId))
+                .ToList();
+            var kayitliKatilimCiftleri = db.Havuz.AsNoTracking()
+                .Where(x => anketIdleri.Contains(x.AnketId) && x.AnketId != null && x.UserId != null && x.UserId != 1)
+                .GroupBy(x => new { AnketId = x.AnketId.Value, UserId = x.UserId.Value })
+                .Select(x => x.Key)
+                .ToList();
+            var anonimKatilimCiftleri = db.Havuz.AsNoTracking()
+                .Where(x => anketIdleri.Contains(x.AnketId) && x.AnketId != null && x.UserId == null && x.Isimsiz != null)
+                .GroupBy(x => new { AnketId = x.AnketId.Value, Isimsiz = x.Isimsiz.Value })
+                .Select(x => x.Key)
+                .ToList();
+            var havuzSoruCiftleri = db.Havuz.AsNoTracking()
+                .Where(x => anketIdleri.Contains(x.AnketId) && x.AnketId != null && x.SoruID != null)
+                .GroupBy(x => new { AnketId = x.AnketId.Value, SoruId = x.SoruID.Value })
+                .Select(x => x.Key)
+                .ToList();
+            var kayitliKatilimMap = kayitliKatilimCiftleri
+                .GroupBy(x => x.AnketId)
+                .ToDictionary(x => x.Key, x => x.Count());
+            var anonimKatilimMap = anonimKatilimCiftleri
+                .GroupBy(x => x.AnketId)
+                .ToDictionary(x => x.Key, x => x.Count());
+            var cevapliKatilimMap = anketler.ToDictionary(
+                x => x.AnketId,
+                x => (kayitliKatilimMap.ContainsKey(x.AnketId) ? kayitliKatilimMap[x.AnketId] : 0)
+                    + (anonimKatilimMap.ContainsKey(x.AnketId) ? anonimKatilimMap[x.AnketId] : 0));
+            var havuzSoruSayisiMap = havuzSoruCiftleri
+                .GroupBy(x => x.AnketId)
+                .ToDictionary(x => x.Key, x => x.Count());
+
             ViewBag.KatilimTokenMap = EnsureAnketPaylasimTokenlari(anketler.Select(x => x.AnketId));
             ViewBag.KatilimYontemiMap = KatilimYontemleriGetir(anketler.Select(x => x.AnketId));
+            ViewBag.SureKayitMap = izlemeKayitlari
+                .Where(x => x.AnketId.HasValue)
+                .GroupBy(x => x.AnketId.Value)
+                .ToDictionary(x => x.Key, x => x.Count());
+            ViewBag.SureKayitSayisi = izlemeKayitlari.Count;
+            ViewBag.KatilimSayisi = kayitliKatilimCiftleri.Select(x => x.UserId).Distinct().Count()
+                + anonimKatilimCiftleri.Select(x => x.Isimsiz).Distinct().Count();
+            ViewBag.CevapliKatilimMap = cevapliKatilimMap;
+            ViewBag.HavuzSoruSayisiMap = havuzSoruSayisiMap;
             Tumcontroller model = new Tumcontroller()
             {
                 Ank = anketler,
-                Hav = db.Havuz.Where(x => anketIdleri.Contains(x.AnketId)),
+                Hav = Enumerable.Empty<Havuz>(),
                 AnkGrp = db.AnketGrup.Where(x => anketIdleri.Contains(x.AnketId)),
                 Sor = CalismaAlaniBankaKayitlari<Soru>("Soru", "SoruAdi"),
             };
@@ -3275,24 +3496,11 @@ Yalnizca su JSON semasinda cevap ver:
 
             return View(CalismaAlaniAnketleri());
         }
-        public ActionResult AnketIndex1(int id, int? filterEgitimId = null)
+
+        private IQueryable<Havuz> RaporHavuzSorgusu(int? anketId)
         {
-            if (Session["id"] == null || Session["admin"] == null)
-                return RedirectToAction("Giris", "Home");
-
-            var anket = CalismaAlaniAnketGetir(id);
-            if (anket == null)
-                return RedirectToAction("AnketIndex");
-
-            ViewBag.adi = anket.AnketAdi;
-            ViewBag.anketadi = filterEgitimId != null
-                ? db.Egitim.FirstOrDefault(x => x.EgitimId == filterEgitimId)?.EgitimAdi
-                : "Tümü";
-            ViewBag.id = anket.AnketId;
-            ViewBag.sinav = SinavTurundeMi(anket);
-            ViewBag.FilterEgitim = filterEgitimId;
-
-            var havuz = db.Havuz
+            return db.Havuz.AsNoTracking()
+                .Include("Anket")
                 .Include("User")
                 .Include("User.Egitim")
                 .Include("User.Departman")
@@ -3306,8 +3514,30 @@ Yalnizca su JSON semasinda cevap ver:
                 .Include("Soru")
                 .Include("Soru.SoruGrup")
                 .Include("SoruGrup")
-                .Where(x => x.AnketId == id)
-                .ToList();
+                .Where(x => x.AnketId == anketId);
+        }
+
+        public ActionResult AnketIndex1(int id, int? filterEgitimId = null, string returnUrl = null)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+                return RedirectToAction("Giris", "Home");
+
+            var anket = CalismaAlaniAnketGetir(id);
+            if (anket == null)
+                return RedirectToAction("AnketIndex");
+
+            ViewBag.adi = anket.AnketAdi;
+            ViewBag.anketadi = filterEgitimId != null
+                ? db.Egitim.FirstOrDefault(x => x.EgitimId == filterEgitimId)?.EgitimAdi
+                : "TÃ¼mÃ¼";
+            ViewBag.id = anket.AnketId;
+            ViewBag.sinav = SinavTurundeMi(anket);
+            ViewBag.FilterEgitim = filterEgitimId;
+            ViewBag.ReturnUrl = CalismaAlaniDonusAdresi(returnUrl);
+
+            var havuz = RaporHavuzSorgusu(id).ToList();
+
+            ViewBag.YoneticiResimleri = YoneticiResimSozlugu(havuz.Select(x => x.User?.UserYoneticisi));
 
             return View("AnketIndex1", havuz);
         }
@@ -3332,22 +3562,9 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.adi = anket.AnketAdi;
             ViewBag.sinav = SinavTurundeMi(anket);
 
-            var bul = db.Havuz
-                .Include("User")
-                .Include("User.Egitim")
-                .Include("User.Departman")
-                .Include("User.Cinsiyet")
-                .Include("User.Sehir")
-                .Include("User.Sube")
-                .Include("User.Unvan")
-                .Include("User.Yaka")
-                .Include("User.Yonetici")
-                .Include("Cevap")
-                .Include("Soru")
-                .Include("Soru.SoruGrup")
-                .Include("SoruGrup")
-                .Where(x => x.AnketId == id);
-            var adi = db.Havuz.Where(x => x.AnketId == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(id).ToList();
+            ViewBag.YoneticiResimleri = YoneticiResimSozlugu(bul.Select(x => x.User?.UserYoneticisi));
+            var adi = bul.FirstOrDefault();
             if (ank != null)
             {
                 ViewBag.ank = ank;
@@ -3376,27 +3593,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -3406,10 +3623,13 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
+            ViewBag.yoneticiResim10 = new List<string>();
+
+            var yoneticiResimSozlugu = YoneticiResimSozlugu(bul.AsEnumerable().Select(x => x.User?.UserYoneticisi));
 
             // Soru
             ViewBag.baslik11 = new List<string>();
@@ -3423,10 +3643,10 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan12 = new List<float>();
             ViewBag.adet12 = new List<int>();
 
-            foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
+            foreach (var item in bul.GroupBy(x => x.Anket?.AnketAdi ?? anket.AnketAdi ?? "Ã‡alÄ±ÅŸma"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3440,18 +3660,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
                 ViewBag.puan1.Add(p1);
                 ViewBag.adet1.Add(kisiSayisi);
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "TanÄ±msÄ±z"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
@@ -3466,18 +3686,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "TanÄ±msÄ±z"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3491,18 +3711,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "TanÄ±msÄ±z"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3516,8 +3736,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -3526,44 +3746,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "TanÄ±msÄ±z"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3577,18 +3797,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.GroupBy(x => x.User?.Sube?.SubeAdi ?? "TanÄ±msÄ±z"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3602,18 +3822,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "TanÄ±msÄ±z"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3627,18 +3847,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.GroupBy(x => x.User?.Yaka?.YakaAdi ?? "TanÄ±msÄ±z"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3652,18 +3872,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3677,17 +3901,21 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
             }
             // Soru + Soru Grup
 
-            foreach (var item in bul.GroupBy(x => new { x.Soru.SoruAdi, x.SoruGrup.SoruGrupAdi }))
+            foreach (var item in bul.GroupBy(x => new
+            {
+                SoruAdi = x.Soru?.SoruAdi ?? "TanÄ±msÄ±z soru",
+                SoruGrupAdi = x.SoruGrup?.SoruGrupAdi ?? "TanÄ±msÄ±z rapor baÅŸlÄ±ÄŸÄ±"
+            }))
             {
                 var soru = item.Count();
                 var kisiSayisi = item.Select(x => x.UserId).Distinct().Count();
@@ -3713,10 +3941,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet11.Add(kisiSayisi);
             }
 
-            foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
+            foreach (var item in bul.GroupBy(x => x.SoruGrup?.SoruGrupAdi ?? "TanÄ±msÄ±z rapor baÅŸlÄ±ÄŸÄ±"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3730,8 +3958,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
@@ -3739,7 +3967,9 @@ Yalnizca su JSON semasinda cevap ver:
 
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
 
         public ActionResult MemnuniyetRaporu(int id)
@@ -3832,9 +4062,10 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserDepartman == id);
-            var adi = db.Havuz.Where(x => x.User.UserDepartman == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserDepartman == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -3849,7 +4080,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.Departman.DepartmanAdi;
+                ViewBag.anketadi = adi.User?.Departman?.DepartmanAdi ?? "Tanımsız";
             }
 
             // Genel
@@ -3867,27 +4098,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -3897,7 +4128,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -3916,7 +4147,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3930,8 +4161,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -3939,10 +4170,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3956,18 +4187,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -3981,18 +4212,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4006,8 +4237,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -4017,44 +4248,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4068,18 +4299,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4093,18 +4324,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4118,18 +4349,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4143,18 +4374,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4168,10 +4403,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -4179,7 +4414,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4193,8 +4428,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -4204,7 +4439,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4218,15 +4453,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketCinsiyetIndex(int id, int? ank)
         {
@@ -4244,9 +4481,10 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserCinsiyet == id);
-            var adi = db.Havuz.Where(x => x.User.UserCinsiyet == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserCinsiyet == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -4261,7 +4499,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.Cinsiyet.CinsiyetAdi;
+                ViewBag.anketadi = adi.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız";
             }
 
             // Genel
@@ -4279,27 +4517,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -4309,7 +4547,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -4328,7 +4566,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4342,8 +4580,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -4351,10 +4589,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4368,18 +4606,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4393,18 +4631,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4418,8 +4656,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -4429,44 +4667,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4480,18 +4718,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4505,18 +4743,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4530,18 +4768,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4555,18 +4793,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4580,10 +4822,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -4591,7 +4833,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4605,8 +4847,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -4616,7 +4858,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4630,15 +4872,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketEgitimIndex(int id, int? ank)
         {
@@ -4656,9 +4900,10 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserEgitim == id);
-            var adi = db.Havuz.Where(x => x.User.UserEgitim == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserEgitim == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -4673,7 +4918,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.Egitim.EgitimAdi;
+                ViewBag.anketadi = adi.User?.Egitim?.EgitimAdi ?? "Tanımsız";
             }
 
             // Genel
@@ -4691,27 +4936,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -4721,7 +4966,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -4740,7 +4985,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4754,8 +4999,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -4763,10 +5008,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4780,18 +5025,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4805,18 +5050,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4830,8 +5075,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -4841,44 +5086,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4892,18 +5137,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4917,18 +5162,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4942,18 +5187,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4967,18 +5212,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -4992,10 +5241,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -5003,7 +5252,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5017,8 +5266,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -5028,7 +5277,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5042,15 +5291,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketYasIndex(int id, int? ank)
         {
@@ -5068,9 +5319,10 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserDogumTar.Value.Year == id);
-            var adi = db.Havuz.Where(x => x.User.UserDogumTar.Value.Year == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserDogumTar != null && x.User.UserDogumTar.Value.Year == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -5103,27 +5355,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -5133,7 +5385,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -5152,7 +5404,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5166,8 +5418,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -5175,10 +5427,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5192,18 +5444,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5217,18 +5469,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5242,8 +5494,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -5253,44 +5505,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5304,18 +5556,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5329,18 +5581,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5354,18 +5606,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5379,18 +5631,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5404,10 +5660,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -5415,7 +5671,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5429,8 +5685,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -5440,7 +5696,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5454,15 +5710,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketSehirIndex(int id, int? ank)
         {
@@ -5480,9 +5738,10 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserSehir == id);
-            var adi = db.Havuz.Where(x => x.User.UserSehir == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserSehir == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -5497,7 +5756,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.Sehir.SehiarAdi;
+                ViewBag.anketadi = adi.User?.Sehir?.SehiarAdi ?? "Tanımsız";
             }
 
             // Genel
@@ -5515,27 +5774,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -5545,7 +5804,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -5564,7 +5823,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5578,8 +5837,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -5587,10 +5846,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5604,18 +5863,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5629,18 +5888,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5654,8 +5913,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -5665,44 +5924,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5716,18 +5975,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5741,18 +6000,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5766,18 +6025,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5791,18 +6050,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5816,10 +6079,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -5827,7 +6090,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5841,8 +6104,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -5852,7 +6115,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5866,15 +6129,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketSubeIndex(int id, int? ank)
         {
@@ -5892,9 +6157,10 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserSube == id);
-            var adi = db.Havuz.Where(x => x.User.UserSube == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserSube == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -5909,7 +6175,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.Sube.SubeAdi;
+                ViewBag.anketadi = adi.User?.Sube?.SubeAdi ?? "Tanımsız";
             }
 
             // Genel
@@ -5927,27 +6193,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -5957,7 +6223,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -5976,7 +6242,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -5990,8 +6256,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -5999,10 +6265,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6016,18 +6282,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6041,18 +6307,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6066,8 +6332,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -6077,44 +6343,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6128,18 +6394,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6153,18 +6419,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6178,18 +6444,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6203,18 +6469,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6228,10 +6498,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -6239,7 +6509,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6253,8 +6523,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -6264,7 +6534,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6278,15 +6548,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketUnvanIndex(int id, int? ank)
         {
@@ -6304,9 +6576,10 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserUnvan == id);
-            var adi = db.Havuz.Where(x => x.User.UserUnvan == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserUnvan == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -6321,7 +6594,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.Unvan.UnvanAdi;
+                ViewBag.anketadi = adi.User?.Unvan?.UnvanAdi ?? "Tanımsız";
             }
 
             // Genel
@@ -6339,27 +6612,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -6369,7 +6642,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -6388,7 +6661,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6402,8 +6675,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -6411,10 +6684,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6428,18 +6701,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6453,18 +6726,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6478,8 +6751,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -6489,44 +6762,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6540,18 +6813,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6565,18 +6838,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6590,18 +6863,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6615,18 +6888,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6640,10 +6917,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -6651,7 +6928,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6665,8 +6942,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -6676,7 +6953,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6690,15 +6967,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketUserIndex(int id, int? ank, int? user)
         {
@@ -6756,6 +7035,7 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.yaka = adi.User.Yaka?.YakaAdi;
                 ViewBag.sehir = adi.User.Sehir?.SehiarAdi;
                 ViewBag.sube = adi.User.Sube?.SubeAdi;
+                ViewBag.resim = adi.User.UserResim;
             }
             else if (adi != null)
             {
@@ -6796,8 +7076,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 if (p1 != null)
@@ -6872,9 +7152,10 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserYaka == id);
-            var adi = db.Havuz.Where(x => x.User.UserYaka == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserYaka == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -6889,7 +7170,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.Yaka.YakaAdi;
+                ViewBag.anketadi = adi.User?.Yaka?.YakaAdi ?? "Tanımsız";
             }
 
 
@@ -6908,27 +7189,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -6938,7 +7219,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -6957,7 +7238,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6971,8 +7252,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -6980,10 +7261,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -6997,18 +7278,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7022,18 +7303,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7047,8 +7328,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -7058,44 +7339,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7109,18 +7390,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7134,18 +7415,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7159,18 +7440,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7184,18 +7465,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7209,10 +7494,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -7220,7 +7505,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7234,8 +7519,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -7245,7 +7530,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7259,15 +7544,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketYoneticiIndex(int id, int? ank)
         {
@@ -7285,9 +7572,11 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.User.UserYoneticisi == id);
-            var adi = db.Havuz.Where(x => x.User.UserYoneticisi == id).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.User.UserYoneticisi == id)
+                .ToList();
+            ViewBag.YoneticiResimleri = YoneticiResimSozlugu(new int?[] { id });
+            var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
             if (ankadi != null)
             {
@@ -7302,7 +7591,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.User.Yonetici.YoneticiAdi;
+                ViewBag.anketadi = adi.User?.Yonetici?.YoneticiAdi ?? "Tanımsız";
             }
 
 
@@ -7321,27 +7610,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -7351,7 +7640,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
@@ -7370,7 +7659,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7384,8 +7673,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -7393,10 +7682,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7410,18 +7699,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7435,18 +7724,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7460,8 +7749,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -7471,44 +7760,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7522,18 +7811,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7547,18 +7836,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7572,18 +7861,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7597,18 +7886,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7622,10 +7915,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
 
@@ -7633,7 +7926,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7647,8 +7940,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -7658,7 +7951,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7672,15 +7965,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            RaporYoneticiResimleriHazirla(bul);
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketSoruIndex(int id, int? ank)
         {
@@ -7698,22 +7993,8 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul = db.Havuz
-                .Include("Anket")
-                .Include("User")
-                .Include("User.Egitim")
-                .Include("User.Departman")
-                .Include("User.Cinsiyet")
-                .Include("User.Sehir")
-                .Include("User.Sube")
-                .Include("User.Unvan")
-                .Include("User.Yaka")
-                .Include("User.Yonetici")
-                .Include("Cevap")
-                .Include("Soru")
-                .Include("Soru.SoruGrup")
-                .Include("SoruGrup")
-                .Where(x => x.AnketId == ank && x.SoruID == id)
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.SoruID == id)
                 .ToList();
             var adi = bul.FirstOrDefault();
             var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
@@ -7730,7 +8011,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             if (adi != null)
             {
-                ViewBag.anketadi = adi.Soru?.SoruAdi ?? "Soru detayı";
+                ViewBag.anketadi = adi.Soru?.SoruAdi ?? "Soru detayÄ±";
             }
 
 
@@ -7750,27 +8031,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -7780,10 +8061,12 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
+            ViewBag.yoneticiResim10 = new List<string>();
+            var yoneticiResimSozlugu = YoneticiResimSozlugu(bul.AsEnumerable().Select(x => x.User?.UserYoneticisi));
 
             // Soru
             ViewBag.baslik11 = new List<string>();
@@ -7796,10 +8079,10 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.adet12 = new List<int>();
 
 
-            foreach (var item in bul.GroupBy(x => x.Anket?.AnketAdi ?? "Çalışma"))
+            foreach (var item in bul.GroupBy(x => x.Anket?.AnketAdi ?? "Ã‡alÄ±ÅŸma"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7813,8 +8096,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -7822,10 +8105,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.Where(x => x.User?.Departman != null).GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7839,18 +8122,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.Where(x => x.User?.Cinsiyet != null).GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7864,18 +8147,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.Where(x => x.User?.Egitim != null).GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7889,8 +8172,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -7900,44 +8183,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
+            foreach (var item in bul.AsEnumerable()
                 .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
                 var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.Where(x => x.User?.Sehir != null).GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7951,18 +8234,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.Where(x => x.User?.Sube != null).GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -7976,18 +8259,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.Where(x => x.User?.Unvan != null).GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8001,18 +8284,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.Where(x => x.User?.Yaka != null).GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8026,18 +8309,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.Where(x => x.User?.Yonetici != null).GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8051,18 +8338,19 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
+                ViewBag.yoneticiResim10.Add(item.Key.Id > 0 && yoneticiResimSozlugu.TryGetValue(item.Key.Id, out var yoneticiResim) ? yoneticiResim : "");
 
             }
             foreach (var item in bul.Where(x => x.Soru != null).GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8076,8 +8364,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -8087,7 +8375,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup?.SoruGrupAdi ?? x.Soru?.SoruGrup?.SoruGrupAdi ?? "Grupsuz"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8101,15 +8389,17 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
 
-            return View(bul);
+            ViewBag.YoneticiResimleri = yoneticiResimSozlugu;
+
+            return View("AnketSoruGrupIndex", bul);
         }
         public ActionResult AnketSoruGrupIndex(int id, int? ank)
         {
@@ -8127,10 +8417,11 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketIndex");
             }
 
-            var bul1 = db.Havuz.Where(x => x.AnketId == ank);
-            var bul = bul1.Where(x => x.SoruGrupId == id);
-            var adi = db.Havuz.Where(x => x.SoruGrupId == id).FirstOrDefault();
-            var ankadi = db.Anket.Where(x => x.AnketId == ank).FirstOrDefault();
+            var bul = RaporHavuzSorgusu(ank)
+                .Where(x => x.SoruGrupId == id)
+                .ToList();
+            var adi = bul.FirstOrDefault();
+            var ankadi = db.Anket.AsNoTracking().FirstOrDefault(x => x.AnketId == ank);
             if (ankadi != null)
             {
                 ViewBag.adi = ankadi.AnketAdi;
@@ -8164,27 +8455,27 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan3 = new List<float>();
             ViewBag.adet3 = new List<int>();
 
-            // Eğitim
+            // EÄŸitim
             ViewBag.baslik4 = new List<string>();
             ViewBag.puan4 = new List<float>();
             ViewBag.adet4 = new List<int>();
 
-            // Yaş
-            ViewBag.baslik5 = new List<string>();  // int yerine string yapalım → chart için daha kolay
+            // YaÅŸ
+            ViewBag.baslik5 = new List<string>();  // int yerine string yapalÄ±m â†’ chart iÃ§in daha kolay
             ViewBag.puan5 = new List<float>();
             ViewBag.adet5 = new List<int>();
 
-            // Şehir
+            // Åehir
             ViewBag.baslik6 = new List<string>();
             ViewBag.puan6 = new List<float>();
             ViewBag.adet6 = new List<int>();
 
-            // Şube
+            // Åube
             ViewBag.baslik7 = new List<string>();
             ViewBag.puan7 = new List<float>();
             ViewBag.adet7 = new List<int>();
 
-            // Ünvan
+            // Ãœnvan
             ViewBag.baslik8 = new List<string>();
             ViewBag.puan8 = new List<float>();
             ViewBag.adet8 = new List<int>();
@@ -8194,10 +8485,12 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.puan9 = new List<float>();
             ViewBag.adet9 = new List<int>();
 
-            // Yönetici
+            // YÃ¶netici
             ViewBag.baslik10 = new List<string>();
             ViewBag.puan10 = new List<float>();
             ViewBag.adet10 = new List<int>();
+            ViewBag.yoneticiResim10 = new List<string>();
+            var yoneticiResimSozlugu = YoneticiResimSozlugu(bul.AsEnumerable().Select(x => x.User?.UserYoneticisi));
 
             // Soru
             ViewBag.baslik11 = new List<string>();
@@ -8213,7 +8506,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.Anket.AnketAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8227,8 +8520,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
 
                 ViewBag.baslik1.Add(item.Key);
@@ -8236,10 +8529,10 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.adet1.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Departman.DepartmanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Departman?.DepartmanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8253,18 +8546,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik2.Add(item.Key);
                 ViewBag.puan2.Add(p1);
                 ViewBag.adet2.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Cinsiyet.CinsiyetAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Cinsiyet?.CinsiyetAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8278,18 +8571,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik3.Add(item.Key);
                 ViewBag.puan3.Add(p1);
                 ViewBag.adet3.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Egitim.EgitimAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Egitim?.EgitimAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8303,8 +8596,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik4.Add(item.Key);
                 ViewBag.puan4.Add(p1);
@@ -8314,44 +8607,44 @@ Yalnizca su JSON semasinda cevap ver:
             }
             var bugun = DateTime.Today;
 
-            // Önce boş listeleri hazırla
+            // Ã–nce boÅŸ listeleri hazÄ±rla
             ViewBag.baslik5 = new List<string>();
             ViewBag.puan5 = new List<float>();
 
-            foreach (var item in bul
-                .Where(x => x.User.UserDogumTar != null)
+            foreach (var item in bul.AsEnumerable()
+                .Where(x => x.User?.UserDogumTar != null)
                 .GroupBy(x => x.User.UserDogumTar.Value.Year))
             {
                 var dogumYili = item.Key;
                 var yas = bugun.Year - dogumYili;
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
 
-                // Eğer doğum günü bu yıl daha gelmediyse yaşı 1 azalt
-                var ilkKayit = item.First().User.UserDogumTar;
+                // EÄŸer doÄŸum gÃ¼nÃ¼ bu yÄ±l daha gelmediyse yaÅŸÄ± 1 azalt
+                var ilkKayit = item.FirstOrDefault()?.User?.UserDogumTar;
                 if (ilkKayit != null && bugun.DayOfYear < ilkKayit.Value.DayOfYear)
                 {
                     yas--;
                 }
 
-                // Ortalama puanı hesapla (kişiye göre normalize)
+                // Ortalama puanÄ± hesapla (kiÅŸiye gÃ¶re normalize)
                 var ortalama = item
                     .GroupBy(x => x.UserId)
                     .Select(g => g.Average(y => y.CevapPuan))
                     .Average();
 
-                var ortalamaYuzde = ortalama * 20; // 5 üzerinden 100'e çevirme
+                var ortalamaYuzde = ortalama * 20; // 5 Ã¼zerinden 100'e Ã§evirme
 
-                // 🔹 Burada artık Add et
-                ViewBag.baslik5.Add(yas.ToString());       // X ekseni → yaş
-                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni → puan
-                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni → puan
+                // ğŸ”¹ Burada artÄ±k Add et
+                ViewBag.baslik5.Add(yas.ToString());       // X ekseni â†’ yaÅŸ
+                ViewBag.puan5.Add((float)ortalamaYuzde);   // Y ekseni â†’ puan
+                ViewBag.adet5.Add(kisiSayisi);   // Y ekseni â†’ puan
             }
 
-            foreach (var item in bul.GroupBy(x => x.User.Sehir.SehiarAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sehir?.SehiarAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8365,18 +8658,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik6.Add(item.Key);
                 ViewBag.puan6.Add(p1);
                 ViewBag.adet6.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Sube.SubeAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Sube?.SubeAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8390,18 +8683,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik7.Add(item.Key);
                 ViewBag.puan7.Add(p1);
                 ViewBag.adet7.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Unvan.UnvanAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Unvan?.UnvanAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8415,18 +8708,18 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik8.Add(item.Key);
                 ViewBag.puan8.Add(p1);
                 ViewBag.adet8.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yaka.YakaAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => x.User?.Yaka?.YakaAdi ?? "Tanımsız"))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8440,18 +8733,22 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik9.Add(item.Key);
                 ViewBag.puan9.Add(p1);
                 ViewBag.adet9.Add(kisiSayisi);
 
             }
-            foreach (var item in bul.GroupBy(x => x.User.Yonetici.YoneticiAdi))
+            foreach (var item in bul.AsEnumerable().GroupBy(x => new
+            {
+                Id = x.User?.UserYoneticisi ?? 0,
+                Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+            }))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8465,18 +8762,19 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
-                ViewBag.baslik10.Add(item.Key);
+                ViewBag.baslik10.Add(item.Key.Ad);
                 ViewBag.puan10.Add(p1);
                 ViewBag.adet10.Add(kisiSayisi);
+                ViewBag.yoneticiResim10.Add(item.Key.Id > 0 && yoneticiResimSozlugu.TryGetValue(item.Key.Id, out var yoneticiResim) ? yoneticiResim : "");
 
             }
             foreach (var item in bul.GroupBy(x => x.Soru.SoruAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8490,8 +8788,8 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik11.Add(item.Key);
                 ViewBag.puan11.Add(p1);
@@ -8501,7 +8799,7 @@ Yalnizca su JSON semasinda cevap ver:
             foreach (var item in bul.GroupBy(x => x.SoruGrup.SoruGrupAdi))
             {
                 var soru = item.Count(); // toplam Soru
-                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerçek kişi adedi
+                var kisiSayisi = item.Select(x => x.UserId).Distinct().Count(); // gerÃ§ek kiÅŸi adedi
 
                 var c5 = item.Count(x => x.CevapPuan == 5);
                 var c4 = item.Count(x => x.CevapPuan == 4);
@@ -8515,13 +8813,15 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
-                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanını yüzdesini bulur
+                // PuanÄ± hesapla
+                var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;   // ortalama memnuniyet puanÄ±nÄ± yÃ¼zdesini bulur
                 var p1 = p2 / soru;
                 ViewBag.baslik12.Add(item.Key);
                 ViewBag.puan12.Add(p1);
                 ViewBag.adet12.Add(kisiSayisi);
             }
+
+            ViewBag.YoneticiResimleri = yoneticiResimSozlugu;
 
             return View(bul);
         }
@@ -8587,6 +8887,15 @@ Yalnizca su JSON semasinda cevap ver:
                 return View(dgskn);
             }
 
+            if (!PaketKullanimKontrolu.AktifAnketEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji))
+            {
+                ModelState.AddModelError("", paketLimitMesaji);
+                ViewBag.YayinBaslangicLocal = DateTimeLocalValue(YayinBaslangicTarihi);
+                ViewBag.YayinBitisLocal = DateTimeLocalValue(YayinBitisTarihi);
+                ViewBag.KatilimYontemi = NormalizeKatilimYontemi(KatilimYontemi);
+                return View(dgskn);
+            }
+
             try
             {
                 db.Anket.Add(dgskn);
@@ -8619,7 +8928,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return View(dgskn);
             }
         }
-        public ActionResult AnketAdEdit(int id)
+        public ActionResult AnketAdEdit(int id, string returnUrl = null)
         {
             if (Session["id"] == null)
             {
@@ -8634,6 +8943,7 @@ Yalnizca su JSON semasinda cevap ver:
             if (anket == null) return NotFound();
 
             PrepareAnketAdLookups(id);
+            ViewBag.ReturnUrl = CalismaAlaniDonusAdresi(returnUrl);
 
             return View(anket);
         }
@@ -8660,11 +8970,28 @@ Yalnizca su JSON semasinda cevap ver:
                     ? KatilimYontemiGetir(anketId.Value)
                     : KatilimYontemiHerkeseAcik;
             }
+
+            if (anketId.HasValue)
+            {
+                PrepareAnketPaylasimViewBag(anketId.Value);
+            }
+        }
+
+        private void PrepareAnketPaylasimViewBag(int anketId)
+        {
+            var token = EnsureAnketPaylasimToken(anketId);
+            var katilimYontemi = NormalizeKatilimYontemi(Convert.ToString(ViewBag.KatilimYontemi ?? KatilimYontemiGetir(anketId)));
+
+            ViewBag.PaylasimToken = token;
+            ViewBag.PaylasimUrl = string.IsNullOrWhiteSpace(token) ? string.Empty : KatilimPaylasimUrl(anketId);
+            ViewBag.PaylasimQrUrl = string.IsNullOrWhiteSpace(token) ? string.Empty : Url.Action("KatilimQr", "Home", new { token });
+            ViewBag.KatilimYontemiEtiketi = KatilimYontemiEtiketi(katilimYontemi);
+            ViewBag.PaylasimAciklamasi = KatilimYontemiPaylasimAciklamasi(katilimYontemi);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult AnketAdEdit(Anket dgskn, IFormFile ImzaDosyasi, DateTime? YayinBaslangicTarihi, DateTime? YayinBitisTarihi, string KatilimYontemi)
+        public ActionResult AnketAdEdit(Anket dgskn, IFormFile ImzaDosyasi, DateTime? YayinBaslangicTarihi, DateTime? YayinBitisTarihi, string KatilimYontemi, string returnUrl = null)
         {
             if (Session["id"] == null || Session["admin"] == null)
             {
@@ -8672,6 +8999,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
             var katilimYontemi = NormalizeKatilimYontemi(KatilimYontemi);
+            var donusAdresi = CalismaAlaniDonusAdresi(returnUrl);
 
             try
             {
@@ -8679,13 +9007,17 @@ Yalnizca su JSON semasinda cevap ver:
                 if (anket == null) return NotFound();
                 var isExamSubmission = dgskn.Sinav == true;
 
-                if (string.IsNullOrWhiteSpace(dgskn.AnketAdi))
+                var gonderilenAnketAdi = (dgskn.AnketAdi ?? string.Empty).Trim();
+                var mevcutAnketAdi = (anket.AnketAdi ?? string.Empty).Trim();
+                var anketAdiDegisti = !string.Equals(gonderilenAnketAdi, mevcutAnketAdi, StringComparison.CurrentCultureIgnoreCase);
+
+                if (string.IsNullOrWhiteSpace(gonderilenAnketAdi))
                 {
                     ModelState.AddModelError("AnketAdi", "Anket adi zorunlu.");
                 }
-                else if (CalismaAlaniAyniAnketAdiVar(dgskn.AnketAdi, dgskn.AnketId))
+                else if (anketAdiDegisti && CalismaAlaniAyniAnketAdiVar(gonderilenAnketAdi, anket.AnketId))
                 {
-                    ModelState.AddModelError("AnketAdi", "Bu isimde bir calisma zaten var. Rapor ve katilim takibi karismamasi icin farkli bir ad kullanin.");
+                    ModelState.AddModelError("AnketAdi", "Bu adda baÅŸka bir Ã§alÄ±ÅŸma var. YalnÄ±zca Ã§alÄ±ÅŸma adÄ±nÄ± deÄŸiÅŸtirmek istiyorsanÄ±z farklÄ± bir ad kullanÄ±n.");
                 }
 
                 if (string.IsNullOrWhiteSpace(dgskn.EgitimVeren))
@@ -8715,12 +9047,13 @@ Yalnizca su JSON semasinda cevap ver:
                 {
                     ViewBag.KatilimYontemi = katilimYontemi;
                     PrepareAnketAdLookups(anket.AnketId, YayinBaslangicTarihi, YayinBitisTarihi, true);
+                    ViewBag.ReturnUrl = donusAdresi;
                     dgskn.Imza = anket.Imza;
                     return View(dgskn);
                 }
 
-                // Alanları güncelle
-                anket.AnketAdi = dgskn.AnketAdi;
+                // AlanlarÄ± gÃ¼ncelle
+                anket.AnketAdi = gonderilenAnketAdi;
                 anket.EgitimVeren = dgskn.EgitimVeren;
                 anket.Pasif = dgskn.Pasif;
                 anket.Tanimsiz = dgskn.Tanimsiz;
@@ -8735,7 +9068,7 @@ Yalnizca su JSON semasinda cevap ver:
                 anket.SubeId = dgskn.SubeId;
                 anket.UnvanId = dgskn.UnvanId;
 
-                // İmza işlemi
+                // Ä°mza iÅŸlemi
                 if (ImzaDosyasi != null && ImzaDosyasi.Length > 0)
                 {
                     string fileName = Guid.NewGuid() + Path.GetExtension(ImzaDosyasi.FileName);
@@ -8749,18 +9082,49 @@ Yalnizca su JSON semasinda cevap ver:
                 YayinAyarlariniKaydet(anket.AnketId, YayinBaslangicTarihi, YayinBitisTarihi);
                 KatilimYonteminiKaydet(anket.AnketId, katilimYontemi);
 
-                TempData["AyarKayitMesaji"] = "Çalışma ayarları kaydedildi.";
-                return RedirectToAction("AnketAdEdit", new { id = anket.AnketId });
+                TempData["AyarKayitMesaji"] = "Ã‡alÄ±ÅŸma ayarlarÄ± kaydedildi.";
+                return RedirectToAction("AnketAdEdit", new { id = anket.AnketId, paylas = 1, returnUrl = donusAdresi });
             }
             catch
             {
                 ViewBag.KatilimYontemi = katilimYontemi;
                 PrepareAnketAdLookups(dgskn.AnketId, YayinBaslangicTarihi, YayinBitisTarihi, true);
+                ViewBag.ReturnUrl = donusAdresi;
                 return View(dgskn);
             }
         }
 
-        public ActionResult SertifikaWizard(int id)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult KatilimYontemiGuncelle(int anketId, string katilimYontemi)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return Json(new { success = false, message = "Oturum sureniz doldu. Lutfen tekrar giris yapin." });
+            }
+
+            var anket = CalismaAlaniAnketGetir(anketId);
+            if (anket == null)
+            {
+                return Json(new { success = false, message = "Calisma bulunamadi." });
+            }
+
+            var normalized = NormalizeKatilimYontemi(katilimYontemi);
+            if (!KatilimYonteminiKaydet(anket.AnketId, normalized))
+            {
+                return Json(new { success = false, message = "Katilim yontemi kaydedilemedi." });
+            }
+
+            return Json(new
+            {
+                success = true,
+                katilimYontemi = normalized,
+                label = KatilimYontemiEtiketi(normalized),
+                subtitle = KatilimYontemiPaylasimAciklamasi(normalized)
+            });
+        }
+
+        public ActionResult SertifikaWizard(int id, string returnUrl = null)
         {
             if (Session["id"] == null || Session["admin"] == null)
             {
@@ -8775,13 +9139,14 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 AnketId = anket.AnketId,
                 AnketAdi = anket.AnketAdi,
+                ReturnUrl = CalismaAlaniDonusAdresi(returnUrl),
                 Sinav = anket.Sinav == true,
                 SertifikaAktif = ayar?.SertifikaAktif == true,
                 SertifikaKatilimciErisimi = ayar?.SertifikaKatilimciErisimi != false,
                 SertifikaVerilisZamani = NormalizeSertifikaZamani(ayar?.SertifikaVerilisZamani),
                 SertifikaNotu = anket.SertifikaNotu ?? 70,
                 EgitimVeren = anket.EgitimVeren,
-                SertifikaBaslik = ayar?.SertifikaBaslik ?? "Katılım Sertifikası",
+                SertifikaBaslik = ayar?.SertifikaBaslik ?? "KatÄ±lÄ±m SertifikasÄ±",
                 SertifikaMetni = ayar?.SertifikaMetni,
                 SertifikaTema = NormalizeSertifikaTema(ayar?.SertifikaTema),
                 SertifikaLogo = ayar?.SertifikaLogo,
@@ -8808,6 +9173,7 @@ Yalnizca su JSON semasinda cevap ver:
             var anket = CalismaAlaniAnketGetir(form.AnketId);
             if (anket == null) return NotFound();
 
+            form.ReturnUrl = CalismaAlaniDonusAdresi(form.ReturnUrl);
             form.AnketAdi = anket.AnketAdi;
             form.Sinav = anket.Sinav == true;
             form.SertifikaVerilisZamani = NormalizeSertifikaZamani(form.SertifikaVerilisZamani);
@@ -8823,18 +9189,18 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 if (!form.SertifikaNotu.HasValue || form.SertifikaNotu.Value < 0 || form.SertifikaNotu.Value > 100)
                 {
-                    ModelState.AddModelError("SertifikaNotu", "Geçme notu 0 ile 100 arasında olmalı.");
+                    ModelState.AddModelError("SertifikaNotu", "GeÃ§me notu 0 ile 100 arasÄ±nda olmalÄ±.");
                 }
 
                 if (string.IsNullOrWhiteSpace(form.EgitimVeren))
                 {
-                    ModelState.AddModelError("EgitimVeren", "Sertifikada görünecek düzenleyen zorunlu.");
+                    ModelState.AddModelError("EgitimVeren", "Sertifikada gÃ¶rÃ¼necek dÃ¼zenleyen zorunlu.");
                 }
             }
 
             if (string.IsNullOrWhiteSpace(form.SertifikaBaslik))
             {
-                form.SertifikaBaslik = "Katılım Sertifikası";
+                form.SertifikaBaslik = "KatÄ±lÄ±m SertifikasÄ±";
             }
 
             if (ImzaDosyasi != null && ImzaDosyasi.Length > 0 && !SertifikaGorseliUzantisiGecerli(ImzaDosyasi.FileName))
@@ -8904,7 +9270,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             catch
             {
-                TempData["Mesaj"] = "Sertifika ayar kolonları SQL tarafında henüz eklenmemiş görünüyor.";
+                TempData["Mesaj"] = "Sertifika ayar kolonlarÄ± SQL tarafÄ±nda henÃ¼z eklenmemiÅŸ gÃ¶rÃ¼nÃ¼yor.";
             }
 
             try
@@ -8933,7 +9299,237 @@ Yalnizca su JSON semasinda cevap ver:
                 TempData["Mesaj"] = "Sertifika tasarim kolonlari SQL tarafinda henuz eklenmemis gorunuyor.";
             }
 
-            return RedirectToAction("Indexgosterge");
+            return LocalRedirect(form.ReturnUrl);
+        }
+
+        private class AnketSilmePaket
+        {
+            public Anket Anket { get; set; }
+            public List<Havuz> KatilimKayitlari { get; set; } = new List<Havuz>();
+            public List<Izledim> SureKayitlari { get; set; } = new List<Izledim>();
+            public List<AnketGrup> AnketGruplari { get; set; } = new List<AnketGrup>();
+            public List<SoruGrup> SoruGruplari { get; set; } = new List<SoruGrup>();
+            public List<Soru> Sorular { get; set; } = new List<Soru>();
+            public List<CevapGrup> CevapGruplari { get; set; } = new List<CevapGrup>();
+            public List<Cevap> Cevaplar { get; set; } = new List<Cevap>();
+            public List<string> KatilimciAdlari { get; set; } = new List<string>();
+            public int KayitliKatilimciSayisi { get; set; }
+            public int AnonimKatilimciSayisi { get; set; }
+        }
+
+        private AnketSilmePaket AnketSilmePaketiniHazirla(int id)
+        {
+            var paket = new AnketSilmePaket
+            {
+                Anket = CalismaAlaniAnketGetir(id)
+            };
+
+            if (paket.Anket == null)
+            {
+                return paket;
+            }
+
+            paket.KatilimKayitlari = db.Havuz.Where(x => x.AnketId == id).ToList();
+            paket.SureKayitlari = db.Izledim.Where(x => x.AnketId == id).ToList();
+            paket.AnketGruplari = db.AnketGrup.Where(x => x.AnketId == id).ToList();
+
+            var soruGrupIds = paket.AnketGruplari
+                .Where(x => x.SoruGrupId != null)
+                .Select(x => x.SoruGrupId.Value)
+                .Distinct()
+                .ToList();
+
+            var sadeceBuCalismadaKullanilanSoruGrupIds = soruGrupIds
+                .Where(soruGrupId => !db.AnketGrup.Any(x => x.AnketId != id && x.SoruGrupId == soruGrupId))
+                .ToList();
+
+            if (sadeceBuCalismadaKullanilanSoruGrupIds.Any())
+            {
+                paket.Sorular = db.Soru
+                    .Where(x => x.SoruGrupId != null && sadeceBuCalismadaKullanilanSoruGrupIds.Contains(x.SoruGrupId.Value))
+                    .ToList();
+
+                var soruIds = paket.Sorular.Select(x => x.SoruId).ToList();
+                var cevapGrupIds = paket.Sorular
+                    .Where(x => x.CevapGrupId != null)
+                    .Select(x => x.CevapGrupId.Value)
+                    .Distinct()
+                    .ToList();
+
+                var sadeceBuSorulardaKullanilanCevapGrupIds = cevapGrupIds
+                    .Where(cevapGrupId => !db.Soru.Any(x => !soruIds.Contains(x.SoruId) && x.CevapGrupId == cevapGrupId))
+                    .ToList();
+
+                if (sadeceBuSorulardaKullanilanCevapGrupIds.Any())
+                {
+                    paket.Cevaplar = db.Cevap
+                        .Where(x => x.CevapGrupId != null && sadeceBuSorulardaKullanilanCevapGrupIds.Contains(x.CevapGrupId.Value))
+                        .ToList();
+
+                    paket.CevapGruplari = db.CevapGrup
+                        .Where(x => sadeceBuSorulardaKullanilanCevapGrupIds.Contains(x.CevapGrupId))
+                        .ToList();
+                }
+
+                paket.SoruGruplari = db.SoruGrup
+                    .Where(x => sadeceBuCalismadaKullanilanSoruGrupIds.Contains(x.SoruGrupId))
+                    .ToList();
+            }
+
+            var kayitliKatilimciIds = paket.KatilimKayitlari
+                .Where(x => x.UserId != null && x.UserId != 1)
+                .Select(x => x.UserId.Value)
+                .Distinct()
+                .ToList();
+
+            var anonimKatilimciIds = paket.KatilimKayitlari
+                .Where(x => x.UserId == null && x.Isimsiz != null)
+                .Select(x => x.Isimsiz.Value)
+                .Distinct()
+                .ToList();
+
+            paket.KayitliKatilimciSayisi = kayitliKatilimciIds.Count;
+            paket.AnonimKatilimciSayisi = anonimKatilimciIds.Count;
+
+            if (kayitliKatilimciIds.Any())
+            {
+                paket.KatilimciAdlari = db.User
+                    .Where(x => kayitliKatilimciIds.Contains(x.UserId))
+                    .OrderBy(x => x.UserAdi)
+                    .Take(8)
+                    .ToList()
+                    .Select(x => string.IsNullOrWhiteSpace(x.UserAdi)
+                        ? (string.IsNullOrWhiteSpace(x.UserTc) ? ("KatÄ±lÄ±mcÄ± #" + x.UserId) : x.UserTc)
+                        : x.UserAdi)
+                    .ToList();
+            }
+
+            var kalanListeYeri = Math.Max(0, 8 - paket.KatilimciAdlari.Count);
+            if (kalanListeYeri > 0)
+            {
+                paket.KatilimciAdlari.AddRange(anonimKatilimciIds
+                    .Take(kalanListeYeri)
+                    .Select(x => "KatÄ±lÄ±m kodu " + x));
+            }
+
+            return paket;
+        }
+
+        private ActionResult AnketSilmeOzetJson(AnketSilmePaket paket)
+        {
+            if (paket.Anket == null)
+            {
+                return Json(new { success = false, message = "Ã‡alÄ±ÅŸma bulunamadÄ±." });
+            }
+
+            var katilimciSayisi = paket.KayitliKatilimciSayisi + paket.AnonimKatilimciSayisi;
+            var kalemler = new[]
+            {
+                new { label = "Ã‡alÄ±ÅŸma ana kaydÄ±", count = 1 },
+                new { label = "KatÄ±lÄ±m cevaplarÄ±", count = paket.KatilimKayitlari.Count },
+                new { label = "SÃ¼re takip kayÄ±tlarÄ±", count = paket.SureKayitlari.Count },
+                new { label = "Rapor baÅŸlÄ±ÄŸÄ± baÄŸlantÄ±larÄ±", count = paket.AnketGruplari.Count },
+                new { label = "YalnÄ±z bu Ã§alÄ±ÅŸmaya baÄŸlÄ± soru gruplarÄ±", count = paket.SoruGruplari.Count },
+                new { label = "YalnÄ±z bu Ã§alÄ±ÅŸmaya baÄŸlÄ± sorular", count = paket.Sorular.Count },
+                new { label = "YalnÄ±z bu Ã§alÄ±ÅŸmaya baÄŸlÄ± cevap gruplarÄ±", count = paket.CevapGruplari.Count },
+                new { label = "YalnÄ±z bu Ã§alÄ±ÅŸmaya baÄŸlÄ± seÃ§enekler", count = paket.Cevaplar.Count }
+            }.Where(x => x.count > 0).ToList();
+
+            return Json(new
+            {
+                success = true,
+                anketId = paket.Anket.AnketId,
+                anketAdi = paket.Anket.AnketAdi,
+                katilimKaydi = paket.KatilimKayitlari.Count,
+                katilimciSayisi,
+                sureKaydi = paket.SureKayitlari.Count,
+                raporBasligi = paket.AnketGruplari.Count,
+                soruGrubu = paket.SoruGruplari.Count,
+                soru = paket.Sorular.Count,
+                cevapGrubu = paket.CevapGruplari.Count,
+                cevap = paket.Cevaplar.Count,
+                katilimcilar = paket.KatilimciAdlari,
+                katilimciFazla = Math.Max(0, katilimciSayisi - paket.KatilimciAdlari.Count),
+                kalemler
+            });
+        }
+
+        [HttpGet]
+        public ActionResult AnketSilmeOzeti(int id)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return Json(new { success = false, message = "Oturum bulunamadÄ±." });
+            }
+
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return Json(new { success = false, message = "Bu Ã§alÄ±ÅŸmaya eriÅŸim yetkiniz yok." });
+            }
+
+            return AnketSilmeOzetJson(AnketSilmePaketiniHazirla(id));
+        }
+
+        [ValidateAntiForgeryToken]
+        [HttpPost]
+        public ActionResult AnketSil(int id)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return Json(new { success = false, message = "Oturum bulunamadÄ±." });
+            }
+
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return Json(new { success = false, message = "Bu Ã§alÄ±ÅŸmaya eriÅŸim yetkiniz yok." });
+            }
+
+            using (var tx = db.Database.BeginTransaction())
+            {
+                try
+                {
+                    var paket = AnketSilmePaketiniHazirla(id);
+                    if (paket.Anket == null)
+                    {
+                        return Json(new { success = false, message = "Ã‡alÄ±ÅŸma bulunamadÄ±." });
+                    }
+
+                    db.Havuz.RemoveRange(paket.KatilimKayitlari);
+                    db.Izledim.RemoveRange(paket.SureKayitlari);
+                    db.SaveChanges();
+
+                    db.AnketGrup.RemoveRange(paket.AnketGruplari);
+                    db.SaveChanges();
+
+                    db.Cevap.RemoveRange(paket.Cevaplar);
+                    db.Soru.RemoveRange(paket.Sorular);
+                    db.SaveChanges();
+
+                    db.CevapGrup.RemoveRange(paket.CevapGruplari);
+                    db.SoruGrup.RemoveRange(paket.SoruGruplari);
+                    db.SaveChanges();
+
+                    db.Anket.Remove(paket.Anket);
+                    db.SaveChanges();
+
+                    tx.Commit();
+
+                    return Json(new
+                    {
+                        success = true,
+                        message = "Ã‡alÄ±ÅŸma ve baÄŸlÄ± kayÄ±tlarÄ± silindi."
+                    });
+                }
+                catch (Exception ex)
+                {
+                    tx.Rollback();
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Silme iÅŸlemi tamamlanamadÄ±: " + ex.Message
+                    });
+                }
+            }
         }
 
         public ActionResult AnketAdDelete(int id)
@@ -8971,7 +9567,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (ModelState.IsValid)
             {
-                //havuzda kaydı mevcutsa silinmez
+                //havuzda kaydÄ± mevcutsa silinmez
                 if (db.AnketGrup.Any(x => x.AnketId == id))
                 {
                     return RedirectToAction("Hata2", "Home", null);
@@ -8997,7 +9593,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return View();
             }
         }
-        public ActionResult AnketGrupIndex(int? id, string adi)
+        public ActionResult AnketGrupIndex(int? id, string adi, string returnUrl = null)
         {
             if (Session["id"] == null)
             {
@@ -9009,6 +9605,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             ViewBag.id = id;
             ViewBag.adi = adi;
+            ViewBag.ReturnUrl = CalismaAlaniDonusAdresi(returnUrl);
 
             if (!AnketCalismaAlanindaMi(id))
             {
@@ -9044,6 +9641,21 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.ToplamPuan = soruBilgileri.Sum(x => x.Puan);
 
             return View(gruplar);
+        }
+
+        private string CalismaAlaniDonusAdresi(string returnUrl)
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return returnUrl;
+            }
+
+            return Url.Action("Indexgosterge", "Home") ?? "/";
+        }
+
+        private string DogruCevapDonusAdresi(string returnUrl)
+        {
+            return CalismaAlaniDonusAdresi(returnUrl);
         }
 
         private DogruCevapEditorModel DogruCevapEditorModelOlustur(int anketId)
@@ -9107,7 +9719,7 @@ Yalnizca su JSON semasinda cevap ver:
             };
         }
 
-        public ActionResult DogruCevapEditor(int id)
+        public ActionResult DogruCevapEditor(int id, string returnUrl = null)
         {
             if (Session["id"] == null)
             {
@@ -9123,6 +9735,8 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 return RedirectToAction("AnketAdIndex", "Home");
             }
+
+            model.ReturnUrl = DogruCevapDonusAdresi(returnUrl);
 
             return View(model);
         }
@@ -9146,6 +9760,8 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("AnketAdIndex", "Home");
             }
 
+            model.ReturnUrl = DogruCevapDonusAdresi(form.ReturnUrl);
+
             if (form.DogruCevaplar == null)
             {
                 form.DogruCevaplar = new Dictionary<int, int>();
@@ -9168,14 +9784,14 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 if (!form.DogruCevaplar.TryGetValue(soru.SoruId, out var secilenCevapId))
                 {
-                    ModelState.AddModelError($"DogruCevaplar[{soru.SoruId}]", "Bu soru için doğru cevap seçin.");
+                    ModelState.AddModelError($"DogruCevaplar[{soru.SoruId}]", "Bu soru iÃ§in doÄŸru cevap seÃ§in.");
                     continue;
                 }
 
                 var secilenCevap = cevaplar.FirstOrDefault(x => x.CevapId == secilenCevapId);
                 if (secilenCevap == null || secilenCevap.CevapGrupId != soru.CevapGrupId)
                 {
-                    ModelState.AddModelError($"DogruCevaplar[{soru.SoruId}]", "Seçilen cevap bu soruya ait değil.");
+                    ModelState.AddModelError($"DogruCevaplar[{soru.SoruId}]", "SeÃ§ilen cevap bu soruya ait deÄŸil.");
                 }
             }
 
@@ -9190,7 +9806,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (ortakCevapGrubuCakismalari.Any())
             {
-                ModelState.AddModelError("", "Aynı cevap grubunu kullanan sorularda farklı doğru cevap seçilemez. Bu sorular için ayrı cevap grubu oluşturun.");
+                ModelState.AddModelError("", "AynÄ± cevap grubunu kullanan sorularda farklÄ± doÄŸru cevap seÃ§ilemez. Bu sorular iÃ§in ayrÄ± cevap grubu oluÅŸturun.");
             }
 
             if (!ModelState.IsValid)
@@ -9235,9 +9851,9 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
             db.SaveChanges();
-            TempData["DogruCevapMesaj"] = "Doğru cevaplar kaydedildi ve mevcut katılım puanları yeniden hesaplandı.";
+            TempData["DogruCevapMesaj"] = "DoÄŸru cevaplar kaydedildi ve mevcut katÄ±lÄ±m puanlarÄ± yeniden hesaplandÄ±.";
 
-            return RedirectToAction("DogruCevapEditor", new { id = form.AnketId });
+            return LocalRedirect(DogruCevapDonusAdresi(form.ReturnUrl));
         }
 
         public ActionResult AnketGrupCreate(int id, string adi)
@@ -9507,6 +10123,542 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.Gur = un;
         }
 
+        public class SoruBankasiCevapFormModel
+        {
+            public int? CevapId { get; set; }
+            public string Metin { get; set; }
+            public string Gorsel { get; set; }
+            public bool Dogru { get; set; }
+            public double? Puan { get; set; }
+            public bool Silinsin { get; set; }
+        }
+
+        public class SoruBankasiFormModel
+        {
+            public int? AnketId { get; set; }
+            public int? SoruId { get; set; }
+            public string SoruAdi { get; set; }
+            public string SoruGorsel { get; set; }
+            public int? SoruGrupId { get; set; }
+            public int? CevapGrupId { get; set; }
+            public string CevapGrupModu { get; set; } = "yeni";
+            public string YeniCevapGrupAdi { get; set; }
+            public int? SoruSira { get; set; }
+            public double? SoruPuan { get; set; }
+            public string PuanlamaModu { get; set; } = "sinav";
+            public bool CevaplariGuncelle { get; set; } = true;
+            public int? DogruCevapSatiri { get; set; }
+            public List<SoruBankasiCevapFormModel> Cevaplar { get; set; } = new List<SoruBankasiCevapFormModel>();
+        }
+
+        public class AnketSoruYonetimModel
+        {
+            public int AnketId { get; set; }
+            public string AnketAdi { get; set; }
+            public string ReturnUrl { get; set; }
+            public bool SinavMi { get; set; }
+            public int KatilimSayisi { get; set; }
+            public int SoruSayisi { get; set; }
+            public int BaslikSayisi { get; set; }
+            public double ToplamPuan { get; set; }
+            public List<AnketSoruYonetimGrupModel> Gruplar { get; set; } = new List<AnketSoruYonetimGrupModel>();
+        }
+
+        public class AnketSoruYonetimGrupModel
+        {
+            public int AnketGrupId { get; set; }
+            public int? SoruGrupId { get; set; }
+            public string SoruGrupAdi { get; set; }
+            public int SoruSayisi { get; set; }
+            public double Puan { get; set; }
+            public List<AnketSoruYonetimSoruModel> Sorular { get; set; } = new List<AnketSoruYonetimSoruModel>();
+        }
+
+        public class AnketSoruYonetimSoruModel
+        {
+            public int SoruId { get; set; }
+            public string SoruAdi { get; set; }
+            public string SoruGorsel { get; set; }
+            public string CevapGrupAdi { get; set; }
+            public int CevapSayisi { get; set; }
+            public int KatilimKaydi { get; set; }
+            public double Puan { get; set; }
+            public bool Cikarilabilir { get; set; }
+            public string CikarilamazMesaji { get; set; }
+        }
+
+        private static (string Metin, string Gorsel) SoruBankasiGorselliMetniCoz(string value)
+        {
+            var text = value ?? string.Empty;
+            var match = Regex.Match(
+                text,
+                @"\s*\[\[gorsel:(?<file>[^\]]+)\]\]\s*$",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+            if (!match.Success)
+            {
+                return (text.Trim(), string.Empty);
+            }
+
+            var cleanText = Regex.Replace(text, @"\s*\[\[gorsel:[^\]]+\]\]\s*$", "", RegexOptions.IgnoreCase).Trim();
+            return (cleanText, WizardGorselDosyaAdi(match.Groups["file"].Value));
+        }
+
+        private List<SoruBankasiCevapFormModel> SoruBankasiVarsayilanCevaplari()
+        {
+            return new List<SoruBankasiCevapFormModel>
+            {
+                new SoruBankasiCevapFormModel { Metin = "A seÃ§eneÄŸi", Dogru = true, Puan = 5 },
+                new SoruBankasiCevapFormModel { Metin = "B seÃ§eneÄŸi", Puan = 4 },
+                new SoruBankasiCevapFormModel { Metin = "C seÃ§eneÄŸi", Puan = 3 },
+                new SoruBankasiCevapFormModel { Metin = "D seÃ§eneÄŸi", Puan = 2 }
+            };
+        }
+
+        private List<SoruBankasiCevapFormModel> SoruBankasiCevaplariniGetir(int? cevapGrupId)
+        {
+            if (!cevapGrupId.HasValue)
+            {
+                return SoruBankasiVarsayilanCevaplari();
+            }
+
+            var cevaplar = CalismaAlaniBankaKayitlari<Cevap>("Cevap", "CevapId")
+                .Where(x => x.CevapGrupId == cevapGrupId.Value)
+                .OrderBy(x => x.CevapId)
+                .ToList();
+
+            if (!cevaplar.Any())
+            {
+                return SoruBankasiVarsayilanCevaplari();
+            }
+
+            return cevaplar.Select((cevap, index) =>
+            {
+                var gorselli = SoruBankasiGorselliMetniCoz(cevap.CevapAdi);
+                return new SoruBankasiCevapFormModel
+                {
+                    CevapId = cevap.CevapId,
+                    Metin = gorselli.Metin,
+                    Gorsel = gorselli.Gorsel,
+                    Dogru = cevap.Dogru == true,
+                    Puan = cevap.CevapPuan ?? (index == 0 ? 5 : 0)
+                };
+            }).ToList();
+        }
+
+        private SoruBankasiFormModel SoruBankasiFormuHazirla(Soru soru = null)
+        {
+            if (soru == null)
+            {
+                return new SoruBankasiFormModel
+                {
+                    SoruSira = (CalismaAlaniBankaKayitlari<Soru>("Soru", "SoruId")
+                        .Select(x => x.SoruSira ?? 0)
+                        .DefaultIfEmpty(0)
+                        .Max()) + 1,
+                    SoruPuan = 100,
+                    Cevaplar = SoruBankasiVarsayilanCevaplari(),
+                    DogruCevapSatiri = 0
+                };
+            }
+
+            var gorselli = SoruBankasiGorselliMetniCoz(soru.SoruAdi);
+            var cevaplar = SoruBankasiCevaplariniGetir(soru.CevapGrupId);
+            var dogruSatir = cevaplar.FindIndex(x => x.Dogru);
+
+            return new SoruBankasiFormModel
+            {
+                SoruId = soru.SoruId,
+                SoruAdi = gorselli.Metin,
+                SoruGorsel = gorselli.Gorsel,
+                SoruGrupId = soru.SoruGrupId,
+                CevapGrupId = soru.CevapGrupId,
+                CevapGrupModu = "hazir",
+                YeniCevapGrupAdi = soru.CevapGrup?.CevapGrupAdi,
+                SoruSira = soru.SoruSira,
+                SoruPuan = soru.SoruPuan,
+                PuanlamaModu = cevaplar.Any(x => x.Dogru) ? "sinav" : "anket",
+                CevaplariGuncelle = true,
+                DogruCevapSatiri = dogruSatir >= 0 ? dogruSatir : (int?)null,
+                Cevaplar = cevaplar
+            };
+        }
+
+        private List<SoruBankasiCevapFormModel> SoruBankasiAktifCevaplar(SoruBankasiFormModel form)
+        {
+            return (form.Cevaplar ?? new List<SoruBankasiCevapFormModel>())
+                .Select((cevap, index) =>
+                {
+                    cevap.Metin = (cevap.Metin ?? string.Empty).Trim();
+                    cevap.Gorsel = WizardGorselDosyaAdi(cevap.Gorsel);
+                    cevap.Dogru = string.Equals(form.PuanlamaModu, "sinav", StringComparison.OrdinalIgnoreCase)
+                        && form.DogruCevapSatiri == index
+                        && !cevap.Silinsin;
+                    cevap.Puan = ClampSurveyScore(cevap.Puan);
+                    return cevap;
+                })
+                .Where(x => !x.Silinsin && (!string.IsNullOrWhiteSpace(x.Metin) || !string.IsNullOrWhiteSpace(x.Gorsel)))
+                .Take(12)
+                .ToList();
+        }
+
+        private bool SoruBankasiFormunuDogrula(SoruBankasiFormModel form, bool yeniKayit, out bool yeniCevapGrubu, out List<SoruBankasiCevapFormModel> aktifCevaplar)
+        {
+            form.SoruGorsel = WizardGorselDosyaAdi(form.SoruGorsel);
+            yeniCevapGrubu = !string.Equals(form.CevapGrupModu, "hazir", StringComparison.OrdinalIgnoreCase);
+            aktifCevaplar = SoruBankasiAktifCevaplar(form);
+
+            if (string.IsNullOrWhiteSpace(form.SoruAdi) && string.IsNullOrWhiteSpace(form.SoruGorsel))
+            {
+                ModelState.AddModelError(nameof(form.SoruAdi), "Soru metni veya gÃ¶rseli zorunlu.");
+            }
+
+            if (!form.SoruGrupId.HasValue)
+            {
+                ModelState.AddModelError(nameof(form.SoruGrupId), "BÃ¶lÃ¼m / kategori seÃ§in.");
+            }
+
+            if (!CalismaAlaniBankaSecimiGecerliMi("SoruGrup", "SoruGrupId", form.SoruGrupId))
+            {
+                ModelState.AddModelError(nameof(form.SoruGrupId), "SeÃ§ili kategori bu Ã§alÄ±ÅŸma alanÄ±na ait deÄŸil.");
+            }
+
+            if (yeniCevapGrubu)
+            {
+                if (aktifCevaplar.Count < 2)
+                {
+                    ModelState.AddModelError("", "Yeni seÃ§enek grubu iÃ§in en az iki cevap seÃ§eneÄŸi yazÄ±n.");
+                }
+            }
+            else if (!CalismaAlaniBankaSecimiGecerliMi("CevapGrup", "CevapGrupId", form.CevapGrupId) || !form.CevapGrupId.HasValue)
+            {
+                ModelState.AddModelError(nameof(form.CevapGrupId), "GeÃ§erli bir seÃ§enek grubu seÃ§in.");
+            }
+            else if (form.CevaplariGuncelle && aktifCevaplar.Count < 2)
+            {
+                ModelState.AddModelError("", "SeÃ§enekleri gÃ¼ncellemek iÃ§in en az iki cevap seÃ§eneÄŸi yazÄ±n.");
+            }
+
+            var cevaplariKontrolEt = yeniCevapGrubu || form.CevaplariGuncelle;
+            var sinavModu = string.Equals(form.PuanlamaModu, "sinav", StringComparison.OrdinalIgnoreCase);
+            if (cevaplariKontrolEt && sinavModu && !aktifCevaplar.Any(x => x.Dogru))
+            {
+                ModelState.AddModelError("", "SÄ±nav sorusu iÃ§in doÄŸru cevabÄ± iÅŸaretleyin.");
+            }
+
+            if (form.SoruPuan.GetValueOrDefault() < 0)
+            {
+                ModelState.AddModelError(nameof(form.SoruPuan), "Puan negatif olamaz.");
+            }
+
+            if (!yeniKayit && (!form.SoruId.HasValue || !CalismaAlaniBankaKaydiVarMi("Soru", "SoruId", form.SoruId)))
+            {
+                ModelState.AddModelError("", "Bu soru aktif Ã§alÄ±ÅŸma alanÄ±nda bulunamadÄ±.");
+            }
+
+            return ModelState.IsValid;
+        }
+
+        private CevapGrup SoruBankasiCevapGrubuOlustur(SoruBankasiFormModel form)
+        {
+            var grupAdi = TrimWizardText(
+                form.YeniCevapGrupAdi,
+                TrimWizardText(form.SoruAdi, "Yeni Soru", 220) + " CevaplarÄ±",
+                250);
+
+            var cevapGrup = new CevapGrup { CevapGrupAdi = grupAdi };
+            db.CevapGrup.Add(cevapGrup);
+            db.SaveChanges();
+            CalismaAlaniBankaKaydinaBagla("CevapGrup", "CevapGrupId", cevapGrup.CevapGrupId);
+            return cevapGrup;
+        }
+
+        private void AnketSoruGrubunuBagla(int anketId, int? soruGrupId)
+        {
+            if (!soruGrupId.HasValue || !AnketCalismaAlanindaMi(anketId))
+            {
+                return;
+            }
+
+            if (!CalismaAlaniBankaSecimiGecerliMi("SoruGrup", "SoruGrupId", soruGrupId))
+            {
+                return;
+            }
+
+            if (db.AnketGrup.Any(x => x.AnketId == anketId && x.SoruGrupId == soruGrupId))
+            {
+                return;
+            }
+
+            db.AnketGrup.Add(new AnketGrup
+            {
+                AnketId = anketId,
+                SoruGrupId = soruGrupId
+            });
+            db.SaveChanges();
+        }
+
+        private AnketSoruYonetimModel AnketSoruYonetimModeliOlustur(int anketId)
+        {
+            var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId);
+            if (anket == null)
+            {
+                return null;
+            }
+
+            var gruplar = db.AnketGrup
+                .Include("SoruGrup")
+                .Where(x => x.AnketId == anketId)
+                .OrderBy(x => x.SoruGrup.SoruGrupSira)
+                .ThenBy(x => x.SoruGrup.SoruGrupAdi)
+                .ToList();
+
+            var grupIds = gruplar
+                .Where(x => x.SoruGrupId.HasValue)
+                .Select(x => x.SoruGrupId.Value)
+                .ToList();
+
+            var sorular = db.Soru
+                .Include("CevapGrup")
+                .Where(x => x.SoruGrupId.HasValue && grupIds.Contains(x.SoruGrupId.Value))
+                .OrderBy(x => x.SoruGrupId)
+                .ThenBy(x => x.SoruSira)
+                .ThenBy(x => x.SoruId)
+                .ToList();
+
+            var cevapGrupIds = sorular
+                .Where(x => x.CevapGrupId.HasValue)
+                .Select(x => x.CevapGrupId.Value)
+                .Distinct()
+                .ToList();
+
+            var cevapSayilari = db.Cevap
+                .Where(x => x.CevapGrupId.HasValue && cevapGrupIds.Contains(x.CevapGrupId.Value))
+                .GroupBy(x => x.CevapGrupId.Value)
+                .ToDictionary(x => x.Key, x => x.Count());
+
+            var soruIds = sorular.Select(x => x.SoruId).ToList();
+            var katilimKayitlari = db.Havuz
+                .Where(x => x.AnketId == anketId && x.SoruID.HasValue && soruIds.Contains(x.SoruID.Value))
+                .GroupBy(x => x.SoruID.Value)
+                .ToDictionary(x => x.Key, x => x.Count());
+
+            var tumKatilimKayitlari = db.Havuz
+                .Where(x => x.SoruID.HasValue && soruIds.Contains(x.SoruID.Value))
+                .GroupBy(x => x.SoruID.Value)
+                .ToDictionary(x => x.Key, x => x.Count());
+
+            var baskaCalismadaGrupVarMi = db.AnketGrup
+                .Where(x => x.AnketId != anketId && x.SoruGrupId.HasValue && grupIds.Contains(x.SoruGrupId.Value))
+                .Select(x => x.SoruGrupId.Value)
+                .Distinct()
+                .ToList();
+
+            var katilimSayisi = db.Havuz
+                .Where(x => x.AnketId == anketId)
+                .Select(x => new { x.UserId, x.Isimsiz, x.HavuzId })
+                .ToList()
+                .Select(x => x.UserId.HasValue ? "u:" + x.UserId.Value : "k:" + (x.Isimsiz ?? x.HavuzId))
+                .Distinct()
+                .Count();
+
+            var model = new AnketSoruYonetimModel
+            {
+                AnketId = anket.AnketId,
+                AnketAdi = anket.AnketAdi,
+                SinavMi = SinavTurundeMi(anket),
+                KatilimSayisi = katilimSayisi
+            };
+
+            foreach (var grup in gruplar)
+            {
+                var grupSorulari = sorular
+                    .Where(x => x.SoruGrupId == grup.SoruGrupId)
+                    .ToList();
+
+                var grupModel = new AnketSoruYonetimGrupModel
+                {
+                    AnketGrupId = grup.AnketGupId,
+                    SoruGrupId = grup.SoruGrupId,
+                    SoruGrupAdi = grup.SoruGrup?.SoruGrupAdi ?? "TanÄ±msÄ±z baÅŸlÄ±k",
+                    SoruSayisi = grupSorulari.Count,
+                    Puan = grupSorulari.Sum(x => x.SoruPuan ?? 0)
+                };
+
+                foreach (var soru in grupSorulari)
+                {
+                    var gorselli = SoruBankasiGorselliMetniCoz(soru.SoruAdi);
+                    var katilimKaydi = katilimKayitlari.ContainsKey(soru.SoruId) ? katilimKayitlari[soru.SoruId] : 0;
+                    var tumKatilimKaydi = tumKatilimKayitlari.ContainsKey(soru.SoruId) ? tumKatilimKayitlari[soru.SoruId] : 0;
+                    var grupBaskaCalismada = soru.SoruGrupId.HasValue && baskaCalismadaGrupVarMi.Contains(soru.SoruGrupId.Value);
+                    var cikarilabilir = tumKatilimKaydi == 0 && !grupBaskaCalismada;
+                    var cikarilamazMesaji = katilimKaydi > 0
+                        ? "Kat\u0131l\u0131m kayd\u0131 oldu\u011fu i\u00e7in \u00e7\u0131kar\u0131lamaz."
+                        : tumKatilimKaydi > 0
+                            ? "Soru ge\u00e7mi\u015f kat\u0131l\u0131mda kullan\u0131lm\u0131\u015f."
+                        : grupBaskaCalismada
+                            ? "Bu ba\u015fl\u0131k ba\u015fka \u00e7al\u0131\u015fmada da kullan\u0131l\u0131yor."
+                            : "";
+
+                    grupModel.Sorular.Add(new AnketSoruYonetimSoruModel
+                    {
+                        SoruId = soru.SoruId,
+                        SoruAdi = gorselli.Metin,
+                        SoruGorsel = gorselli.Gorsel,
+                        CevapGrupAdi = soru.CevapGrup?.CevapGrupAdi ?? "TanÄ±msÄ±z seÃ§enek grubu",
+                        CevapSayisi = soru.CevapGrupId.HasValue && cevapSayilari.ContainsKey(soru.CevapGrupId.Value)
+                            ? cevapSayilari[soru.CevapGrupId.Value]
+                            : 0,
+                        KatilimKaydi = katilimKaydi,
+                        Puan = soru.SoruPuan ?? 0,
+                        Cikarilabilir = cikarilabilir,
+                        CikarilamazMesaji = cikarilamazMesaji
+                    });
+                }
+
+                model.Gruplar.Add(grupModel);
+            }
+
+            model.SoruSayisi = model.Gruplar.Sum(x => x.SoruSayisi);
+            model.BaslikSayisi = model.Gruplar.Count;
+            model.ToplamPuan = model.Gruplar.Sum(x => x.Puan);
+            return model;
+        }
+
+        public ActionResult AnketSoruYonetim(int id, string returnUrl = null)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return RedirectToAction("Indexgosterge");
+            }
+
+            var model = AnketSoruYonetimModeliOlustur(id);
+            if (model == null)
+            {
+                return RedirectToAction("Indexgosterge");
+            }
+
+            model.ReturnUrl = CalismaAlaniDonusAdresi(returnUrl);
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult AnketSoruCikar(int id, int soruId)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            if (!AnketCalismaAlanindaMi(id))
+            {
+                return RedirectToAction("Indexgosterge");
+            }
+
+            var soru = db.Soru.FirstOrDefault(x => x.SoruId == soruId);
+            if (soru == null || !soru.SoruGrupId.HasValue || !db.AnketGrup.Any(x => x.AnketId == id && x.SoruGrupId == soru.SoruGrupId))
+            {
+                TempData["AnketSoruYonetimMesaj"] = "Soru bu \u00e7al\u0131\u015fmada bulunamad\u0131.";
+                return RedirectToAction("AnketSoruYonetim", new { id });
+            }
+
+            if (db.Havuz.Any(x => x.SoruID == soruId))
+            {
+                TempData["AnketSoruYonetimMesaj"] = "Bu soruda kat\u0131l\u0131m kayd\u0131 var. Rapor verisi bozulmas\u0131n diye \u00e7\u0131kar\u0131lamaz.";
+                return RedirectToAction("AnketSoruYonetim", new { id });
+            }
+
+            if (db.AnketGrup.Any(x => x.AnketId != id && x.SoruGrupId == soru.SoruGrupId))
+            {
+                TempData["AnketSoruYonetimMesaj"] = "Bu soru ba\u015fl\u0131\u011f\u0131 ba\u015fka \u00e7al\u0131\u015fmada da kullan\u0131l\u0131yor. Ortak bankay\u0131 bozmamak i\u00e7in buradan \u00e7\u0131kar\u0131lamaz.";
+                return RedirectToAction("AnketSoruYonetim", new { id });
+            }
+
+            var soruGrupId = soru.SoruGrupId;
+            db.Soru.Remove(soru);
+            db.SaveChanges();
+
+            if (!db.Soru.Any(x => x.SoruGrupId == soruGrupId))
+            {
+                var bag = db.AnketGrup.FirstOrDefault(x => x.AnketId == id && x.SoruGrupId == soruGrupId);
+                if (bag != null)
+                {
+                    db.AnketGrup.Remove(bag);
+                    db.SaveChanges();
+                }
+            }
+
+            TempData["AnketSoruYonetimMesaj"] = "Soru Ã§alÄ±ÅŸmadan Ã§Ä±karÄ±ldÄ±.";
+            return RedirectToAction("AnketSoruYonetim", new { id });
+        }
+
+        private void SoruBankasiCevaplariniKaydet(int cevapGrupId, SoruBankasiFormModel form, List<SoruBankasiCevapFormModel> aktifCevaplar, bool mevcutGrubuGuncelle)
+        {
+            var sinavModu = string.Equals(form.PuanlamaModu, "sinav", StringComparison.OrdinalIgnoreCase);
+            var soruPuani = form.SoruPuan.GetValueOrDefault(100);
+            var mevcutCevaplar = mevcutGrubuGuncelle
+                ? db.Cevap.Where(x => x.CevapGrupId == cevapGrupId).ToList()
+                : new List<Cevap>();
+            var kaydedilenCevaplar = new List<Cevap>();
+
+            if (mevcutGrubuGuncelle)
+            {
+                var silinecekler = (form.Cevaplar ?? new List<SoruBankasiCevapFormModel>())
+                    .Where(x => x.Silinsin && x.CevapId.HasValue)
+                    .Select(x => x.CevapId.Value)
+                    .ToList();
+
+                foreach (var cevapId in silinecekler)
+                {
+                    var cevap = mevcutCevaplar.FirstOrDefault(x => x.CevapId == cevapId);
+                    if (cevap != null && cevap.CevapGrupId == cevapGrupId)
+                    {
+                        if (db.Havuz.Any(x => x.CevapId == cevapId))
+                        {
+                            cevap.CevapGrupId = null;
+                        }
+                        else
+                        {
+                            db.Cevap.Remove(cevap);
+                        }
+                    }
+                }
+            }
+
+            foreach (var cevapForm in aktifCevaplar)
+            {
+                var cevap = cevapForm.CevapId.HasValue
+                    ? mevcutCevaplar.FirstOrDefault(x => x.CevapId == cevapForm.CevapId.Value)
+                    : null;
+
+                if (cevap == null)
+                {
+                    cevap = new Cevap { CevapGrupId = cevapGrupId };
+                    db.Cevap.Add(cevap);
+                }
+
+                cevap.CevapAdi = WizardMetniGorselEtiketiyle(cevapForm.Metin, cevapForm.Gorsel, "Cevap", 250);
+                cevap.CevapGrupId = cevapGrupId;
+                cevap.Dogru = sinavModu ? cevapForm.Dogru : (bool?)null;
+                cevap.CevapPuan = sinavModu ? (cevapForm.Dogru ? soruPuani : 0) : ClampSurveyScore(cevapForm.Puan);
+                kaydedilenCevaplar.Add(cevap);
+            }
+
+            db.SaveChanges();
+
+            foreach (var cevap in kaydedilenCevaplar)
+            {
+                CalismaAlaniBankaKaydinaBagla("Cevap", "CevapId", cevap.CevapId);
+            }
+        }
+
         public ActionResult SoruIndex()
         {
             if (Session["id"] == null)
@@ -9519,7 +10671,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             return View(CalismaAlaniBankaKayitlari<Soru>("Soru", "SoruAdi"));
         }
-        public ActionResult SoruCreate()
+        public ActionResult SoruCreate(int? anketId)
         {
             if (Session["id"] == null)
             {
@@ -9531,11 +10683,22 @@ Yalnizca su JSON semasinda cevap ver:
             }
             SoruFormListeleriniHazirla();
 
-            return View();
+            var form = SoruBankasiFormuHazirla();
+            if (anketId.HasValue && AnketCalismaAlanindaMi(anketId))
+            {
+                form.AnketId = anketId;
+                form.SoruGrupId = db.AnketGrup
+                    .Where(x => x.AnketId == anketId.Value && x.SoruGrupId.HasValue)
+                    .OrderBy(x => x.SoruGrup.SoruGrupSira)
+                    .Select(x => x.SoruGrupId)
+                    .FirstOrDefault();
+            }
+
+            return View(form);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
-        public ActionResult SoruCreate(Soru dgskn)
+        public ActionResult SoruCreate(SoruBankasiFormModel form)
         {
             if (Session["id"] == null)
             {
@@ -9548,27 +10711,56 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                if (!CalismaAlaniBankaSecimiGecerliMi("CevapGrup", "CevapGrupId", dgskn.CevapGrupId)
-                    || !CalismaAlaniBankaSecimiGecerliMi("SoruGrup", "SoruGrupId", dgskn.SoruGrupId))
+                form ??= new SoruBankasiFormModel();
+                if (!SoruBankasiFormunuDogrula(form, true, out var yeniCevapGrubu, out var aktifCevaplar))
                 {
-                    ModelState.AddModelError("", "Secili grup bu calisma alanina ait degil.");
                     SoruFormListeleriniHazirla();
-                    return View(dgskn);
+                    return View(form);
                 }
 
-                db.Soru.Add(dgskn);
+                using var tx = db.Database.BeginTransaction();
+                var cevapGrupId = form.CevapGrupId.GetValueOrDefault();
+                if (yeniCevapGrubu)
+                {
+                    var cevapGrup = SoruBankasiCevapGrubuOlustur(form);
+                    cevapGrupId = cevapGrup.CevapGrupId;
+                }
+
+                if (yeniCevapGrubu || form.CevaplariGuncelle)
+                {
+                    SoruBankasiCevaplariniKaydet(cevapGrupId, form, aktifCevaplar, !yeniCevapGrubu);
+                }
+
+                var soru = new Soru
+                {
+                    SoruAdi = WizardMetniGorselEtiketiyle(form.SoruAdi, form.SoruGorsel, "Soru", 250),
+                    SoruGrupId = form.SoruGrupId,
+                    CevapGrupId = cevapGrupId,
+                    SoruSira = form.SoruSira,
+                    SoruPuan = form.SoruPuan
+                };
+
+                db.Soru.Add(soru);
                 db.SaveChanges();
-                CalismaAlaniBankaKaydinaBagla("Soru", "SoruId", dgskn.SoruId);
-                return RedirectToAction("SoruIndex");
+                CalismaAlaniBankaKaydinaBagla("Soru", "SoruId", soru.SoruId);
+                if (form.AnketId.HasValue)
+                {
+                    AnketSoruGrubunuBagla(form.AnketId.Value, soru.SoruGrupId);
+                }
+                tx.Commit();
+                return form.AnketId.HasValue
+                    ? RedirectToAction("AnketSoruYonetim", new { id = form.AnketId.Value })
+                    : RedirectToAction("SoruIndex");
 
             }
-            catch
+            catch (Exception ex)
             {
+                ModelState.AddModelError("", ex.Message);
                 SoruFormListeleriniHazirla();
-                return View(dgskn);
+                return View(form);
             }
         }
-        public ActionResult SoruEdit(int id)
+        public ActionResult SoruEdit(int id, int? anketId)
         {
             if (Session["id"] == null)
             {
@@ -9586,11 +10778,17 @@ Yalnizca su JSON semasinda cevap ver:
                 return RedirectToAction("SoruIndex");
             }
 
-            return View(kayit);
+            var form = SoruBankasiFormuHazirla(kayit);
+            if (anketId.HasValue && AnketCalismaAlanindaMi(anketId))
+            {
+                form.AnketId = anketId.Value;
+            }
+
+            return View(form);
         }
         [ValidateAntiForgeryToken()]
         [HttpPost]
-        public ActionResult SoruEdit(Soru dgskn)
+        public ActionResult SoruEdit(SoruBankasiFormModel form)
         {
             if (Session["id"] == null)
             {
@@ -9603,27 +10801,56 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
-                if (!CalismaAlaniBankaKaydiVarMi("Soru", "SoruId", dgskn.SoruId)
-                    || !CalismaAlaniBankaSecimiGecerliMi("CevapGrup", "CevapGrupId", dgskn.CevapGrupId)
-                    || !CalismaAlaniBankaSecimiGecerliMi("SoruGrup", "SoruGrupId", dgskn.SoruGrupId))
+                form ??= new SoruBankasiFormModel();
+                if (!SoruBankasiFormunuDogrula(form, false, out var yeniCevapGrubu, out var aktifCevaplar))
                 {
-                    ModelState.AddModelError("", "Bu soru veya secili grup aktif calisma alanina ait degil.");
                     SoruFormListeleriniHazirla();
-                    return View(dgskn);
+                    return View(form);
                 }
 
+                using var tx = db.Database.BeginTransaction();
+                var kayit = CalismaAlaniBankaKaydiGetir<Soru>("Soru", "SoruId", form.SoruId.Value);
+                if (kayit == null)
                 {
-                    db.Entry(dgskn).State = EntityState.Modified;
-                    db.SaveChanges();
-                    CalismaAlaniBankaKaydinaBagla("Soru", "SoruId", dgskn.SoruId);
+                    tx.Rollback();
+                    return RedirectToAction("SoruIndex");
                 }
-                return RedirectToAction("SoruIndex");
+
+                var cevapGrupId = form.CevapGrupId.GetValueOrDefault();
+                if (yeniCevapGrubu)
+                {
+                    var cevapGrup = SoruBankasiCevapGrubuOlustur(form);
+                    cevapGrupId = cevapGrup.CevapGrupId;
+                }
+
+                if (yeniCevapGrubu || form.CevaplariGuncelle)
+                {
+                    SoruBankasiCevaplariniKaydet(cevapGrupId, form, aktifCevaplar, !yeniCevapGrubu);
+                }
+
+                kayit.SoruAdi = WizardMetniGorselEtiketiyle(form.SoruAdi, form.SoruGorsel, "Soru", 250);
+                kayit.SoruGrupId = form.SoruGrupId;
+                kayit.CevapGrupId = cevapGrupId;
+                kayit.SoruSira = form.SoruSira;
+                kayit.SoruPuan = form.SoruPuan;
+                db.Entry(kayit).State = EntityState.Modified;
+                db.SaveChanges();
+                CalismaAlaniBankaKaydinaBagla("Soru", "SoruId", kayit.SoruId);
+                if (form.AnketId.HasValue)
+                {
+                    AnketSoruGrubunuBagla(form.AnketId.Value, kayit.SoruGrupId);
+                }
+                tx.Commit();
+                return form.AnketId.HasValue
+                    ? RedirectToAction("AnketSoruYonetim", new { id = form.AnketId.Value })
+                    : RedirectToAction("SoruIndex");
 
             }
-            catch
+            catch (Exception ex)
             {
+                ModelState.AddModelError("", ex.Message);
                 SoruFormListeleriniHazirla();
-                return View(dgskn);
+                return View(form);
             }
         }
         public ActionResult SoruDelete(int id)
@@ -9663,7 +10890,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (ModelState.IsValid)
             {
-                //havuzda kaydı mevcutsa silinmez
+                //havuzda kaydÄ± mevcutsa silinmez
                 if (!CalismaAlaniBankaKaydiVarMi("Soru", "SoruId", id))
                 {
                     return RedirectToAction("SoruIndex");
@@ -9833,7 +11060,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (ModelState.IsValid)
             {
-                //havuzda kaydı mevcutsa silinmez
+                //havuzda kaydÄ± mevcutsa silinmez
                 if (!CalismaAlaniBankaKaydiVarMi("SoruGrup", "SoruGrupId", id))
                 {
                     return RedirectToAction("SoruGrupIndex");
@@ -10020,7 +11247,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (ModelState.IsValid)
             {
-                //havuzda kaydı mevcutsa silinmez
+                //havuzda kaydÄ± mevcutsa silinmez
                 if (!CalismaAlaniBankaKaydiVarMi("Cevap", "CevapId", id))
                 {
                     return RedirectToAction("CevapIndex");
@@ -10089,6 +11316,21 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
+                dgskn.CevapGrupAdi = (dgskn.CevapGrupAdi ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(dgskn.CevapGrupAdi))
+                {
+                    ModelState.AddModelError(nameof(dgskn.CevapGrupAdi), "SeÃ§enek grubu adÄ± zorunlu.");
+                }
+                else if (dgskn.CevapGrupAdi.Length > 250)
+                {
+                    ModelState.AddModelError(nameof(dgskn.CevapGrupAdi), "SeÃ§enek grubu adÄ± en fazla 250 karakter olabilir.");
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return View(dgskn);
+                }
+
                 db.CevapGrup.Add(dgskn);
                 db.SaveChanges();
                 CalismaAlaniBankaKaydinaBagla("CevapGrup", "CevapGrupId", dgskn.CevapGrupId);
@@ -10097,7 +11339,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             catch
             {
-                return View();
+                return View(dgskn);
             }
         }
         public ActionResult CevapGrupEdit(int id)
@@ -10134,6 +11376,21 @@ Yalnizca su JSON semasinda cevap ver:
 
             try
             {
+                dgskn.CevapGrupAdi = (dgskn.CevapGrupAdi ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(dgskn.CevapGrupAdi))
+                {
+                    ModelState.AddModelError(nameof(dgskn.CevapGrupAdi), "SeÃ§enek grubu adÄ± zorunlu.");
+                }
+                else if (dgskn.CevapGrupAdi.Length > 250)
+                {
+                    ModelState.AddModelError(nameof(dgskn.CevapGrupAdi), "SeÃ§enek grubu adÄ± en fazla 250 karakter olabilir.");
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return View(dgskn);
+                }
+
                 if (!CalismaAlaniBankaKaydiVarMi("CevapGrup", "CevapGrupId", dgskn.CevapGrupId))
                 {
                     ModelState.AddModelError("", "Bu cevap grubu aktif calisma alanina ait degil.");
@@ -10150,7 +11407,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             catch
             {
-                return View();
+                return View(dgskn);
             }
         }
         public ActionResult CevapGrupDelete(int id)
@@ -10190,7 +11447,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (ModelState.IsValid)
             {
-                //havuzda kaydı mevcutsa silinmez
+                //havuzda kaydÄ± mevcutsa silinmez
                 if (!CalismaAlaniBankaKaydiVarMi("CevapGrup", "CevapGrupId", id))
                 {
                     return RedirectToAction("CevapGrupIndex");
@@ -10232,21 +11489,21 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.kod = kod;
             ViewBag.id = Session["id"];
 
-            // Kullanıcıyı çekelim
+            // KullanÄ±cÄ±yÄ± Ã§ekelim
             var user = db.User.FirstOrDefault(u => u.UserId == id);
-            var adi = user?.UserAdi ?? "Tanımsız Kullanıcı";
+            var adi = user?.UserAdi ?? "TanÄ±msÄ±z KullanÄ±cÄ±";
 
             if (user == null && kod == null)
                 return RedirectToAction("Giris", "Home");
 
-            // Kullanıcının Havuzdaki anketleri
+            // KullanÄ±cÄ±nÄ±n Havuzdaki anketleri
             var userAnketIds = db.Havuz
                     .Where(h => h.UserId == id)
                     .Select(h => h.AnketId)
                     .Distinct()
                     .ToList();
 
-            // Ortak query: hem Havuz eşleşmesi hem de Anket filtreleri
+            // Ortak query: hem Havuz eÅŸleÅŸmesi hem de Anket filtreleri
             if (kod != null)
             {
                 ViewBag.sertifika = null;
@@ -10294,7 +11551,7 @@ Yalnizca su JSON semasinda cevap ver:
             var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
             if (anket == null || anket.Pasif == true)
             {
-                TempData["Mesaj"] = "Bu çalışma yayında değil.";
+                TempData["Mesaj"] = "Bu Ã§alÄ±ÅŸma yayÄ±nda deÄŸil.";
                 return RedirectToAction("Giris", "Home");
             }
 
@@ -10319,9 +11576,15 @@ Yalnizca su JSON semasinda cevap ver:
 
                 publicUserId = sessionUserId.Value;
             }
-            else if (katilimYontemi == KatilimYontemiBilgiFormu && !sessionUserId.HasValue)
+            else if (katilimYontemi == KatilimYontemiBilgiFormu)
             {
-                return RedirectToAction("KatilimciDogrula", "Home", new { token });
+                var bilgiFormuToken = Convert.ToString(Session[BilgiFormuKatilimTokenSessionKey]);
+                if (!sessionUserId.HasValue || !string.Equals(bilgiFormuToken, token, StringComparison.Ordinal))
+                {
+                    return RedirectToAction("KatilimciDogrula", "Home", new { token });
+                }
+
+                publicUserId = sessionUserId.Value;
             }
             else if (sessionUserId.HasValue && KayitliKatilimciCalismayaUygunMu(anket, sessionUserId.Value, out _))
             {
@@ -10501,6 +11764,90 @@ Yalnizca su JSON semasinda cevap ver:
             return (value ?? string.Empty).Trim();
         }
 
+        private IQueryable<User> KayitliKatilimciSorgusu()
+        {
+            return db.User.Where(x =>
+                x.Pasif != true
+                && (x.UserAdres == null || !x.UserAdres.StartsWith(BilgiFormuKullaniciAdresOnEki)));
+        }
+
+        private int? AnketCalismaAlaniIdGetir(int anketId)
+        {
+            try
+            {
+                var calismaAlaniId = db.Database.SqlQuery<int?>(
+                    "SELECT TOP 1 CalismaAlaniId FROM dbo.Anket WHERE AnketId = @p0",
+                    anketId).FirstOrDefault();
+
+                return calismaAlaniId.HasValue && calismaAlaniId.Value > 0 ? calismaAlaniId : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private User CalismaAlaniKatilimcisiGetir(int? calismaAlaniId, string tcKimlikNo, string eposta)
+        {
+            if (!calismaAlaniId.HasValue)
+            {
+                return null;
+            }
+
+            var bilgiFormuIsareti = BilgiFormuKullaniciAdresOnEki + "%";
+
+            if (!string.IsNullOrWhiteSpace(tcKimlikNo))
+            {
+                return db.User.SqlQuery(
+                    @"SELECT TOP 1 u.*
+                      FROM dbo.[User] u
+                      WHERE u.UserTc = @p0
+                        AND u.CalismaAlaniId = @p1
+                        AND ISNULL(u.Pasif, 0) = 0
+                        AND (u.UserAdres IS NULL OR u.UserAdres NOT LIKE @p2)
+                      ORDER BY u.UserId",
+                    tcKimlikNo,
+                    calismaAlaniId.Value,
+                    bilgiFormuIsareti).FirstOrDefault();
+            }
+
+            if (!string.IsNullOrWhiteSpace(eposta))
+            {
+                return db.User.SqlQuery(
+                    @"SELECT TOP 1 u.*
+                      FROM dbo.[User] u
+                      WHERE u.UserMail = @p0
+                        AND u.CalismaAlaniId = @p1
+                        AND ISNULL(u.Pasif, 0) = 0
+                        AND (u.UserAdres IS NULL OR u.UserAdres NOT LIKE @p2)
+                      ORDER BY u.UserId",
+                    eposta,
+                    calismaAlaniId.Value,
+                    bilgiFormuIsareti).FirstOrDefault();
+            }
+
+            return null;
+        }
+
+        private User CalismaAlaniKatilimcisiGetir(int? calismaAlaniId, int userId)
+        {
+            if (!calismaAlaniId.HasValue || userId <= 0)
+            {
+                return null;
+            }
+
+            return db.User.SqlQuery(
+                @"SELECT TOP 1 u.*
+                  FROM dbo.[User] u
+                  WHERE u.UserId = @p0
+                    AND u.CalismaAlaniId = @p1
+                    AND ISNULL(u.Pasif, 0) = 0
+                    AND (u.UserAdres IS NULL OR u.UserAdres NOT LIKE @p2)",
+                userId,
+                calismaAlaniId.Value,
+                BilgiFormuKullaniciAdresOnEki + "%").FirstOrDefault();
+        }
+
         private void KatilimciOturumuAc(User user)
         {
             if (user == null)
@@ -10509,7 +11856,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
             Session.Clear();
-            FormsAuthentication.SetAuthCookie(user.UserAdi ?? user.UserTc ?? user.UserMail ?? ("Katılımcı " + user.UserId), false);
+            FormsAuthentication.SetAuthCookie(user.UserAdi ?? user.UserTc ?? user.UserMail ?? ("KatÄ±lÄ±mcÄ± " + user.UserId), false);
             Session["id"] = user.UserId;
             Session["adi"] = user.UserAdi;
             Session["tc"] = user.UserTc;
@@ -10535,14 +11882,14 @@ Yalnizca su JSON semasinda cevap ver:
             var anketId = AnketIdFromKatilimToken(token);
             if (!anketId.HasValue)
             {
-                TempData["Mesaj"] = "Katılım bağlantısı geçersiz ya da yenilenmiş.";
+                TempData["Mesaj"] = "KatÄ±lÄ±m baÄŸlantÄ±sÄ± geÃ§ersiz ya da yenilenmiÅŸ.";
                 return RedirectToAction("Giris", "Home");
             }
 
             var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
             if (anket == null || anket.Pasif == true)
             {
-                TempData["Mesaj"] = "Bu çalışma yayında değil.";
+                TempData["Mesaj"] = "Bu Ã§alÄ±ÅŸma yayÄ±nda deÄŸil.";
                 return RedirectToAction("Giris", "Home");
             }
 
@@ -10564,14 +11911,14 @@ Yalnizca su JSON semasinda cevap ver:
             var anketId = AnketIdFromKatilimToken(form.Token);
             if (!anketId.HasValue)
             {
-                TempData["Mesaj"] = "Katılım bağlantısı geçersiz ya da yenilenmiş.";
+                TempData["Mesaj"] = "KatÄ±lÄ±m baÄŸlantÄ±sÄ± geÃ§ersiz ya da yenilenmiÅŸ.";
                 return RedirectToAction("Giris", "Home");
             }
 
             var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
             if (anket == null || anket.Pasif == true)
             {
-                TempData["Mesaj"] = "Bu çalışma yayında değil.";
+                TempData["Mesaj"] = "Bu Ã§alÄ±ÅŸma yayÄ±nda deÄŸil.";
                 return RedirectToAction("Giris", "Home");
             }
 
@@ -10590,34 +11937,39 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (string.IsNullOrWhiteSpace(tcKimlikNo) && kayitliZorunlu)
             {
-                return KatilimciDogrulamaView(anket, form.Token, form, "Lütfen kayıtlı TC / katılımcı numaranızı yazın.");
+                return KatilimciDogrulamaView(anket, form.Token, form, "LÃ¼tfen kayÄ±tlÄ± TC / katÄ±lÄ±mcÄ± numaranÄ±zÄ± yazÄ±n.");
             }
 
             if (bilgiFormu && string.IsNullOrWhiteSpace(adSoyad))
             {
-                return KatilimciDogrulamaView(anket, form.Token, form, "Lütfen ad soyad bilginizi yazın.");
+                return KatilimciDogrulamaView(anket, form.Token, form, "LÃ¼tfen ad soyad bilginizi yazÄ±n.");
             }
 
             if (bilgiFormu && string.IsNullOrWhiteSpace(tcKimlikNo) && string.IsNullOrWhiteSpace(eposta))
             {
-                return KatilimciDogrulamaView(anket, form.Token, form, "Katılımı takip edebilmek için TC / katılımcı numarası veya e-posta alanlarından en az birini yazın.");
+                return KatilimciDogrulamaView(anket, form.Token, form, "KatÄ±lÄ±mÄ± takip edebilmek iÃ§in TC / katÄ±lÄ±mcÄ± numarasÄ± veya e-posta alanlarÄ±ndan en az birini yazÄ±n.");
             }
 
-            var user = !string.IsNullOrWhiteSpace(tcKimlikNo)
-                ? db.User.FirstOrDefault(x => x.UserTc == tcKimlikNo && x.Pasif != true)
-                : null;
-
-            if (user == null && !string.IsNullOrWhiteSpace(eposta))
+            User user = null;
+            if (kayitliZorunlu)
             {
-                user = db.User.FirstOrDefault(x => x.UserMail == eposta && x.Pasif != true);
+                user = CalismaAlaniKatilimcisiGetir(
+                    AnketCalismaAlaniIdGetir(anket.AnketId),
+                    tcKimlikNo,
+                    eposta);
             }
 
-            if (user == null && kayitliZorunlu)
+            if (kayitliZorunlu && user == null)
             {
-                return KatilimciDogrulamaView(anket, form.Token, form, "Bu bilgiyle kayıtlı katılımcı bulunamadı. Lütfen TC / katılımcı numarasını kontrol edin.");
+                return KatilimciDogrulamaView(anket, form.Token, form, "Bu bilgiyle kayÄ±tlÄ± katÄ±lÄ±mcÄ± bulunamadÄ±. LÃ¼tfen TC / katÄ±lÄ±mcÄ± numarasÄ±nÄ± kontrol edin.");
             }
 
-            if (user == null && bilgiFormu)
+            if (kayitliZorunlu && !KayitliKatilimciCalismayaUygunMu(anket, user.UserId, out var uygunlukMesaji))
+            {
+                return KatilimciDogrulamaView(anket, form.Token, form, uygunlukMesaji);
+            }
+
+            if (bilgiFormu)
             {
                 user = new User
                 {
@@ -10625,6 +11977,7 @@ Yalnizca su JSON semasinda cevap ver:
                     UserTc = string.IsNullOrWhiteSpace(tcKimlikNo) ? null : tcKimlikNo,
                     UserMail = string.IsNullOrWhiteSpace(eposta) ? null : eposta,
                     UserTelefon = string.IsNullOrWhiteSpace(telefon) ? null : telefon,
+                    UserAdres = BilgiFormuKullaniciAdresOnEki + anket.AnketId,
                     Pasif = false,
                     KayitTarihi = DateTime.Now
                 };
@@ -10632,40 +11985,13 @@ Yalnizca su JSON semasinda cevap ver:
                 db.User.Add(user);
                 db.SaveChanges();
             }
-            else if (user != null && bilgiFormu)
-            {
-                var degisti = false;
-                if (!string.IsNullOrWhiteSpace(adSoyad) && string.IsNullOrWhiteSpace(user.UserAdi))
-                {
-                    user.UserAdi = adSoyad;
-                    degisti = true;
-                }
-
-                if (!string.IsNullOrWhiteSpace(eposta) && string.IsNullOrWhiteSpace(user.UserMail))
-                {
-                    user.UserMail = eposta;
-                    degisti = true;
-                }
-
-                if (!string.IsNullOrWhiteSpace(telefon) && string.IsNullOrWhiteSpace(user.UserTelefon))
-                {
-                    user.UserTelefon = telefon;
-                    degisti = true;
-                }
-
-                if (degisti)
-                {
-                    db.Entry(user).State = EntityState.Modified;
-                    db.SaveChanges();
-                }
-            }
-
-            if (!KayitliKatilimciCalismayaUygunMu(anket, user.UserId, out var uygunlukMesaji))
-            {
-                return KatilimciDogrulamaView(anket, form.Token, form, uygunlukMesaji);
-            }
 
             KatilimciOturumuAc(user);
+            if (bilgiFormu)
+            {
+                Session[BilgiFormuKatilimTokenSessionKey] = form.Token;
+            }
+
             return RedirectToAction("Katilim", "Home", new { token = form.Token });
         }
 
@@ -10678,7 +12004,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return false;
             }
 
-            var user = db.User.FirstOrDefault(x => x.UserId == userId && x.Pasif != true);
+            var user = CalismaAlaniKatilimcisiGetir(AnketCalismaAlaniIdGetir(anket.AnketId), userId);
             if (user == null)
             {
                 mesaj = "Bu calisma kayitli katilimcilara ozel. Lutfen katilimci hesabi ile giris yapin.";
@@ -10732,6 +12058,15 @@ Yalnizca su JSON semasinda cevap ver:
             var query = db.Havuz
                 .Include("Cevap")
                 .Include("Soru")
+                .Include("User")
+                .Include("User.Cinsiyet")
+                .Include("User.Departman")
+                .Include("User.Egitim")
+                .Include("User.Sehir")
+                .Include("User.Sube")
+                .Include("User.Unvan")
+                .Include("User.Yaka")
+                .Include("User.Yonetici")
                 .Where(x => x.AnketId == anketId);
 
             if (kod.HasValue && kod.Value > 0 && user.HasValue && user.Value > 0)
@@ -10750,6 +12085,62 @@ Yalnizca su JSON semasinda cevap ver:
             }
 
             return new List<Havuz>();
+        }
+
+        private bool YoneticiResimAlaniVarMi()
+        {
+            try
+            {
+                return db.Database.SqlQuery<int>("SELECT CAST(CASE WHEN COL_LENGTH('dbo.Yonetici', 'YoneticiResim') IS NULL THEN 0 ELSE 1 END AS int)").FirstOrDefault() == 1;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private Dictionary<int, string> YoneticiResimSozlugu(IEnumerable<int?> yoneticiIds)
+        {
+            var sonuc = new Dictionary<int, string>();
+            var ids = (yoneticiIds ?? Enumerable.Empty<int?>())
+                .Where(x => x.HasValue && x.Value > 0)
+                .Select(x => x.Value)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any() || !YoneticiResimAlaniVarMi())
+            {
+                return sonuc;
+            }
+
+            foreach (var id in ids)
+            {
+                var resim = db.Database
+                    .SqlQuery<string>("SELECT YoneticiResim FROM dbo.Yonetici WHERE YoneticiId = @p0", id)
+                    .FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(resim))
+                {
+                    sonuc[id] = resim;
+                }
+            }
+
+            return sonuc;
+        }
+
+        private void RaporYoneticiResimleriHazirla(IEnumerable<Havuz> kayitlar)
+        {
+            var liste = (kayitlar ?? Enumerable.Empty<Havuz>()).ToList();
+            var sozluk = YoneticiResimSozlugu(liste.Select(x => x.User?.UserYoneticisi));
+
+            ViewBag.YoneticiResimleri = sozluk;
+            ViewBag.yoneticiResim10 = liste
+                .GroupBy(x => new
+                {
+                    Id = x.User?.UserYoneticisi ?? 0,
+                    Ad = x.User?.Yonetici?.YoneticiAdi ?? "Tanımsız"
+                })
+                .Select(g => g.Key.Id > 0 && sozluk.TryGetValue(g.Key.Id, out var resim) ? resim : "")
+                .ToList();
         }
 
         private static List<Havuz> SonSoruCevaplari(IEnumerable<Havuz> cevaplar)
@@ -10803,7 +12194,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return "Anket";
             }
 
-            return string.IsNullOrWhiteSpace(anket?.Link) ? "Sınav" : "Eğitim";
+            return string.IsNullOrWhiteSpace(anket?.Link) ? "SÄ±nav" : "EÄŸitim";
         }
 
         private static double AnketCevapPuaniAl(Havuz cevap)
@@ -10902,7 +12293,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 Kod = kod,
                 User = portalUserId,
-                KatilimciAdi = Session["adi"]?.ToString() ?? (kod.HasValue ? $"Katılımcı #{kod}" : "Katılımcı")
+                KatilimciAdi = Session["adi"]?.ToString() ?? (kod.HasValue ? $"KatÄ±lÄ±mcÄ± #{kod}" : "KatÄ±lÄ±mcÄ±")
             };
 
             foreach (var anket in anketler)
@@ -10937,7 +12328,7 @@ Yalnizca su JSON semasinda cevap ver:
                 {
                     if (!sertifikaPuanYeterli)
                     {
-                        sertifikaDurumMesaji = $"Sertifika için puan yetersiz. Gerekli: {gecmeNotu:n0}, mevcut: {puan:n2}.";
+                        sertifikaDurumMesaji = $"Sertifika iÃ§in puan yetersiz. Gerekli: {gecmeNotu:n0}, mevcut: {puan:n2}.";
                     }
                     else if (!sertifikaZamaniGeldi)
                     {
@@ -10945,11 +12336,11 @@ Yalnizca su JSON semasinda cevap ver:
                     }
                     else if (!katilimciSertifikaAlabilir)
                     {
-                        sertifikaDurumMesaji = "Sertifika yönetici tarafından paylaşılacak.";
+                        sertifikaDurumMesaji = "Sertifika yÃ¶netici tarafÄ±ndan paylaÅŸÄ±lacak.";
                     }
                     else
                     {
-                        sertifikaDurumMesaji = "Sertifika hazır.";
+                        sertifikaDurumMesaji = "Sertifika hazÄ±r.";
                     }
                 }
 
@@ -10977,7 +12368,7 @@ Yalnizca su JSON semasinda cevap ver:
                         ? yayinMesaji
                         : (sureDevamEdiyor
                             ? "Devam ediyor"
-                            : (suresiDoldu ? "Süre doldu" : (tamamlandi ? "Tamamlandı" : "Başlandı")))
+                            : (suresiDoldu ? "SÃ¼re doldu" : (tamamlandi ? "TamamlandÄ±" : "BaÅŸlandÄ±")))
                 });
             }
 
@@ -10990,7 +12381,7 @@ Yalnizca su JSON semasinda cevap ver:
         {
             if (!KatilimKoduVarMi(kod) && !SessionUserId().HasValue)
             {
-                return Json(new { success = false, message = "Katılım bilgisi bulunamadı." });
+                return Json(new { success = false, message = "KatÄ±lÄ±m bilgisi bulunamadÄ±." });
             }
 
             var effectiveUseId = KatilimKimligiCoz(user, kod);
@@ -11063,12 +12454,12 @@ Yalnizca su JSON semasinda cevap ver:
                 ViewBag.d2 = (float)c2 * 2 / 5 * 100;
                 ViewBag.d1 = (float)c1 * 1 / 5 * 100;
 
-                // Puanı hesapla
+                // PuanÄ± hesapla
                 var p2 = ViewBag.d1 + ViewBag.d2 + ViewBag.d3 + ViewBag.d4 + ViewBag.d5;
-                p1 = soru > 0 ? p2 / soru : 0; // bölme hatasını engelle
+                p1 = soru > 0 ? p2 / soru : 0; // bÃ¶lme hatasÄ±nÄ± engelle
             }
 
-            // Varsayılan değerler
+            // VarsayÄ±lan deÄŸerler
             ViewBag.puan = false;
             ViewBag.not = p1;
             ViewBag.snotu = puani;
@@ -11097,18 +12488,18 @@ Yalnizca su JSON semasinda cevap ver:
             if (!sertifikaAktif)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Bu çalışma için sertifika yayını kapalı.";
+                ViewBag.mesaj = "Bu Ã§alÄ±ÅŸma iÃ§in sertifika yayÄ±nÄ± kapalÄ±.";
                 ViewBag.hideScore = true;
             }
             else if (izll == null)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Bu eğitimi bitirmediğiniz için sertifika alamazsınız.";
+                ViewBag.mesaj = "Bu eÄŸitimi bitirmediÄŸiniz iÃ§in sertifika alamazsÄ±nÄ±z.";
             }
             else if (!tumSorularTamamlandi)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Sertifika için tüm soruların tamamlanması gerekiyor.";
+                ViewBag.mesaj = "Sertifika iÃ§in tÃ¼m sorularÄ±n tamamlanmasÄ± gerekiyor.";
                 ViewBag.hideScore = true;
             }
             else if (!sertifikaZamaniGeldi)
@@ -11120,13 +12511,13 @@ Yalnizca su JSON semasinda cevap ver:
             else if (p1 < puani)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Notunuz yeterli değil. Sertifika alamazsınız.";
+                ViewBag.mesaj = "Notunuz yeterli deÄŸil. Sertifika alamazsÄ±nÄ±z.";
                 ViewBag.hideScore = false;
             }
             else if (!katilimciSertifikaAlabilir && Session["admin"] == null)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Sertifika hazır; ancak katılımcı indirme yetkisi kapalı. Sertifika yönetici tarafından paylaşılacak.";
+                ViewBag.mesaj = "Sertifika hazÄ±r; ancak katÄ±lÄ±mcÄ± indirme yetkisi kapalÄ±. Sertifika yÃ¶netici tarafÄ±ndan paylaÅŸÄ±lacak.";
                 ViewBag.hideScore = false;
             }
             else
@@ -11140,7 +12531,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             ViewBag.tarih = tar?.KayitTar;
             ViewBag.anket = ankadi;
-            ViewBag.adSoyad = Session["adi"]?.ToString() ?? (kod.HasValue ? $"Katılımcı #{kod}" : "Katılımcı");
+            ViewBag.adSoyad = Session["adi"]?.ToString() ?? (kod.HasValue ? $"KatÄ±lÄ±mcÄ± #{kod}" : "KatÄ±lÄ±mcÄ±");
             if (ankadi1 != null)
             {
                 ViewBag.egitimveren = ankadi1.EgitimVeren;
@@ -11168,7 +12559,7 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.zaman = ank.Zaman;
             ViewBag.ankadi = ank.AnketAdi;
 
-            // İzledim tablosuna başlangıç kaydı yoksa ekle
+            // Ä°zledim tablosuna baÅŸlangÄ±Ã§ kaydÄ± yoksa ekle
             var mevcutIzleme = db.Izledim.FirstOrDefault(x => x.AnketId == id && x.UseId == effectiveUseId);
             if (mevcutIzleme == null)
             {
@@ -11190,10 +12581,10 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.KalanSure = mevcutIzleme.BitisZaman - DateTime.Now;
             ViewBag.sureSinirsiz = ank.Zaman == null || ank.Zaman <= 0;
 
-            // Süresi bitmiş mi?
+            // SÃ¼resi bitmiÅŸ mi?
             if (mevcutIzleme.BitisZaman.HasValue && mevcutIzleme.BitisZaman.Value <= DateTime.Now)
             {
-                TempData["Mesaj"] = "Süreniz dolmuştur. Bu ankete tekrar giriş yapamazsınız.";
+                TempData["Mesaj"] = "SÃ¼reniz dolmuÅŸtur. Bu ankete tekrar giriÅŸ yapamazsÄ±nÄ±z.";
                 return RedirectToAction("AnketGirisIndex", "Home", new {id = user});
             }
 
@@ -11224,7 +12615,7 @@ Yalnizca su JSON semasinda cevap ver:
         public ActionResult AnketGirisCreate(Havuz hav)
         {
             if (Session["id"] == null && (hav.Isimsiz == null || hav.Isimsiz == 0))
-                return Json(new { success = false, message = "Oturum bulunamadı" });
+                return Json(new { success = false, message = "Oturum bulunamadÄ±" });
 
             if (!TryApplyTrustedAnswerValues(hav, out var answerError))
             {
@@ -11296,7 +12687,7 @@ Yalnizca su JSON semasinda cevap ver:
                 db.SaveChanges();
                 return Json(new { success = true });
             }
-            return Json(new { success = false, message = "Kayıt bulunamadı" });
+            return Json(new { success = false, message = "KayÄ±t bulunamadÄ±" });
         }
         public ActionResult AnketGirisCreate2(int id, int? kod, int? user)
         {
@@ -11344,6 +12735,14 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.zaman = ank.Zaman;
             ViewBag.user = effectiveUseId;
             ViewBag.ankadi = ank.AnketAdi;
+            var katilimci = user.HasValue && user.Value > 0
+                ? db.User.Include("Cinsiyet").FirstOrDefault(x => x.UserId == user.Value)
+                : (!KatilimKoduVarMi(kod) && SessionUserId().HasValue
+                    ? db.User.Include("Cinsiyet").FirstOrDefault(x => x.UserId == SessionUserId().Value)
+                    : null);
+            ViewBag.katilimciAdi = katilimci?.UserAdi;
+            ViewBag.katilimciResim = katilimci?.UserResim;
+            ViewBag.katilimciCinsiyet = katilimci?.Cinsiyet?.CinsiyetAdi;
 
             if (izl != null)
             {
@@ -11367,10 +12766,10 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.KalanSure = mevcutIzleme.BitisZaman - DateTime.Now;
             ViewBag.sureSinirsiz = ank.Zaman == null || ank.Zaman <= 0;
 
-            // Süresi bitmiş mi?
+            // SÃ¼resi bitmiÅŸ mi?
             if (mevcutIzleme.BitisZaman.HasValue && mevcutIzleme.BitisZaman.Value <= DateTime.Now)
             {
-                TempData["Mesaj"] = "Süreniz dolmuştur. Bu çalışmaya tekrar giriş yapamazsınız.";
+                TempData["Mesaj"] = "SÃ¼reniz dolmuÅŸtur. Bu Ã§alÄ±ÅŸmaya tekrar giriÅŸ yapamazsÄ±nÄ±z.";
                 return RedirectToAction("KatilimPortal", "Home", new { kod, user = effectiveUseId });
             }
 
@@ -11390,12 +12789,12 @@ Yalnizca su JSON semasinda cevap ver:
         [ValidateAntiForgeryToken]
         public ActionResult AnketGirisCreate2(Havuz hav, int? user)
         {
-            // 1) Kullanıcı doğrulama
+            // 1) KullanÄ±cÄ± doÄŸrulama
             var publicKod = hav.Isimsiz.HasValue && hav.Isimsiz.Value > 0;
             if (!publicKod && !SessionUserId().HasValue)
-                return Json(new { success = false, message = "Oturum bulunamadı" });
+                return Json(new { success = false, message = "Oturum bulunamadÄ±" });
 
-            // 2) İzleme kontrolü
+            // 2) Ä°zleme kontrolÃ¼
             if (!TryApplyTrustedAnswerValues(hav, out var answerError))
             {
                 return Json(new { success = false, message = answerError });
@@ -11410,18 +12809,18 @@ Yalnizca su JSON semasinda cevap ver:
             var izl = db.Izledim.FirstOrDefault(x => x.AnketId == hav.AnketId && x.UseId == effectiveUseId);
             if (izl == null)
             {
-                return Json(new { success = false, message = "Sınav oturumu bulunamadı. Lütfen katılım alanınızdan tekrar deneyin." });
+                return Json(new { success = false, message = "SÄ±nav oturumu bulunamadÄ±. LÃ¼tfen katÄ±lÄ±m alanÄ±nÄ±zdan tekrar deneyin." });
             }
 
             if (izl.BitisZaman.HasValue && izl.BitisZaman.Value <= DateTime.Now)
             {
-                return Json(new { success = false, expired = true, message = "Süreniz dolmuştur. Bu sınava cevap gönderemezsiniz." });
+                return Json(new { success = false, expired = true, message = "SÃ¼reniz dolmuÅŸtur. Bu sÄ±nava cevap gÃ¶nderemezsiniz." });
             }
 
             if (izl != null)
             {
                 if (izl.Izledi != true)
-                    return Json(new { success = false, message = "İzleme tamamlanmamış" });
+                    return Json(new { success = false, message = "Ä°zleme tamamlanmamÄ±ÅŸ" });
             }
 
             // 3) UserId belirle
@@ -11436,7 +12835,7 @@ Yalnizca su JSON semasinda cevap ver:
                 currentUserId = user;
             }
 
-            // 4) Aynı soruya verilmiş cevabı ara
+            // 4) AynÄ± soruya verilmiÅŸ cevabÄ± ara
             var mevcut = db.Havuz.FirstOrDefault(x =>
                 x.AnketId == hav.AnketId &&
                 x.SoruID == hav.SoruID &&
@@ -11448,7 +12847,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (mevcut != null)
             {
-                // Güncelle
+                // GÃ¼ncelle
                 mevcut.CevapId = hav.CevapId;
                 mevcut.CevapGrupId = hav.CevapGrupId;
                 mevcut.CevapPuan = hav.CevapPuan;
@@ -11477,7 +12876,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             else
             {
-                // Yeni kayıt
+                // Yeni kayÄ±t
                 hav.KayitTar = DateTime.Now;
                 if (currentUserId != null)
                 {
@@ -11512,7 +12911,7 @@ Yalnizca su JSON semasinda cevap ver:
             var izl = db.Izledim.Any(x => x.UseId == effectiveUseId && x.AnketId == id);
             var mevcutIzleme = db.Izledim.FirstOrDefault(x => x.AnketId == id && x.UseId == effectiveUseId);
 
-            // Süresi bitmiş mi?
+            // SÃ¼resi bitmiÅŸ mi?
             var ank = db.Anket.Where(x => x.AnketId == id).FirstOrDefault();
             if (ank == null) return NotFound();
 
@@ -11524,7 +12923,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (mevcutIzleme?.BitisZaman != null && mevcutIzleme.BitisZaman.Value <= DateTime.Now)
             {
-                TempData["Mesaj"] = "Süreniz dolmuştur. Bu çalışmaya tekrar giriş yapamazsınız.";
+                TempData["Mesaj"] = "SÃ¼reniz dolmuÅŸtur. Bu Ã§alÄ±ÅŸmaya tekrar giriÅŸ yapamazsÄ±nÄ±z.";
                 return RedirectToAction("KatilimPortal", "Home", new { kod, user = effectiveUseId });
             }
 
@@ -11537,6 +12936,15 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.link = ank.Link;
             ViewBag.zaman = ank.Zaman;
             ViewBag.user = effectiveUseId;
+            ViewBag.ankadi = ank.AnketAdi;
+            var katilimci = user.HasValue && user.Value > 0
+                ? db.User.Include("Cinsiyet").FirstOrDefault(x => x.UserId == user.Value)
+                : (!KatilimKoduVarMi(kod) && SessionUserId().HasValue
+                    ? db.User.Include("Cinsiyet").FirstOrDefault(x => x.UserId == SessionUserId().Value)
+                    : null);
+            ViewBag.katilimciAdi = katilimci?.UserAdi;
+            ViewBag.katilimciResim = katilimci?.UserResim;
+            ViewBag.katilimciCinsiyet = katilimci?.Cinsiyet?.CinsiyetAdi;
 
             var izll = db.Izledim.Where(x => x.AnketId == id && x.UseId == effectiveUseId).FirstOrDefault();
 
@@ -11545,14 +12953,32 @@ Yalnizca su JSON semasinda cevap ver:
                      join master in db.Soru on detay.SoruGrupId equals master.SoruGrupId
                      select master;
 
+            var anketGruplari = sr.ToList();
+            var sorular = st
+                .OrderBy(x => x.SoruSira ?? int.MaxValue)
+                .ThenBy(x => x.SoruId)
+                .ToList();
+
+            ViewBag.soruSayisi = sorular.Select(x => x.SoruId).Distinct().Count();
+            ViewBag.grupSayisi = anketGruplari
+                .Where(x => x.SoruGrupId.HasValue)
+                .Select(x => x.SoruGrupId.Value)
+                .Distinct()
+                .Count();
+            ViewBag.toplamPuan = sorular.Sum(x => x.SoruPuan ?? 0);
+            ViewBag.sertifikaNotu = ank.SertifikaNotu;
+            ViewBag.sonucAcik = ank.Sonuc == true;
+            ViewBag.egitimVeren = ank.EgitimVeren;
+            ViewBag.izlemeBaslangic = mevcutIzleme?.IzTarih;
+            ViewBag.izlemeBitis = mevcutIzleme?.BitisZaman;
 
             ViewBag.kod = kod;
             ViewBag.id = id;
             var hv = db.Havuz.Where(x => x.AnketId == id);
             Tumcontroller model = new Tumcontroller()
             {
-                AnkGrp = db.AnketGrup.Where(x => x.AnketId == id),
-                Sor = st,
+                AnkGrp = anketGruplari,
+                Sor = sorular,
                 Hav = hv,
                 Cev = db.Cevap,
             };
@@ -11599,7 +13025,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 if (mevcut.BitisZaman.HasValue && mevcut.BitisZaman.Value <= DateTime.Now)
                 {
-                    TempData["Mesaj"] = "Süreniz dolmuştur. Bu sınava tekrar giriş yapamazsınız.";
+                    TempData["Mesaj"] = "SÃ¼reniz dolmuÅŸtur. Bu sÄ±nava tekrar giriÅŸ yapamazsÄ±nÄ±z.";
                     return RedirectToAction("KatilimPortal", "Home", new { kod, user = effectiveUserId });
                 }
 
@@ -11738,7 +13164,7 @@ Yalnizca su JSON semasinda cevap ver:
             if (string.IsNullOrWhiteSpace(Convert.ToString(ViewBag.ankadi)))
             {
                 var anket = CalismaAlaniAnketGetir(id);
-                ViewBag.ankadi = anket != null ? anket.AnketAdi : "Çalışma";
+                ViewBag.ankadi = anket != null ? anket.AnketAdi : "Ã‡alÄ±ÅŸma";
             }
             ViewBag.id = id;
 
@@ -11774,7 +13200,7 @@ Yalnizca su JSON semasinda cevap ver:
             if (string.IsNullOrWhiteSpace(Convert.ToString(ViewBag.ankadi)) && ank.HasValue)
             {
                 var anket = CalismaAlaniAnketGetir(ank.Value);
-                ViewBag.ankadi = anket != null ? anket.AnketAdi : "Çalışma";
+                ViewBag.ankadi = anket != null ? anket.AnketAdi : "Ã‡alÄ±ÅŸma";
             }
 
             var so = db.Havuz
@@ -11811,7 +13237,7 @@ Yalnizca su JSON semasinda cevap ver:
             var bul = db.Havuz.Where(x => x.AnketId == id);
 
             var ad = CalismaAlaniAnketGetir(id);
-            ViewBag.adi = ad != null ? ad.AnketAdi : "Çalışma";
+            ViewBag.adi = ad != null ? ad.AnketAdi : "Ã‡alÄ±ÅŸma";
 
             var item3 = bul.Where(x => x.UserId != 1);
             var item4 = bul.Where(x => x.Isimsiz != null);
@@ -11822,7 +13248,7 @@ Yalnizca su JSON semasinda cevap ver:
             var ktll1 = item4.GroupBy(x => x.Isimsiz);
             ViewBag.tanimsiz = ktll1.Count();
 
-            ViewBag.id = new List<int>();   //Adı
+            ViewBag.id = new List<int>();   //AdÄ±
             ViewBag.ank = id;
 
             foreach (var item in bul)
@@ -11850,7 +13276,7 @@ Yalnizca su JSON semasinda cevap ver:
             try
             {
 
-                // Her bir ID için tabloyu bul ve sil
+                // Her bir ID iÃ§in tabloyu bul ve sil
                 foreach (var id in ids ?? Array.Empty<int>())
                 {
                     var tablo = db.Havuz.Find(id);
@@ -11893,7 +13319,7 @@ Yalnizca su JSON semasinda cevap ver:
             var bul1 = db.Havuz.Where(x => x.AnketId == ank);
             var bul = bul1.Where(x => x.SoruGrupId == id);
 
-            ViewBag.id = new List<int>();   //Adı
+            ViewBag.id = new List<int>();   //AdÄ±
             ViewBag.ank = ank;
 
             foreach (var item in bul)
@@ -11920,7 +13346,7 @@ Yalnizca su JSON semasinda cevap ver:
             }
             try
             {
-                // Her bir ID için tabloyu bul ve sil
+                // Her bir ID iÃ§in tabloyu bul ve sil
                 foreach (var id in ids ?? Array.Empty<int>())
                 {
                     var tablo = db.Havuz.Find(id);
@@ -12023,6 +13449,22 @@ Yalnizca su JSON semasinda cevap ver:
                 .Where(x => x.AnketId.HasValue && x.BitisZaman.HasValue && x.BitisZaman.Value <= DateTime.Now)
                 .GroupBy(x => x.AnketId.Value)
                 .ToDictionary(x => x.Key, x => x.Count());
+            ViewBag.ZamanCevapliKatilim = db.Havuz
+                .Where(x => anketIdleri.Contains(x.AnketId))
+                .ToList()
+                .Where(x => x.AnketId.HasValue)
+                .GroupBy(x => x.AnketId.Value)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x
+                        .Select(k => k.UserId.HasValue && k.UserId.Value != 1
+                            ? "u:" + k.UserId.Value
+                            : k.Isimsiz.HasValue
+                                ? "k:" + k.Isimsiz.Value
+                                : null)
+                        .Where(k => !string.IsNullOrWhiteSpace(k))
+                        .Distinct()
+                        .Count());
 
             var izlenenAnketIdleri = izlemeKayitlari
                 .Where(x => x.AnketId.HasValue)
@@ -12055,6 +13497,24 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.zaman = a.Zaman;
             ViewBag.anketAdi = a.AnketAdi;
             ViewBag.anketId = a.AnketId;
+            ViewBag.CevapliKatilimKeys = new HashSet<string>(
+                db.Havuz
+                    .Where(x => x.AnketId == id)
+                    .ToList()
+                    .SelectMany(x =>
+                    {
+                        var keys = new List<string>();
+                        if (x.UserId.HasValue && x.UserId.Value != 1)
+                        {
+                            keys.Add("u:" + x.UserId.Value);
+                        }
+                        if (x.Isimsiz.HasValue)
+                        {
+                            keys.Add("k:" + x.Isimsiz.Value);
+                        }
+                        return keys;
+                    }),
+                StringComparer.Ordinal);
 
 
             return View(db.Izledim

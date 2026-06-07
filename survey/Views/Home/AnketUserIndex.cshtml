@@ -1,4 +1,27 @@
-@model IEnumerable<survey.Models.Havuz>
+﻿@model IEnumerable<survey.Models.Havuz>
+@using System.Text.RegularExpressions
+
+@functions {
+    public (string Metin, string Gorsel) GorselliMetniCoz(string value)
+    {
+        var text = value ?? string.Empty;
+        var match = Regex.Match(
+            text,
+            @"\s*\[\[gorsel:(?<file>[^\]]+)\]\]\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        if (!match.Success)
+        {
+            return (text.Trim(), string.Empty);
+        }
+
+        var cleanText = Regex.Replace(text, @"\s*\[\[gorsel:[^\]]+\]\]\s*$", "", RegexOptions.IgnoreCase).Trim();
+        var fileName = System.IO.Path.GetFileName((match.Groups["file"].Value ?? string.Empty).Trim());
+        var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+        var allowed = extension == ".webp" || extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".gif";
+        return (cleanText, allowed ? fileName : string.Empty);
+    }
+}
 @{
     Layout = "~/Views/Shared/_AnketLayout.cshtml";
 
@@ -39,6 +62,15 @@
         new { Etiket = "Eğitim", Deger = Convert.ToString(ViewBag.egitim) },
         new { Etiket = "Cinsiyet", Deger = Convert.ToString(ViewBag.cinsiyet) }
     }.Where(x => !string.IsNullOrWhiteSpace(x.Deger)).ToList();
+    var katilimciAdSoyad = Convert.ToString(ViewBag.adisoyadi ?? "Katılımcı");
+    var katilimciResim = Convert.ToString(ViewBag.resim ?? string.Empty);
+    var katilimciCinsiyet = Convert.ToString(ViewBag.cinsiyet ?? string.Empty);
+    var imageBaseUrl = Url.Content("~/Content/AnketGorsel/");
+    Func<string, string> imageUrl = file =>
+    {
+        file = (file ?? string.Empty).Trim();
+        return string.IsNullOrWhiteSpace(file) ? string.Empty : imageBaseUrl + Uri.EscapeDataString(file);
+    };
 }
 
 <style>
@@ -168,6 +200,13 @@
         flex-wrap: wrap;
         align-items: center;
         margin-top: 18px;
+    }
+
+    .identity-copy {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
     }
 
     .identity-name {
@@ -408,6 +447,35 @@
         word-break: break-word;
     }
 
+    .media-cell {
+        display: grid;
+        grid-template-columns: 76px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        min-width: 0;
+    }
+
+    .media-cell.no-image {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cell-image {
+        width: 76px;
+        aspect-ratio: 4 / 3;
+        border: 1px solid var(--report-line);
+        border-radius: 8px;
+        background: #f7f9fc;
+        overflow: hidden;
+        flex: 0 0 auto;
+    }
+
+    .cell-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
     .result-badge {
         display: inline-flex;
         align-items: center;
@@ -506,17 +574,24 @@
     @@media print {
         @@page {
             size: A4;
-            margin: 12mm;
+            margin: 8mm;
+        }
+
+        * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         body {
             background: #fff !important;
+            color: #182033;
         }
 
         .result-page {
             margin: 0;
             padding: 0;
             max-width: none;
+            width: 100%;
         }
 
         .result-toolbar,
@@ -529,13 +604,134 @@
             box-shadow: none;
             border-radius: 0;
             overflow: visible;
+            width: 100%;
         }
 
-        .report-head,
-        .metric-grid,
+        .report-head {
+            grid-template-columns: minmax(0, 1fr) 58mm !important;
+            gap: 7mm;
+            padding: 0 0 5mm;
+            border-bottom: 1px solid #cfd8e3;
+            background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%) !important;
+        }
+
+        .report-kicker {
+            font-size: 7.5pt;
+            margin-bottom: 2mm;
+        }
+
+        .report-title {
+            font-size: 17pt;
+            line-height: 1.12;
+        }
+
+        .report-subtitle {
+            margin-top: 2mm;
+            font-size: 8.5pt;
+            line-height: 1.35;
+        }
+
+        .identity-line {
+            margin-top: 4mm;
+            gap: 3mm;
+        }
+
+        .identity-name {
+            font-size: 11pt;
+        }
+
+        .katilimci-avatar.xl {
+            width: 13mm !important;
+            height: 13mm !important;
+            min-width: 13mm !important;
+        }
+
+        .status-pill {
+            min-height: 6mm;
+            padding: 0 3mm;
+            font-size: 7.5pt;
+        }
+
+        .score-panel {
+            padding: 4mm;
+            align-self: stretch;
+        }
+
+        .score-label {
+            font-size: 7.5pt;
+        }
+
+        .score-value {
+            font-size: 27pt;
+            margin-top: 2mm;
+        }
+
+        .score-value small {
+            font-size: 10pt;
+        }
+
+        .score-track {
+            height: 2mm;
+            margin: 4mm 0 2.5mm;
+        }
+
+        .score-note {
+            font-size: 8pt;
+        }
+
+        .metric-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 2.5mm;
+            padding: 4mm 0;
+            background: #f6f8fb !important;
+        }
+
+        .metric {
+            padding: 3mm;
+        }
+
+        .metric span {
+            font-size: 7pt;
+        }
+
+        .metric strong {
+            margin-top: 1.5mm;
+            font-size: 14pt;
+        }
+
         .report-section {
-            padding-left: 0;
-            padding-right: 0;
+            padding: 4.5mm 0;
+            border-bottom: 1px solid #d6dee8;
+        }
+
+        .section-title {
+            margin-bottom: 3mm;
+            font-size: 10pt;
+        }
+
+        .profile-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 2.5mm;
+        }
+
+        .profile-item {
+            min-height: 0;
+            padding: 3mm;
+        }
+
+        .profile-item span {
+            font-size: 7pt;
+        }
+
+        .profile-item strong {
+            margin-top: 1.5mm;
+            font-size: 8.5pt;
+            line-height: 1.25;
+        }
+
+        .empty-profile {
+            padding: 3.5mm;
+            font-size: 8pt;
         }
 
         .score-panel,
@@ -549,14 +745,63 @@
             break-inside: avoid;
         }
 
+        .answers-table {
+            min-width: 0 !important;
+            table-layout: fixed;
+        }
+
         .answers-table th,
         .answers-table td {
-            padding: 9px 10px;
-            font-size: 11px;
+            padding: 2.2mm 2.6mm;
+            font-size: 7.8pt;
+            line-height: 1.3;
         }
 
         .answers-table-wrap {
             overflow: visible;
+        }
+
+        .answers-table th {
+            font-size: 6.8pt;
+        }
+
+        .media-cell {
+            grid-template-columns: 18mm minmax(0, 1fr);
+            gap: 2.5mm;
+        }
+
+        .media-cell.no-image {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .cell-image {
+            width: 18mm;
+            border-radius: 2mm;
+        }
+
+        .result-badge {
+            min-height: 5.5mm;
+            padding: 0 2.5mm;
+            font-size: 7pt;
+        }
+
+        .signature-row {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 5mm;
+            padding-top: 2mm;
+        }
+
+        .signature-box {
+            min-height: 19mm;
+            padding: 3mm;
+        }
+
+        .signature-box span {
+            font-size: 7pt;
+        }
+
+        .signature-line {
+            margin-top: 10mm;
         }
 
         .report-section.answers {
@@ -586,12 +831,15 @@
     <article class="result-sheet">
         <header class="report-head">
             <div>
-                <div class="report-kicker">Aslana Survey Studio</div>
+                <div class="report-kicker">Survey by Aslana Teknoloji</div>
                 <h1 class="report-title">@ViewBag.adi</h1>
                 <p class="report-subtitle">@calismaTuru - personel dosyasına eklenmek üzere hazırlanmış değerlendirme özeti.</p>
                 <div class="identity-line">
-                    <span class="identity-name">@ViewBag.adisoyadi</span>
-                    <span class="status-pill @sonucClass">@sonucMetni</span>
+                    @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = katilimciAdSoyad, Resim = katilimciResim, Cinsiyet = katilimciCinsiyet, Size = "xl" })
+                    <div class="identity-copy">
+                        <span class="identity-name">@katilimciAdSoyad</span>
+                        <span class="status-pill @sonucClass">@sonucMetni</span>
+                    </div>
                 </div>
             </div>
 
@@ -728,10 +976,28 @@
                                 var dogru = item.Cevap?.Dogru == true;
                                 var sonucBadge = sinavMi ? (dogru ? "pass" : "fail") : "neutral";
                                 var sonucText = sinavMi ? (dogru ? "Doğru" : "Yanlış") : "Puanlandı";
+                                var soruGorselli = GorselliMetniCoz(item.Soru?.SoruAdi);
+                                var cevapGorselli = GorselliMetniCoz(item.Cevap?.CevapAdi);
                                 <tr>
                                     <td>@sira</td>
-                                    <td class="question-cell"><div class="cell-text">@Html.Raw(item.Soru?.SoruAdi ?? "-")</div></td>
-                                    <td class="answer-cell"><div class="cell-text">@((item.Cevap?.CevapAdi) ?? "-")</div></td>
+                                    <td class="question-cell">
+                                        <div class="media-cell @(string.IsNullOrWhiteSpace(soruGorselli.Gorsel) ? "no-image" : "")">
+                                            @if (!string.IsNullOrWhiteSpace(soruGorselli.Gorsel))
+                                            {
+                                                <span class="cell-image"><img src="@imageUrl(soruGorselli.Gorsel)" alt="" loading="lazy" /></span>
+                                            }
+                                            <div class="cell-text">@(string.IsNullOrWhiteSpace(soruGorselli.Metin) ? (string.IsNullOrWhiteSpace(soruGorselli.Gorsel) ? "-" : "") : soruGorselli.Metin)</div>
+                                        </div>
+                                    </td>
+                                    <td class="answer-cell">
+                                        <div class="media-cell @(string.IsNullOrWhiteSpace(cevapGorselli.Gorsel) ? "no-image" : "")">
+                                            @if (!string.IsNullOrWhiteSpace(cevapGorselli.Gorsel))
+                                            {
+                                                <span class="cell-image"><img src="@imageUrl(cevapGorselli.Gorsel)" alt="" loading="lazy" /></span>
+                                            }
+                                            <div class="cell-text">@(string.IsNullOrWhiteSpace(cevapGorselli.Metin) ? (string.IsNullOrWhiteSpace(cevapGorselli.Gorsel) ? "-" : "") : cevapGorselli.Metin)</div>
+                                        </div>
+                                    </td>
                                     <td><span class="result-badge @sonucBadge">@sonucText</span></td>
                                     <td>@String.Format("{0:n2}", item.CevapPuan ?? 0)</td>
                                 </tr>

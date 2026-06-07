@@ -1,0 +1,22 @@
+<svg width="258" height="54" viewBox="0 0 258 54" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Survey by Aslana Teknoloji">
+  <defs>
+    <linearGradient id="aslanaLogoDarkGradient" x1="6" y1="7" x2="48" y2="49" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18C7B5"/>
+      <stop offset="0.52" stop-color="#4257E8"/>
+      <stop offset="1" stop-color="#FFB84D"/>
+    </linearGradient>
+    <filter id="aslanaLogoDarkShadow" x="0" y="0" width="58" height="58" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#314976" flood-opacity="0.20"/>
+    </filter>
+  </defs>
+  <g filter="url(#aslanaLogoDarkShadow)">
+    <rect x="6" y="7" width="40" height="40" rx="13" fill="url(#aslanaLogoDarkGradient)"/>
+    <path d="M17 19.4H34.8" stroke="white" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M17 27H28.2" stroke="white" stroke-width="3.4" stroke-linecap="round" opacity="0.84"/>
+    <path d="M17 34.6H23.7" stroke="white" stroke-width="3.4" stroke-linecap="round" opacity="0.72"/>
+    <path d="M31.2 34L34.7 37.5L41 29.6" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="38.4" cy="19.4" r="3" fill="#FFF2CC"/>
+  </g>
+  <text x="58" y="25" fill="#142033" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="850" letter-spacing="0">Survey by Aslana</text>
+  <text x="60" y="42" fill="#4257E8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10" font-weight="850" letter-spacing="1.6">TEKNOLOJI</text>
+</svg>

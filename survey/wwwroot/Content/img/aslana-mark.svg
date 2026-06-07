@@ -1,16 +1,16 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aslana Survey Studio">
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Survey by Aslana Teknoloji">
   <defs>
-    <linearGradient id="evalioMarkGradient" x1="9" y1="8" x2="56" y2="57" gradientUnits="userSpaceOnUse">
+    <linearGradient id="aslanaMarkGradient" x1="9" y1="8" x2="56" y2="57" gradientUnits="userSpaceOnUse">
       <stop stop-color="#18C7B5"/>
       <stop offset="0.52" stop-color="#4257E8"/>
       <stop offset="1" stop-color="#FFB84D"/>
     </linearGradient>
-    <filter id="evalioMarkShadow" x="2" y="3" width="60" height="60" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+    <filter id="aslanaMarkShadow" x="2" y="3" width="60" height="60" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#314976" flood-opacity="0.20"/>
     </filter>
   </defs>
-  <g filter="url(#evalioMarkShadow)">
-    <rect x="8" y="8" width="48" height="48" rx="16" fill="url(#evalioMarkGradient)"/>
+  <g filter="url(#aslanaMarkShadow)">
+    <rect x="8" y="8" width="48" height="48" rx="16" fill="url(#aslanaMarkGradient)"/>
     <path d="M21 22.5H42.5" stroke="white" stroke-width="4.2" stroke-linecap="round"/>
     <path d="M21 32H34.5" stroke="white" stroke-width="4.2" stroke-linecap="round" opacity="0.84"/>
     <path d="M21 41.5H29" stroke="white" stroke-width="4.2" stroke-linecap="round" opacity="0.72"/>

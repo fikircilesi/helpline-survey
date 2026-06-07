@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8" />
-    <title>Aslana Survey Studio | Anket, Sınav ve Sertifika Platformu</title>
+    <title>Survey by Aslana Teknoloji | Anket, Sınav ve Sertifika Platformu</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0, minimal-ui" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
@@ -36,6 +36,8 @@
 
         /* Native scroll kullan, custom scrollbar kapalı */
         html, body {
+            margin: 0;
+            padding: 0;
             overscroll-behavior-y: none;
         }
         /* Büyük içerikli containerlarda boyama gecikmesini azaltır */
@@ -283,6 +285,7 @@
         .studio-menu-icon.blue { background: #2196f3; }
         .studio-menu-icon.rose { background: #ff7588; }
         .studio-menu-icon.green { background: #16d39a; }
+        .studio-menu-icon.amber { background: #f6a609; }
 
         .studio-menu-text {
             min-width: 0;
@@ -954,12 +957,12 @@
             }
 
             #pcoded[theme-layout="vertical"] .navbar-logo .studio-brand-link {
-                width: calc(var(--studio-sidebar-width) - 84px) !important;
-                max-width: calc(var(--studio-sidebar-width) - 84px) !important;
+                width: calc(var(--studio-sidebar-width) - 76px) !important;
+                max-width: calc(var(--studio-sidebar-width) - 76px) !important;
                 min-width: 0 !important;
                 position: absolute !important;
                 top: 50% !important;
-                left: 26px !important;
+                left: 18px !important;
                 right: auto !important;
                 transform: translateY(-50%) !important;
                 margin: 0 !important;
@@ -1121,11 +1124,11 @@
             #pcoded.studio-sidebar-collapsed[theme-layout="vertical"] .navbar-logo .mobile-menu {
                 width: 30px;
                 height: 30px;
-                right: 50% !important;
-                left: auto !important;
+                left: 50% !important;
+                right: auto !important;
                 top: 50% !important;
                 bottom: auto !important;
-                transform: translate(50%, -50%) !important;
+                transform: translate(-50%, -50%) !important;
                 border: 1px solid rgba(255, 255, 255, .14);
                 border-radius: 999px;
                 color: rgba(255, 255, 255, .8);
@@ -1289,7 +1292,7 @@
                         <a class="mobile-menu" id="mobile-collapse" href="#!" title="Menüyü daralt veya genişlet" aria-label="Menüyü daralt veya genişlet">
                             <i class="feather icon-menu"></i>
                         </a>
-                        <a class="studio-brand-link" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })" aria-label="Aslana Survey Studio">
+                        <a class="studio-brand-link" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })" aria-label="Survey by Aslana Teknoloji">
                             <span class="studio-brand-mark" aria-hidden="true">
                                 <svg class="studio-brand-sketch" viewBox="0 0 64 48" focusable="false">
                                     <defs>
@@ -1374,6 +1377,12 @@
                                             <a title="Raporlar" href="@Url.Action("AnketIndex", "Home", new { id = Session["id"] })">Anket Raporları</a>
                                         </div>
                                     </details>
+                                </li>
+                                <li>
+                                    <a title="Paketler ve Ödeme" href="@Url.Action("Index", "Odeme")">
+                                        <span class="studio-menu-icon amber"><i class="feather icon-dollar-sign"></i></span>
+                                        <span class="studio-menu-text">Paketler ve Ödeme</span>
+                                    </a>
                                 </li>
                             </ul>
                             <div class="sidebar-account">

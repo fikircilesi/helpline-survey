@@ -1,4 +1,4 @@
-@model IEnumerable<survey.Models.Anket>
+﻿@model IEnumerable<survey.Models.Anket>
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -11,7 +11,7 @@
 <div class="report-center">
     <section class="center-hero">
         <div>
-            <span class="eyebrow">Aslana Survey Studio</span>
+            <span class="eyebrow">Survey by Aslana Teknoloji</span>
             <h1>Rapor Merkezi</h1>
             <p>Yayınladığınız sınav, eğitim ve anketlerin rapor panosuna, katılım takibine ve video izleme kontrollerine buradan geçin.</p>
             <div class="hero-chips">
@@ -23,7 +23,7 @@
         </div>
         <div class="hero-actions">
             <a class="center-btn" href="@Url.Action("Indexgosterge", "Home")">
-                <i class="fa fa-dashboard"></i> Panele Dön
+                <i class="fa fa-arrow-left"></i> Çalışmalarıma Dön
             </a>
             <a class="center-btn primary" href="@Url.Action("AssessmentWizard", "Home")">
                 <i class="fa fa-plus"></i> Yeni Çalışma

@@ -1,4 +1,4 @@
-@model survey.Models.Anket
+﻿@model survey.Models.Anket
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -24,6 +24,15 @@
     var publishText = string.IsNullOrWhiteSpace(startValue) && string.IsNullOrWhiteSpace(endValue)
         ? "Hemen erişilebilir"
         : "Planlı yayın";
+    var yayinHazirlik = Convert.ToString(Context.Request.Query["yayinaHazirlik"]) == "1";
+    var paylasRehberiAc = Convert.ToString(Context.Request.Query["paylas"]) == "1";
+    var paylasimUrl = Convert.ToString(ViewBag.PaylasimUrl);
+    var paylasimQrUrl = Convert.ToString(ViewBag.PaylasimQrUrl);
+    var paylasimAciklamasi = Convert.ToString(ViewBag.PaylasimAciklamasi ?? "Bu link veya QR kod çalışma ayarlarındaki katılım yöntemine göre çalışır.");
+    var katilimYontemiEtiketi = Convert.ToString(ViewBag.KatilimYontemiEtiketi ?? katilimYontemiText);
+    var returnUrl = string.IsNullOrWhiteSpace(Convert.ToString(ViewBag.ReturnUrl))
+        ? Url.Action("Indexgosterge", "Home")
+        : Convert.ToString(ViewBag.ReturnUrl);
 }
 
 <style>
@@ -258,6 +267,420 @@
         background: #effcf7;
         color: #076453;
         font-weight: 850;
+    }
+
+    .work-guide {
+        display: grid;
+        grid-template-columns: 42px 1fr;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 16px;
+        padding: 14px 16px;
+        border: 1px solid #b8eadc;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #effcf7, #f7fbff);
+        color: #102033;
+    }
+
+    .work-guide-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #dff8ef;
+        color: #08765d;
+        font-size: 18px;
+    }
+
+    .work-guide strong {
+        display: block;
+        margin: 1px 0 4px;
+        font-size: 15px;
+        font-weight: 950;
+    }
+
+    .work-guide p {
+        margin: 0;
+        color: #53627a;
+        font-size: 13px;
+        line-height: 1.5;
+        font-weight: 700;
+    }
+
+    .publish-helper {
+        position: relative;
+        margin-top: 14px;
+        padding: 14px;
+        border: 1px solid #bfd7f4;
+        border-radius: 8px;
+        background:
+            linear-gradient(135deg, rgba(236, 253, 245, .94), rgba(239, 246, 255, .96)),
+            repeating-linear-gradient(135deg, rgba(37, 99, 235, .08) 0 1px, transparent 1px 14px);
+        overflow: hidden;
+    }
+
+    .publish-helper::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(100deg, transparent 0 34%, rgba(255, 255, 255, .58) 45%, transparent 58%);
+        transform: translateX(-100%);
+        animation: publishSweep 5.2s ease-in-out infinite;
+        pointer-events: none;
+    }
+
+    .helper-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: 54px 1fr;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .helper-mascot {
+        position: relative;
+        width: 54px;
+        height: 54px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: #073b34;
+        background:
+            radial-gradient(circle at 35% 35%, #fff 0 7%, transparent 8%),
+            radial-gradient(circle at 65% 35%, #fff 0 7%, transparent 8%),
+            linear-gradient(135deg, #8df0c7 0%, #86f7ff 44%, #ffe46c 72%, #ff8fb2 100%);
+        box-shadow: 0 16px 28px rgba(20, 184, 166, .22);
+        font-size: 20px;
+        isolation: isolate;
+        animation: pilotFloat 3.2s ease-in-out infinite;
+    }
+
+    .helper-mascot::before,
+    .helper-mascot::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        background: #073b34;
+        z-index: 1;
+    }
+
+    .helper-mascot::before {
+        width: 5px;
+        height: 5px;
+        left: 19px;
+        top: 19px;
+        box-shadow: 13px 0 0 #073b34;
+    }
+
+    .helper-mascot::after {
+        width: 16px;
+        height: 4px;
+        left: 19px;
+        bottom: 16px;
+        background: rgba(7, 59, 52, .72);
+    }
+
+    .helper-mascot i {
+        position: absolute;
+        right: -5px;
+        top: -6px;
+        width: 23px;
+        height: 23px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: #fff;
+        color: #2563eb;
+        font-size: 12px;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .18);
+        z-index: 2;
+    }
+
+    .publish-helper h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 950;
+    }
+
+    .publish-helper p {
+        margin: 4px 0 0;
+        color: #53627a;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 700;
+    }
+
+    .publish-rail {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        margin-top: 13px;
+        padding: 11px;
+        border: 1px solid rgba(191, 215, 244, .9);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .76);
+    }
+
+    .publish-step {
+        display: grid;
+        grid-template-columns: 28px 1fr auto;
+        gap: 9px;
+        align-items: center;
+        min-height: 34px;
+    }
+
+    .publish-step-icon {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: #fff;
+        background: #2563eb;
+        font-size: 12px;
+    }
+
+    .publish-step:nth-child(2) .publish-step-icon {
+        background: #16a085;
+    }
+
+    .publish-step:nth-child(3) .publish-step-icon {
+        background: #d48a12;
+    }
+
+    .publish-step strong {
+        display: block;
+        font-size: 12px;
+        font-weight: 950;
+    }
+
+    .publish-step span {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 750;
+    }
+
+    .publish-step-badge {
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: #e9fbf6;
+        color: #08765d;
+        font-size: 10px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .publish-helper-actions {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .work-modal[hidden] {
+        display: none !important;
+    }
+
+    .work-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 4000;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgba(8, 16, 30, .56);
+        backdrop-filter: blur(6px);
+    }
+
+    .publish-dialog {
+        width: min(930px, 100%);
+        max-height: calc(100vh - 48px);
+        overflow: auto;
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        background:
+            linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 28px 80px rgba(0, 0, 0, .24);
+    }
+
+    .publish-dialog-head {
+        display: grid;
+        grid-template-columns: 64px 1fr auto;
+        gap: 14px;
+        align-items: flex-start;
+        padding: 24px;
+        border-bottom: 1px solid #e6edf7;
+        background:
+            linear-gradient(135deg, rgba(236, 253, 245, .96), rgba(239, 246, 255, .98)),
+            repeating-linear-gradient(135deg, rgba(37, 99, 235, .07) 0 1px, transparent 1px 16px);
+    }
+
+    .publish-dialog-head h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 950;
+    }
+
+    .publish-dialog-head p {
+        margin: 6px 0 0;
+        color: #526179;
+        font-size: 13px;
+        line-height: 1.5;
+        font-weight: 700;
+    }
+
+    .publish-close {
+        width: 36px;
+        height: 36px;
+        border: 1px solid #cddbf0;
+        border-radius: 8px;
+        background: #fff;
+        color: #102033;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .publish-dialog-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(230px, .85fr);
+        gap: 18px;
+        padding: 22px;
+    }
+
+    .publish-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .publish-url-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .publish-url-row input {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #cddbf0;
+        border-radius: 8px;
+        padding: 0 12px;
+        color: #102033;
+        font-weight: 750;
+    }
+
+    .publish-share-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .publish-share-btn {
+        min-height: 42px;
+        border: 1px solid #cddbf0;
+        border-radius: 8px;
+        background: #fff;
+        color: #102033;
+        font-weight: 850;
+        cursor: pointer;
+    }
+
+    .publish-share-btn.primary {
+        border-color: #16a085;
+        background: #16a085;
+        color: #fff;
+    }
+
+    .publish-share-btn:hover {
+        border-color: #8fb0e8;
+        background: #f7fbff;
+    }
+
+    .publish-qr {
+        min-height: 242px;
+        display: grid;
+        place-items: center;
+        border: 1px dashed #b8c9df;
+        border-radius: 8px;
+        background:
+            linear-gradient(180deg, #fff, #f8fbff),
+            repeating-linear-gradient(90deg, rgba(37, 99, 235, .08) 0 1px, transparent 1px 16px);
+    }
+
+    .publish-qr img {
+        max-width: 176px;
+        width: 100%;
+        height: auto;
+        background: #fff;
+        padding: 8px;
+    }
+
+    .publish-next {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 0 22px 22px;
+    }
+
+    .publish-side {
+        display: grid;
+        gap: 10px;
+    }
+
+    .publish-intel {
+        padding: 13px;
+        border: 1px solid #d8e3f2;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .publish-intel strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .publish-intel p {
+        margin: 0;
+        color: #53627a;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 700;
+    }
+
+    .publish-feedback {
+        min-height: 18px;
+        margin-top: 10px;
+        color: #08765d;
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    @@keyframes publishSweep {
+        0%, 45% {
+            transform: translateX(-110%);
+        }
+
+        70%, 100% {
+            transform: translateX(110%);
+        }
+    }
+
+    @@keyframes pilotFloat {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-3px);
+        }
     }
 
     .work-layout {
@@ -532,6 +955,15 @@
         .work-grid {
             grid-template-columns: 1fr;
         }
+
+        .publish-dialog-head,
+        .publish-dialog-body {
+            grid-template-columns: 1fr;
+        }
+
+        .publish-share-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -541,12 +973,13 @@
         @Html.AntiForgeryToken()
         @Html.HiddenFor(model => model.AnketId)
         @Html.HiddenFor(model => model.Tanimsiz)
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
 
         <div class="work-shell">
             <div class="work-head">
                 <div>
-                    <p class="work-kicker">Aslana Survey Studio</p>
-                    <h1 class="work-title">Çalışma Ayarları</h1>
+                    <p class="work-kicker">Survey by Aslana Teknoloji</p>
+                    <h1 class="work-title">Yayın ve Katılım Ayarları</h1>
                     <p class="work-name">
                         @(!string.IsNullOrWhiteSpace(Model.AnketAdi) ? Model.AnketAdi : "Yeni çalışma")
                     </p>
@@ -559,14 +992,17 @@
                 </div>
 
                 <div class="work-action-row">
-                    <a class="work-btn ghost" data-exam-only href="@Url.Action("DogruCevapEditor", "Home", new { id = Model.AnketId })">
-                        <i class="fa fa-check-circle"></i> Doğru Cevaplar
+                    <a class="work-btn ghost" href="@returnUrl">
+                        <i class="fa fa-arrow-left"></i> Çalışmalarıma Dön
                     </a>
-                    <a class="work-btn ghost" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi })">
-                        <i class="fa fa-list"></i> Kırılımlar
+                    <a class="work-btn ghost" data-exam-only href="@Url.Action("DogruCevapEditor", "Home", new { id = Model.AnketId, returnUrl = returnUrl })">
+                        <i class="fa fa-check-circle"></i> Cevap Anahtarı
                     </a>
-                    <a class="work-btn ghost" data-exam-only href="@Url.Action("SertifikaWizard", "Home", new { id = Model.AnketId })">
-                        <i class="fa fa-certificate"></i> Sertifika
+                    <a class="work-btn ghost" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi, returnUrl = returnUrl })">
+                        <i class="fa fa-list"></i> Rapor Başlıkları
+                    </a>
+                    <a class="work-btn ghost" data-exam-only href="@Url.Action("SertifikaWizard", "Home", new { id = Model.AnketId, returnUrl = returnUrl })">
+                        <i class="fa fa-certificate"></i> Sertifika Tasarımı
                     </a>
                 </div>
             </div>
@@ -577,6 +1013,16 @@
                 {
                     <div class="work-flash">
                         <i class="fa fa-check-circle"></i> @TempData["AyarKayitMesaji"]
+                    </div>
+                }
+                @if (yayinHazirlik)
+                {
+                    <div class="work-guide">
+                        <span class="work-guide-icon"><i class="fa fa-bullhorn"></i></span>
+                        <div>
+                            <strong>Yayın öncesi son kontrol</strong>
+                            <p>Katılım yöntemi, aktif/pasif durumu, süre, geçme notu ve sonuç görünürlüğünü burada tamamlayın. Rapor başlıkları ve cevap anahtarı gerekiyorsa üstteki kısayollardan açılır.</p>
+                        </div>
                     </div>
                 }
 
@@ -825,6 +1271,50 @@
                             </div>
                         </div>
 
+                        <div class="publish-helper">
+                            <div class="helper-row">
+                                <span class="helper-mascot" aria-hidden="true"><i class="fa fa-magic"></i></span>
+                                <div>
+                                    <h3>Yayın Kokpiti</h3>
+                                    <p>Son ayar, canlı link ve QR dağıtımı tek noktada.</p>
+                                </div>
+                            </div>
+                            <div class="publish-rail" aria-label="Yayın rotası">
+                                <div class="publish-step">
+                                    <span class="publish-step-icon"><i class="fa fa-pencil"></i></span>
+                                    <div>
+                                        <strong>İçerik</strong>
+                                        <span>Soru seti hazır</span>
+                                    </div>
+                                    <span class="publish-step-badge">Tamam</span>
+                                </div>
+                                <div class="publish-step">
+                                    <span class="publish-step-icon"><i class="fa fa-sliders"></i></span>
+                                    <div>
+                                        <strong>Ayar</strong>
+                                        <span>@(isPassive ? "Pasif modda bekliyor" : "Katılıma açık")</span>
+                                    </div>
+                                    <span class="publish-step-badge">Canlı</span>
+                                </div>
+                                <div class="publish-step">
+                                    <span class="publish-step-icon"><i class="fa fa-qrcode"></i></span>
+                                    <div>
+                                        <strong>Dağıtım</strong>
+                                        <span>Link ve QR hazır</span>
+                                    </div>
+                                    <span class="publish-step-badge">Hazır</span>
+                                </div>
+                            </div>
+                            <div class="publish-helper-actions">
+                                <button class="work-btn primary" type="button" data-open-publish-guide>
+                                    <i class="fa fa-rocket"></i> Yayın Kokpitini Aç
+                                </button>
+                                <a class="work-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi, returnUrl = returnUrl })">
+                                    <i class="fa fa-list"></i> Rapor Başlıkları
+                                </a>
+                            </div>
+                        </div>
+
                         <section class="work-section" data-exam-only>
                             <div class="work-section-head">
                                 <h2>Eğitici imzası</h2>
@@ -853,14 +1343,11 @@
             </div>
 
             <div class="work-savebar">
-                <a class="work-btn" href="@Url.Action("AnketAdIndex", "Home")">
-                    <i class="fa fa-arrow-left"></i> Listeye Dön
+                <a class="work-btn" href="@returnUrl">
+                    <i class="fa fa-arrow-left"></i> Çalışmalarıma Dön
                 </a>
 
                 <div class="work-action-row">
-                    <a class="work-btn" href="@Url.Action("Indexgosterge", "Home", new { idi = Session["id"] })">
-                        <i class="fa fa-th-large"></i> Panele Dön
-                    </a>
                     <button type="submit" class="work-btn primary">
                         <i class="fa fa-save"></i> Ayarları Kaydet
                     </button>
@@ -868,6 +1355,98 @@
             </div>
         </div>
     }
+</div>
+
+<div class="work-modal" id="publishGuideModal" hidden data-auto-open="@(paylasRehberiAc ? "true" : "false")">
+    <div class="publish-dialog" role="dialog" aria-modal="true" aria-labelledby="publishGuideTitle">
+        <div class="publish-dialog-head">
+            <span class="helper-mascot" aria-hidden="true"><i class="fa fa-magic"></i></span>
+            <div>
+                <h2 id="publishGuideTitle">Yayın Kokpiti</h2>
+                <p>@paylasimAciklamasi Link, QR ve sonraki kontroller burada hazır bekliyor.</p>
+            </div>
+            <button class="publish-close" type="button" data-close-publish-guide aria-label="Kapat">x</button>
+        </div>
+
+        <div class="publish-dialog-body">
+            <div>
+                <div class="publish-status">
+                    <span class="work-chip success"><i class="fa fa-check-circle"></i>Ayarlar kaydedildi</span>
+                    <span class="work-chip"><i class="fa fa-users"></i>@katilimYontemiEtiketi</span>
+                    <span class="work-chip @(isPassive ? "danger" : "success")"><i class="fa fa-circle"></i>@(isPassive ? "Pasif" : "Aktif")</span>
+                </div>
+                <div class="publish-rail">
+                    <div class="publish-step">
+                        <span class="publish-step-icon"><i class="fa fa-check"></i></span>
+                        <div>
+                            <strong>Yayın paketi hazır</strong>
+                            <span>Ayarlar kaydedildi, katılım kapısı oluşturuldu.</span>
+                        </div>
+                        <span class="publish-step-badge">1</span>
+                    </div>
+                    <div class="publish-step">
+                        <span class="publish-step-icon"><i class="fa fa-link"></i></span>
+                        <div>
+                            <strong>Tek link</strong>
+                            <span>Bu bağlantı seçili katılım yöntemine göre davranır.</span>
+                        </div>
+                        <span class="publish-step-badge">2</span>
+                    </div>
+                    <div class="publish-step">
+                        <span class="publish-step-icon"><i class="fa fa-bullhorn"></i></span>
+                        <div>
+                            <strong>Dağıtım</strong>
+                            <span>Kopyala, QR okut veya kanallardan gönder.</span>
+                        </div>
+                        <span class="publish-step-badge">3</span>
+                    </div>
+                </div>
+                <div class="publish-url-row">
+                    <input id="publishShareUrl" type="text" value="@paylasimUrl" readonly />
+                    <button class="work-btn primary" type="button" id="publishCopyButton">
+                        <i class="fa fa-copy"></i> Kopyala
+                    </button>
+                </div>
+                <div class="publish-share-grid">
+                    <button class="publish-share-btn primary" type="button" id="publishNativeButton"><i class="fa fa-share-alt"></i> Paylaş</button>
+                    <button class="publish-share-btn" type="button" data-publish-platform="whatsapp">WhatsApp</button>
+                    <button class="publish-share-btn" type="button" data-publish-platform="telegram">Telegram</button>
+                    <button class="publish-share-btn" type="button" data-publish-platform="teams">Teams</button>
+                    <button class="publish-share-btn" type="button" data-publish-platform="mail">E-posta</button>
+                    <button class="publish-share-btn" type="button" data-publish-platform="sms">SMS</button>
+                </div>
+                <div class="publish-feedback" id="publishFeedback" aria-live="polite"></div>
+            </div>
+            <div class="publish-side">
+                <div class="publish-qr">
+                    @if (!string.IsNullOrWhiteSpace(paylasimQrUrl))
+                    {
+                        <img src="@paylasimQrUrl" alt="Katılım QR kodu" />
+                    }
+                    else
+                    {
+                        <span>QR kod hazırlanamadı.</span>
+                    }
+                </div>
+                <div class="publish-intel">
+                    <strong>Akıllı sonraki adım</strong>
+                    <p>@(isExam ? "Cevap anahtarını son kez kontrol edip linki paylaşmanız en temiz akış olur." : "Rapor başlıklarını ürün, kategori veya konu bazında kontrol edip linki paylaşabilirsiniz.")</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="publish-next">
+            <a class="work-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = Model.AnketId, adi = Model.AnketAdi, returnUrl = returnUrl })">
+                <i class="fa fa-list"></i> Rapor Başlıklarını Kontrol Et
+            </a>
+            <a class="work-btn" data-exam-only href="@Url.Action("DogruCevapEditor", "Home", new { id = Model.AnketId, returnUrl = returnUrl })">
+                <i class="fa fa-check-circle"></i> Cevap Anahtarını Kontrol Et
+            </a>
+            <a class="work-btn" href="@returnUrl">
+                <i class="fa fa-arrow-left"></i> Çalışmalarıma Dön
+            </a>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -887,6 +1466,15 @@
         const summaryStatus = document.getElementById('summaryStatus');
         const accessInputs = document.querySelectorAll('input[name="KatilimYontemi"]');
         const summaryAccess = document.getElementById('summaryAccess');
+        const publishModal = document.getElementById('publishGuideModal');
+        const publishUrlInput = document.getElementById('publishShareUrl');
+        const publishFeedback = document.getElementById('publishFeedback');
+        const publishCopyButton = document.getElementById('publishCopyButton');
+        const publishNativeButton = document.getElementById('publishNativeButton');
+        const publishPlatformButtons = document.querySelectorAll('[data-publish-platform]');
+        const publishOpenButtons = document.querySelectorAll('[data-open-publish-guide]');
+        const publishCloseButtons = document.querySelectorAll('[data-close-publish-guide]');
+        const publishTitle = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(!string.IsNullOrWhiteSpace(Model.AnketAdi) ? Model.AnketAdi : "Survey by Aslana Teknoloji"));
 
         function isExamSelected() {
             const selected = document.querySelector('input[name="Sinav"]:checked');
@@ -974,6 +1562,99 @@
             }
         }
 
+        function openPublishGuide() {
+            if (!publishModal) return;
+            publishModal.hidden = false;
+            if (publishUrlInput) {
+                publishUrlInput.focus();
+                publishUrlInput.select();
+            }
+        }
+
+        function closePublishGuide() {
+            if (!publishModal) return;
+            publishModal.hidden = true;
+        }
+
+        async function copyPublishUrl() {
+            const value = publishUrlInput ? publishUrlInput.value : '';
+            if (!value) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(value);
+                } else {
+                    publishUrlInput.select();
+                    document.execCommand('copy');
+                }
+                if (publishFeedback) publishFeedback.textContent = 'Bağlantı kopyalandı.';
+            } catch {
+                if (publishFeedback) publishFeedback.textContent = 'Bağlantıyı elle kopyalayabilirsiniz.';
+            }
+        }
+
+        function platformShareUrl(platform, shareUrl, shareTitle) {
+            const encodedUrl = encodeURIComponent(shareUrl);
+            const encodedTitle = encodeURIComponent(shareTitle || 'Survey by Aslana Teknoloji');
+            const encodedText = encodeURIComponent((shareTitle || 'Survey by Aslana Teknoloji') + ' ' + shareUrl);
+
+            switch (platform) {
+                case 'whatsapp':
+                    return 'https://wa.me/?text=' + encodedText;
+                case 'telegram':
+                    return 'https://t.me/share/url?url=' + encodedUrl + '&text=' + encodedTitle;
+                case 'teams':
+                    return 'https://teams.microsoft.com/share?href=' + encodedUrl + '&msgText=' + encodedTitle;
+                case 'mail':
+                    return 'mailto:?subject=' + encodedTitle + '&body=' + encodedText;
+                case 'sms':
+                    return 'sms:?&body=' + encodedText;
+                default:
+                    return '';
+            }
+        }
+
+        async function nativePublishShare() {
+            const value = publishUrlInput ? publishUrlInput.value : '';
+            if (!value) return;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: publishTitle,
+                        text: publishTitle,
+                        url: value
+                    });
+                    if (publishFeedback) publishFeedback.textContent = 'Paylaşım penceresi açıldı.';
+                    return;
+                } catch (error) {
+                    if (error && error.name === 'AbortError') {
+                        if (publishFeedback) publishFeedback.textContent = '';
+                        return;
+                    }
+                }
+            }
+
+            await copyPublishUrl();
+            if (publishFeedback) publishFeedback.textContent = 'Bu cihazda genel paylaşım desteklenmiyor; bağlantı kopyalandı.';
+        }
+
+        function openPlatformShare(platform) {
+            const value = publishUrlInput ? publishUrlInput.value : '';
+            if (!value) return;
+
+            const targetUrl = platformShareUrl(platform, value, publishTitle);
+            if (!targetUrl) return;
+
+            if (targetUrl.startsWith('mailto:') || targetUrl.startsWith('sms:')) {
+                window.location.href = targetUrl;
+            } else {
+                window.open(targetUrl, '_blank', 'noopener,noreferrer');
+            }
+
+            if (publishFeedback) publishFeedback.textContent = 'Paylaşım kanalı açıldı.';
+        }
+
         typeInputs.forEach(function (input) {
             input.addEventListener('change', syncWorkType);
         });
@@ -985,6 +1666,38 @@
         accessInputs.forEach(function (input) {
             input.addEventListener('change', syncAccess);
         });
+        publishOpenButtons.forEach(function (button) {
+            button.addEventListener('click', openPublishGuide);
+        });
+        publishCloseButtons.forEach(function (button) {
+            button.addEventListener('click', closePublishGuide);
+        });
+        if (publishCopyButton) {
+            publishCopyButton.addEventListener('click', copyPublishUrl);
+        }
+        if (publishNativeButton) {
+            publishNativeButton.addEventListener('click', nativePublishShare);
+        }
+        publishPlatformButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                openPlatformShare(button.dataset.publishPlatform || '');
+            });
+        });
+        if (publishModal) {
+            publishModal.addEventListener('click', function (event) {
+                if (event.target === publishModal) {
+                    closePublishGuide();
+                }
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && !publishModal.hidden) {
+                    closePublishGuide();
+                }
+            });
+            if (publishModal.dataset.autoOpen === 'true') {
+                openPublishGuide();
+            }
+        }
 
         syncWorkType();
         syncStatus();

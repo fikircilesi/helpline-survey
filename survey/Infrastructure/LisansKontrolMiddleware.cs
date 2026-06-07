@@ -1,4 +1,4 @@
-using System.Data.SqlClient;
+﻿using System.Data.SqlClient;
 using System.Net;
 
 namespace survey.Infrastructure;
@@ -221,7 +221,7 @@ WHERE LicenseKey = @LicenseKey
 </head>
 <body>
     <main class="panel">
-        <div class="etiket">Aslana Survey Studio</div>
+        <div class="etiket">Survey by Aslana Teknoloji</div>
         <h1>Lisans dogrulanamadi</h1>
         <p>{{guvenliMesaj}}</p>
     </main>

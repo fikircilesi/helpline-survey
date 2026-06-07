@@ -1,4 +1,5 @@
-@model IEnumerable<survey.Models.Havuz>
+﻿@model IEnumerable<survey.Models.Havuz>
+@using System.Collections.Generic
 
 @functions {
     public class ReportRow
@@ -7,6 +8,8 @@
         public int Kisi { get; set; }
         public double Puan { get; set; }
         public int Soru { get; set; }
+        public string Resim { get; set; }
+        public string AvatarKlasor { get; set; }
     }
 
     public class ReportBreakdown
@@ -59,6 +62,7 @@
     var calismaTuru = sinavMi ? "Sınav / eğitim" : "Anket";
     var anketAdi = Convert.ToString(ViewBag.adi ?? ViewBag.anketadi ?? "Rapor");
     var geriId = ViewBag.ank ?? ViewBag.id;
+    var yoneticiResimleri = ViewBag.YoneticiResimleri as IDictionary<int, string> ?? new Dictionary<int, string>();
 
     Func<survey.Models.Havuz, string> KatilimciAnahtari = kayit =>
     {
@@ -253,8 +257,14 @@
 
     var yoneticiRows = kayitlar
         .Where(x => !String.IsNullOrWhiteSpace(x.User?.Yonetici?.YoneticiAdi))
-        .GroupBy(x => x.User.Yonetici.YoneticiAdi)
-        .Select(g => MakeRow(g.Key, g))
+        .GroupBy(x => new { Id = x.User.UserYoneticisi, Ad = x.User.Yonetici.YoneticiAdi })
+        .Select(g =>
+        {
+            var row = MakeRow(g.Key.Ad, g);
+            row.Resim = g.Key.Id.HasValue && yoneticiResimleri.TryGetValue(g.Key.Id.Value, out var resim) ? resim : null;
+            row.AvatarKlasor = "Yonetici";
+            return row;
+        })
         .OrderByDescending(x => x.Puan)
         .ToList();
 
@@ -508,6 +518,45 @@
         gap: 18px;
     }
 
+    .report-list-tools {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+
+    .report-search {
+        width: min(280px, 100%);
+        min-height: 38px;
+        border: 1px solid #cbd8ee;
+        border-radius: 8px;
+        padding: 0 12px;
+        color: #001a3a;
+        background: #fff;
+        font-weight: 800;
+        outline: none;
+    }
+
+    .report-search:focus {
+        border-color: #2457ff;
+        box-shadow: 0 0 0 3px rgba(36, 87, 255, .12);
+    }
+
+    .people-report-scroll {
+        max-height: 620px;
+        overflow: auto;
+    }
+
+    .table-person-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 180px;
+        font-weight: 800;
+    }
+
     @@media (max-width: 900px) {
         .report-hero {
             flex-direction: column;
@@ -523,7 +572,7 @@
 <div class="report-shell">
     <section class="report-hero">
         <div>
-            <div class="report-eyebrow">Aslana Survey Studio</div>
+            <div class="report-eyebrow">Survey by Aslana Teknoloji</div>
             <h1 class="report-title">@anketAdi</h1>
             <p class="report-subtitle">
                 Bu rapor seçilen çalışmanın sonuçlarını soru, soru grubu, kişi ve tanımlı profil kırılımlarına göre özetler.
@@ -647,7 +696,45 @@
             {
                 <div class="tab-pane fade" id="@item.Id" role="tabpanel">
                     <h2 class="section-title">@item.Baslik kırılımı</h2>
-                    @Html.Raw(RenderRows(item.Satirlar, item.Baslik + " bilgisi tanımlı katılımcı bulunmadığı için bu kırılım boş."))
+                    @if (item.Id == "Yonetici" && item.Satirlar != null && item.Satirlar.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Yönetici</th>
+                                        <th>Katılım</th>
+                                        <th>Soru</th>
+                                        <th>Puan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in item.Satirlar)
+                                    {
+                                        var puan = Math.Max(0, Math.Min(100, row.Puan));
+                                        <tr>
+                                            <td>
+                                                <div class="table-person-cell">
+                                                    @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = row.Ad, Resim = row.Resim, Klasor = "Yonetici", Size = "sm" })
+                                                    <span>@row.Ad</span>
+                                                </div>
+                                            </td>
+                                            <td>@row.Kisi kişi</td>
+                                            <td>@row.Soru</td>
+                                            <td class="score-cell">
+                                                <strong>@String.Format("{0:n2} %", puan)</strong>
+                                                <div class="score-bar"><span style="width:@PercentWidth(puan)"></span></div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.Raw(RenderRows(item.Satirlar, item.Baslik + " bilgisi tanımlı katılımcı bulunmadığı için bu kırılım boş."))
+                    }
                 </div>
             }
 
@@ -659,7 +746,11 @@
                 }
                 else
                 {
-                    <div class="table-responsive">
+                    <div class="report-list-tools">
+                        <input type="search" class="report-search" data-report-person-search placeholder="Katılımcı ara" />
+                        <span class="report-badge">@katilimGruplari.Count kayıt</span>
+                    </div>
+                    <div class="table-responsive people-report-scroll">
                         <table class="report-table">
                             <thead>
                                 <tr>
@@ -680,8 +771,14 @@
                                         ? user.UserAdi
                                         : (firstRec?.Isimsiz != null ? "Katılımcı #" + firstRec.Isimsiz : "Tanımsız");
                                     var puan = KisiPuani(grup);
-                                    <tr>
-                                        <td>@katilimci</td>
+                                    var arama = string.Join(" ", new[] { katilimci, user?.Departman?.DepartmanAdi, user?.Sehir?.SehiarAdi, user?.Unvan?.UnvanAdi }.Where(x => !String.IsNullOrWhiteSpace(x)));
+                                    <tr data-report-person-row data-search="@arama">
+                                        <td>
+                                            <div class="table-person-cell">
+                                                @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = katilimci, Resim = user?.UserResim, Cinsiyet = user?.Cinsiyet?.CinsiyetAdi, Size = "sm" })
+                                                <span>@katilimci</span>
+                                            </div>
+                                        </td>
                                         <td>@TextOrDefault(user?.Departman?.DepartmanAdi)</td>
                                         <td>@TextOrDefault(user?.Sehir?.SehiarAdi)</td>
                                         <td>@TextOrDefault(user?.Unvan?.UnvanAdi)</td>
@@ -700,3 +797,21 @@
         </div>
     </section>
 </div>
+
+<script>
+    (() => {
+        const search = document.querySelector("[data-report-person-search]");
+        const rows = Array.from(document.querySelectorAll("[data-report-person-row]"));
+        if (!search || rows.length === 0) {
+            return;
+        }
+
+        search.addEventListener("input", () => {
+            const query = search.value.toLocaleLowerCase("tr-TR").trim();
+            rows.forEach(row => {
+                const haystack = (row.dataset.search || "").toLocaleLowerCase("tr-TR");
+                row.hidden = query.length > 0 && !haystack.includes(query);
+            });
+        });
+    })();
+</script>

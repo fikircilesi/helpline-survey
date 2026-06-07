@@ -2,16 +2,26 @@ using survey.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Mail;
 using System.Net.Security;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 using System.Web.Security;
 
 namespace survey.Controllers
@@ -49,6 +59,8 @@ namespace survey.Controllers
                 return YoneticiYetkisiYok();
             }
 
+            ViewBag.PlatformSahibiMi = PlatformSahibiMi();
+            VarsayilanSecenekViewBagHazirla();
             return View();
         }
 
@@ -61,6 +73,68 @@ namespace survey.Controllers
             }
 
             return null;
+        }
+
+        private bool PlatformSahibiMi()
+        {
+            if (!YoneticiYetkisiVarMi())
+            {
+                return false;
+            }
+
+            var personelId = AktifPersonelId();
+            if (!personelId.HasValue)
+            {
+                return false;
+            }
+
+            var ownerIds = PlatformAyarListesi("Platform:OwnerPersonelIds", "Platform:OwnerIds", "ASLANA_PLATFORM_OWNER_IDS");
+            if (ownerIds.Any(x => int.TryParse(x, out var id) && id == personelId.Value))
+            {
+                return true;
+            }
+
+            var personel = db.Personel.AsNoTracking().FirstOrDefault(x => x.PersonelId == personelId.Value);
+            if (personel == null)
+            {
+                return false;
+            }
+
+            var ownerMails = PlatformAyarListesi("Platform:OwnerMails", "Platform:OwnerEmails", "ASLANA_PLATFORM_OWNER_EMAILS");
+            if (!string.IsNullOrWhiteSpace(personel.Mail)
+                && ownerMails.Any(x => string.Equals(x, personel.Mail, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var ownerUserNames = PlatformAyarListesi("Platform:OwnerUserNames", "Platform:OwnerKullaniciAdlari", "ASLANA_PLATFORM_OWNER_USERNAMES");
+            return !string.IsNullOrWhiteSpace(personel.KullaniciAdi)
+                && ownerUserNames.Any(x => string.Equals(x, personel.KullaniciAdi, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private List<string> PlatformAyarListesi(params string[] keys)
+        {
+            var values = new List<string>();
+            var configuration = HttpContext?.RequestServices.GetService<IConfiguration>();
+
+            foreach (var key in keys)
+            {
+                if (configuration != null)
+                {
+                    values.Add(configuration[key]);
+                }
+
+                values.Add(Environment.GetEnvironmentVariable(key));
+                values.Add(Environment.GetEnvironmentVariable(key.Replace(":", "__")));
+            }
+
+            return values
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .SelectMany(x => x.Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries))
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private int? AktifCalismaAlaniId()
@@ -529,6 +603,1487 @@ namespace survey.Controllers
                 .Select(i => new SelectListItem { Text = i.YakaAdi, Value = i.YakaId.ToString() }).ToList();
         }
 
+        private class HizliSecenekTanimi
+        {
+            public string Tablo { get; set; }
+            public string IdKolonu { get; set; }
+            public string AdKolonu { get; set; }
+            public bool CalismaAlaniKapsamli { get; set; }
+        }
+
+        public class AyarSecenekSatiri
+        {
+            public int Id { get; set; }
+            public string Ad { get; set; }
+        }
+
+        public class UserImportMevcutKatilimci
+        {
+            public int UserId { get; set; }
+            public string UserAdi { get; set; }
+            public string UserTc { get; set; }
+            public bool? Pasif { get; set; }
+        }
+
+        public class UserImportOnizleme
+        {
+            public List<Dictionary<string, string>> Satirlar { get; set; } = new();
+            public int ExcelSatirSayisi { get; set; }
+            public int GecerliKayitSayisi { get; set; }
+            public int AtlananSatirSayisi { get; set; }
+            public int TekrarEdenTcSayisi { get; set; }
+            public int KayitliToplamSayisi { get; set; }
+            public int KayitliAktifSayisi { get; set; }
+            public int YeniKayitSayisi { get; set; }
+            public int GuncellenecekKayitSayisi { get; set; }
+            public int ExceldeOlmayanAktifSayisi { get; set; }
+            public List<string> ExceldeOlmayanAktifOrnekleri { get; set; } = new();
+            public List<string> AtlananSatirOrnekleri { get; set; } = new();
+        }
+
+        public class UserImportSonuc
+        {
+            public int Eklenen { get; set; }
+            public int Guncellenen { get; set; }
+            public int Atlanan { get; set; }
+            public int ResimAdiWebpYapilan { get; set; }
+            public int PasifeAlinan { get; set; }
+            public int MevcutSecenekEslesen { get; set; }
+            public int BenzerSecenekEslesen { get; set; }
+            public int YeniSecenekEklenen { get; set; }
+            public List<string> AtlananSatirOrnekleri { get; set; } = new();
+            public List<string> SecenekUyariOrnekleri { get; set; } = new();
+        }
+
+        public class VarsayilanSecenekGrubu
+        {
+            public string Tip { get; set; }
+            public string Baslik { get; set; }
+            public List<string> Secenekler { get; set; } = new();
+        }
+
+        private const string UserImportOnizlemeSessionKey = "UserImportOnizleme";
+
+        private static string SecenekEslesmeAnahtari(string value)
+        {
+            var text = (value ?? string.Empty).Trim().ToLower(new CultureInfo("tr-TR"))
+                .Replace("ı", "i")
+                .Replace("ğ", "g")
+                .Replace("ü", "u")
+                .Replace("ş", "s")
+                .Replace("ö", "o")
+                .Replace("ç", "c");
+
+            var normalized = text.Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder();
+            foreach (var ch in normalized)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(ch);
+                }
+            }
+
+            return Regex.Replace(builder.ToString().Normalize(NormalizationForm.FormC), "[^a-z0-9]", string.Empty);
+        }
+
+        private static int LevenshteinMesafesi(string left, string right)
+        {
+            left ??= string.Empty;
+            right ??= string.Empty;
+            if (left.Length == 0)
+            {
+                return right.Length;
+            }
+            if (right.Length == 0)
+            {
+                return left.Length;
+            }
+
+            var costs = new int[right.Length + 1];
+            for (var j = 0; j <= right.Length; j++)
+            {
+                costs[j] = j;
+            }
+
+            for (var i = 1; i <= left.Length; i++)
+            {
+                var previous = costs[0];
+                costs[0] = i;
+                for (var j = 1; j <= right.Length; j++)
+                {
+                    var temp = costs[j];
+                    costs[j] = Math.Min(
+                        Math.Min(costs[j] + 1, costs[j - 1] + 1),
+                        previous + (left[i - 1] == right[j - 1] ? 0 : 1));
+                    previous = temp;
+                }
+            }
+
+            return costs[right.Length];
+        }
+
+        private static bool SecenekBenzerMi(string mevcut, string gelen, out bool yakinEslesme)
+        {
+            yakinEslesme = false;
+            var mevcutAnahtar = SecenekEslesmeAnahtari(mevcut);
+            var gelenAnahtar = SecenekEslesmeAnahtari(gelen);
+
+            if (string.IsNullOrWhiteSpace(mevcutAnahtar) || string.IsNullOrWhiteSpace(gelenAnahtar))
+            {
+                return false;
+            }
+
+            if (string.Equals(mevcutAnahtar, gelenAnahtar, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            var uzunluk = Math.Max(mevcutAnahtar.Length, gelenAnahtar.Length);
+            if (uzunluk < 3)
+            {
+                return false;
+            }
+
+            var mesafe = LevenshteinMesafesi(mevcutAnahtar, gelenAnahtar);
+            if (uzunluk <= 4)
+            {
+                yakinEslesme = mevcutAnahtar[0] == gelenAnahtar[0] && mesafe <= 1;
+                return yakinEslesme;
+            }
+
+            var izin = uzunluk >= 8 ? 2 : 1;
+            yakinEslesme = mesafe <= izin;
+            return yakinEslesme;
+        }
+
+        private static readonly string[] TurkiyeIlAdlari =
+        {
+            "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın", "Balıkesir",
+            "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli",
+            "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari",
+            "Hatay", "Isparta", "Mersin", "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir",
+            "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir",
+            "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat",
+            "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman",
+            "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük", "Kilis", "Osmaniye",
+            "Düzce"
+        };
+
+        private static readonly Dictionary<string, string> TurkiyeIlTakmaAdlari = new(StringComparer.Ordinal)
+        {
+            ["afyon"] = "Afyonkarahisar",
+            ["antep"] = "Gaziantep",
+            ["gaziantep"] = "Gaziantep",
+            ["icel"] = "Mersin",
+            ["izmit"] = "Kocaeli",
+            ["maras"] = "Kahramanmaraş",
+            ["kahramanmaras"] = "Kahramanmaraş",
+            ["sanliurfa"] = "Şanlıurfa",
+            ["urfa"] = "Şanlıurfa",
+            ["skarya"] = "Sakarya"
+        };
+
+        private static readonly string[] YayginUnvanAdlari =
+        {
+            "Stajyer", "Personel", "İşçi", "Operatör", "Teknisyen", "Tekniker",
+            "Asistan", "Sorumlu", "Şef", "Takım Lideri", "Ekip Lideri",
+            "Uzman Yardımcısı", "Uzman", "Kıdemli Uzman", "Analist", "Danışman",
+            "Mühendis", "Kıdemli Mühendis", "Muhasebe Sorumlusu", "Muhasebe Uzmanı",
+            "Satış Temsilcisi", "Satış Uzmanı", "Satış Müdürü",
+            "Pazarlama Uzmanı", "Pazarlama Müdürü",
+            "İnsan Kaynakları Uzmanı", "İnsan Kaynakları Müdürü",
+            "Finans Uzmanı", "Finans Müdürü",
+            "Müdür Yardımcısı", "Müdür", "Şube Müdürü", "Bölge Müdürü", "Departman Müdürü",
+            "Koordinatör", "Yönetmen", "Direktör",
+            "Genel Müdür Yardımcısı", "Genel Müdür", "Başkan Yardımcısı", "Başkan",
+            "CEO", "CFO", "CTO", "COO"
+        };
+
+        private static readonly Dictionary<string, string> YayginUnvanTakmaAdlari = new(StringComparer.Ordinal)
+        {
+            ["mudur"] = "Müdür",
+            ["mdr"] = "Müdür",
+            ["sefh"] = "Şef",
+            ["sef"] = "Şef",
+            ["direktor"] = "Direktör",
+            ["gm"] = "Genel Müdür",
+            ["genelmudur"] = "Genel Müdür",
+            ["genelmuduryardimcisi"] = "Genel Müdür Yardımcısı",
+            ["ikuzmani"] = "İnsan Kaynakları Uzmanı",
+            ["ikmuduru"] = "İnsan Kaynakları Müdürü",
+            ["satisuzmani"] = "Satış Uzmanı",
+            ["satismuduru"] = "Satış Müdürü"
+        };
+
+        private static readonly Dictionary<string, string[]> VarsayilanSecenekAdlari = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Cinsiyet"] = new[]
+            {
+                "Erkek", "Kadın", "Belirtmek İstemiyorum", "Diğer"
+            },
+            ["Egitim"] = new[]
+            {
+                "İlköğretim", "Ortaokul", "Lise", "Ön Lisans", "Lisans", "Üniversite", "Yüksek Lisans", "Doktora"
+            },
+            ["Departman"] = new[]
+            {
+                "İnsan Kaynakları", "Muhasebe", "Finans", "Satış", "Pazarlama", "Operasyon", "Üretim",
+                "Kalite", "Lojistik", "Satın Alma", "Müşteri Hizmetleri", "IT", "Bilgi Teknolojileri",
+                "Ar-Ge", "Yönetim", "İdari İşler", "Bakım", "Planlama", "Depo"
+            },
+            ["Bolge"] = new[]
+            {
+                "Marmara", "Ege", "İç Anadolu", "Akdeniz", "Karadeniz", "Doğu Anadolu", "Güneydoğu Anadolu"
+            }
+        };
+
+        private static readonly Dictionary<string, Dictionary<string, string>> VarsayilanSecenekTakmaAdlari = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Cinsiyet"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["bay"] = "Erkek",
+                ["erk"] = "Erkek",
+                ["e"] = "Erkek",
+                ["bayan"] = "Kadın",
+                ["kadin"] = "Kadın",
+                ["kadn"] = "Kadın",
+                ["k"] = "Kadın",
+                ["diger"] = "Diğer"
+            },
+            ["Egitim"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["ilkogretim"] = "İlköğretim",
+                ["ilkögretim"] = "İlköğretim",
+                ["ortaokul"] = "Ortaokul",
+                ["ortaokl"] = "Ortaokul",
+                ["onlisans"] = "Ön Lisans",
+                ["lisans"] = "Lisans",
+                ["universite"] = "Üniversite",
+                ["yukseklisans"] = "Yüksek Lisans",
+                ["doktora"] = "Doktora"
+            },
+            ["Departman"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["ik"] = "İnsan Kaynakları",
+                ["insankaynaklari"] = "İnsan Kaynakları",
+                ["muhasebe"] = "Muhasebe",
+                ["muhesebe"] = "Muhasebe",
+                ["bt"] = "Bilgi Teknolojileri",
+                ["bilgiislem"] = "Bilgi Teknolojileri",
+                ["arge"] = "Ar-Ge",
+                ["satis"] = "Satış",
+                ["satinalma"] = "Satın Alma"
+            },
+            ["Bolge"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["ege"] = "Ege",
+                ["ego"] = "Ege",
+                ["marmara"] = "Marmara",
+                ["akdeniz"] = "Akdeniz",
+                ["karadeniz"] = "Karadeniz",
+                ["icanadolu"] = "İç Anadolu",
+                ["doguanadolu"] = "Doğu Anadolu",
+                ["guneydoguanadolu"] = "Güneydoğu Anadolu"
+            }
+        };
+
+        private static bool TurkiyeIlAdiBul(string value, out string ilAdi, out bool yakinEslesme)
+        {
+            ilAdi = string.Empty;
+            yakinEslesme = false;
+            var anahtar = SecenekEslesmeAnahtari(value);
+            if (string.IsNullOrWhiteSpace(anahtar))
+            {
+                return false;
+            }
+
+            if (TurkiyeIlTakmaAdlari.TryGetValue(anahtar, out var takmaAd))
+            {
+                ilAdi = takmaAd;
+                yakinEslesme = !string.Equals(anahtar, SecenekEslesmeAnahtari(takmaAd), StringComparison.Ordinal);
+                return true;
+            }
+
+            foreach (var il in TurkiyeIlAdlari)
+            {
+                if (string.Equals(anahtar, SecenekEslesmeAnahtari(il), StringComparison.Ordinal))
+                {
+                    ilAdi = il;
+                    return true;
+                }
+            }
+
+            if (anahtar.Length < 5)
+            {
+                return false;
+            }
+
+            string enYakinIl = null;
+            var enDusukMesafe = int.MaxValue;
+            foreach (var il in TurkiyeIlAdlari)
+            {
+                var ilAnahtar = SecenekEslesmeAnahtari(il);
+                var mesafe = LevenshteinMesafesi(anahtar, ilAnahtar);
+                if (mesafe < enDusukMesafe)
+                {
+                    enDusukMesafe = mesafe;
+                    enYakinIl = il;
+                }
+            }
+
+            var izin = anahtar.Length >= 8 ? 2 : 1;
+            if (!string.IsNullOrWhiteSpace(enYakinIl) && enDusukMesafe <= izin)
+            {
+                ilAdi = enYakinIl;
+                yakinEslesme = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool YayginUnvanAdiBul(string value, out string unvanAdi, out bool yakinEslesme)
+        {
+            unvanAdi = string.Empty;
+            yakinEslesme = false;
+            var anahtar = SecenekEslesmeAnahtari(value);
+            if (string.IsNullOrWhiteSpace(anahtar))
+            {
+                return false;
+            }
+
+            if (YayginUnvanTakmaAdlari.TryGetValue(anahtar, out var takmaAd))
+            {
+                unvanAdi = takmaAd;
+                yakinEslesme = !string.Equals(anahtar, SecenekEslesmeAnahtari(takmaAd), StringComparison.Ordinal);
+                return true;
+            }
+
+            foreach (var unvan in YayginUnvanAdlari)
+            {
+                if (string.Equals(anahtar, SecenekEslesmeAnahtari(unvan), StringComparison.Ordinal))
+                {
+                    unvanAdi = unvan;
+                    return true;
+                }
+            }
+
+            if (anahtar.Length < 4)
+            {
+                return false;
+            }
+
+            string enYakinUnvan = null;
+            var enDusukMesafe = int.MaxValue;
+            foreach (var unvan in YayginUnvanAdlari)
+            {
+                var unvanAnahtar = SecenekEslesmeAnahtari(unvan);
+                var mesafe = LevenshteinMesafesi(anahtar, unvanAnahtar);
+                if (mesafe < enDusukMesafe)
+                {
+                    enDusukMesafe = mesafe;
+                    enYakinUnvan = unvan;
+                }
+            }
+
+            var izin = anahtar.Length >= 8 ? 2 : 1;
+            if (!string.IsNullOrWhiteSpace(enYakinUnvan) && enDusukMesafe <= izin)
+            {
+                unvanAdi = enYakinUnvan;
+                yakinEslesme = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool VarsayilanSecenekAdiBul(string tip, string value, out string secenekAdi, out bool yakinEslesme)
+        {
+            secenekAdi = string.Empty;
+            yakinEslesme = false;
+            if (!VarsayilanSecenekAdlari.TryGetValue(tip ?? string.Empty, out var liste))
+            {
+                return false;
+            }
+
+            var anahtar = SecenekEslesmeAnahtari(value);
+            if (string.IsNullOrWhiteSpace(anahtar))
+            {
+                return false;
+            }
+
+            if (VarsayilanSecenekTakmaAdlari.TryGetValue(tip, out var takmaAdlar)
+                && takmaAdlar.TryGetValue(anahtar, out var takmaAd))
+            {
+                secenekAdi = takmaAd;
+                yakinEslesme = !string.Equals(anahtar, SecenekEslesmeAnahtari(takmaAd), StringComparison.Ordinal);
+                return true;
+            }
+
+            foreach (var item in liste)
+            {
+                if (string.Equals(anahtar, SecenekEslesmeAnahtari(item), StringComparison.Ordinal))
+                {
+                    secenekAdi = item;
+                    return true;
+                }
+            }
+
+            if (anahtar.Length < 3)
+            {
+                return false;
+            }
+
+            string enYakinSecenek = null;
+            var enDusukMesafe = int.MaxValue;
+            foreach (var item in liste)
+            {
+                var itemAnahtar = SecenekEslesmeAnahtari(item);
+                var mesafe = LevenshteinMesafesi(anahtar, itemAnahtar);
+                if (mesafe < enDusukMesafe)
+                {
+                    enDusukMesafe = mesafe;
+                    enYakinSecenek = item;
+                }
+            }
+
+            var izin = anahtar.Length >= 8 ? 2 : 1;
+            if (!string.IsNullOrWhiteSpace(enYakinSecenek) && enDusukMesafe <= izin)
+            {
+                secenekAdi = enYakinSecenek;
+                yakinEslesme = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool SecenekKanonikAdiGuncellensin(string tip)
+        {
+            return string.Equals(tip, "Sehir", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tip, "Unvan", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tip, "Cinsiyet", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tip, "Egitim", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tip, "Departman", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tip, "Bolge", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static HizliSecenekTanimi HizliSecenekTanimiGetir(string tip)
+        {
+            return (tip ?? string.Empty).Trim() switch
+            {
+                "Unvan" => new HizliSecenekTanimi { Tablo = "dbo.Unvan", IdKolonu = "UnvanId", AdKolonu = "UnvanAdi", CalismaAlaniKapsamli = true },
+                "Bolum" => new HizliSecenekTanimi { Tablo = "dbo.Bolum", IdKolonu = "BolumId", AdKolonu = "BolumAdi", CalismaAlaniKapsamli = true },
+                "Sube" => new HizliSecenekTanimi { Tablo = "dbo.Sube", IdKolonu = "SubeId", AdKolonu = "SubeAdi", CalismaAlaniKapsamli = true },
+                "Bolge" => new HizliSecenekTanimi { Tablo = "dbo.Bolge", IdKolonu = "BolgeId", AdKolonu = "BolgeAdi", CalismaAlaniKapsamli = true },
+                "Departman" => new HizliSecenekTanimi { Tablo = "dbo.Departman", IdKolonu = "DepartmanId", AdKolonu = "DepartmanAdi", CalismaAlaniKapsamli = true },
+                "Yonetici" => new HizliSecenekTanimi { Tablo = "dbo.Yonetici", IdKolonu = "YoneticiId", AdKolonu = "YoneticiAdi", CalismaAlaniKapsamli = true },
+                "Sehir" => new HizliSecenekTanimi { Tablo = "dbo.Sehir", IdKolonu = "SehirId", AdKolonu = "SehiarAdi", CalismaAlaniKapsamli = true },
+                "Cinsiyet" => new HizliSecenekTanimi { Tablo = "dbo.Cinsiyet", IdKolonu = "CinsiyetId", AdKolonu = "CinsiyetAdi" },
+                "Egitim" => new HizliSecenekTanimi { Tablo = "dbo.Egitim", IdKolonu = "EgitimId", AdKolonu = "EgitimAdi" },
+                "Yaka" => new HizliSecenekTanimi { Tablo = "dbo.Yaka", IdKolonu = "YakaId", AdKolonu = "YakaAdi" },
+                _ => null
+            };
+        }
+
+        private int HizliSecenekIdAlVeyaOlustur(string tip, string ad)
+        {
+            return HizliSecenekIdAlVeyaOlustur(tip, ad, out _);
+        }
+
+        private int HizliSecenekIdAlVeyaOlustur(string tip, string ad, out string sonuc)
+        {
+            return HizliSecenekIdAlVeyaOlustur(tip, ad, out sonuc, out _);
+        }
+
+        private int HizliSecenekIdAlVeyaOlustur(string tip, string ad, out string sonuc, out string kayitAdi)
+        {
+            sonuc = string.Empty;
+            kayitAdi = string.Empty;
+            var tanim = HizliSecenekTanimiGetir(tip);
+            if (tanim == null)
+            {
+                return 0;
+            }
+
+            ad = MetniKirp(ad, 80);
+            if (string.Equals(tip, "Sehir", StringComparison.OrdinalIgnoreCase))
+            {
+                if (TurkiyeIlAdiBul(ad, out var ilAdi, out var yakinSehirEslesme))
+                {
+                    ad = ilAdi;
+                    sonuc = yakinSehirEslesme ? "benzer" : string.Empty;
+                }
+            }
+            else if (string.Equals(tip, "Unvan", StringComparison.OrdinalIgnoreCase)
+                && YayginUnvanAdiBul(ad, out var unvanAdi, out var yakinUnvanEslesme))
+            {
+                ad = unvanAdi;
+                sonuc = yakinUnvanEslesme ? "benzer" : string.Empty;
+            }
+            else if (VarsayilanSecenekAdiBul(tip, ad, out var varsayilanSecenekAdi, out var yakinVarsayilanEslesme))
+            {
+                ad = varsayilanSecenekAdi;
+                sonuc = yakinVarsayilanEslesme ? "benzer" : string.Empty;
+            }
+
+            kayitAdi = ad;
+            if (string.IsNullOrWhiteSpace(ad))
+            {
+                return 0;
+            }
+
+            var calismaAlaniId = tanim.CalismaAlaniKapsamli ? AktifCalismaAlaniId() : null;
+            if (tanim.CalismaAlaniKapsamli && !calismaAlaniId.HasValue)
+            {
+                return 0;
+            }
+
+            List<AyarSecenekSatiri> mevcutlar;
+            if (tanim.CalismaAlaniKapsamli)
+            {
+                mevcutlar = db.Database.SqlQuery<AyarSecenekSatiri>(
+                    $@"SELECT [{tanim.IdKolonu}] AS Id, [{tanim.AdKolonu}] AS Ad
+                       FROM {tanim.Tablo}
+                       WHERE CalismaAlaniId = @p0
+                       ORDER BY [{tanim.IdKolonu}]",
+                    calismaAlaniId.Value).ToList();
+            }
+            else
+            {
+                mevcutlar = db.Database.SqlQuery<AyarSecenekSatiri>(
+                    $@"SELECT [{tanim.IdKolonu}] AS Id, [{tanim.AdKolonu}] AS Ad
+                       FROM {tanim.Tablo}
+                       ORDER BY [{tanim.IdKolonu}]").ToList();
+            }
+
+            var adAnahtar = SecenekEslesmeAnahtari(ad);
+            var tamEslesen = mevcutlar.FirstOrDefault(x =>
+                string.Equals(SecenekEslesmeAnahtari(x.Ad), adAnahtar, StringComparison.Ordinal));
+            if (tamEslesen != null)
+            {
+                sonuc = sonuc == "benzer" ? "benzer" : "mevcut";
+                if (SecenekKanonikAdiGuncellensin(tip)
+                    && !string.Equals((tamEslesen.Ad ?? string.Empty).Trim(), ad, StringComparison.Ordinal))
+                {
+                    db.Database.ExecuteSqlCommand(
+                        $"UPDATE {tanim.Tablo} SET [{tanim.AdKolonu}] = @p0 WHERE [{tanim.IdKolonu}] = @p1",
+                        ad,
+                        tamEslesen.Id);
+                }
+                return tamEslesen.Id;
+            }
+
+            foreach (var mevcut in mevcutlar)
+            {
+                if (SecenekBenzerMi(mevcut.Ad, ad, out var yakinEslesme))
+                {
+                    sonuc = sonuc == "benzer" || yakinEslesme ? "benzer" : "mevcut";
+                    if (SecenekKanonikAdiGuncellensin(tip)
+                        && !string.Equals((mevcut.Ad ?? string.Empty).Trim(), ad, StringComparison.Ordinal))
+                    {
+                        db.Database.ExecuteSqlCommand(
+                            $"UPDATE {tanim.Tablo} SET [{tanim.AdKolonu}] = @p0 WHERE [{tanim.IdKolonu}] = @p1",
+                            ad,
+                            mevcut.Id);
+                    }
+                    return mevcut.Id;
+                }
+            }
+
+            sonuc = "yeni";
+            return tanim.CalismaAlaniKapsamli
+                ? db.Database.SqlQuery<int>(
+                    $@"INSERT INTO {tanim.Tablo} ([{tanim.AdKolonu}], CalismaAlaniId)
+                       VALUES (@p0, @p1);
+                       SELECT CAST(SCOPE_IDENTITY() AS int);",
+                    ad,
+                    calismaAlaniId.Value).First()
+                : db.Database.SqlQuery<int>(
+                    $@"INSERT INTO {tanim.Tablo} ([{tanim.AdKolonu}])
+                       VALUES (@p0);
+                       SELECT CAST(SCOPE_IDENTITY() AS int);",
+                    ad).First();
+        }
+
+        private void TurkiyeSehirleriniHazirla()
+        {
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!calismaAlaniId.HasValue || !AyarTablosuCalismaAlaniKolonuVarMi("Sehir"))
+            {
+                return;
+            }
+
+            var sessionKey = $"TurkiyeSehirleriHazirlandi_{calismaAlaniId.Value}";
+            if (Session[sessionKey] != null)
+            {
+                return;
+            }
+
+            try
+            {
+                foreach (var il in TurkiyeIlAdlari)
+                {
+                    HizliSecenekIdAlVeyaOlustur("Sehir", il);
+                }
+
+                Session[sessionKey] = true;
+            }
+            catch
+            {
+            }
+        }
+
+        private void YayginUnvanlariHazirla()
+        {
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!calismaAlaniId.HasValue || !AyarTablosuCalismaAlaniKolonuVarMi("Unvan"))
+            {
+                return;
+            }
+
+            var sessionKey = $"YayginUnvanlarHazirlandi_{calismaAlaniId.Value}";
+            if (Session[sessionKey] != null)
+            {
+                return;
+            }
+
+            try
+            {
+                foreach (var unvan in YayginUnvanAdlari)
+                {
+                    HizliSecenekIdAlVeyaOlustur("Unvan", unvan);
+                }
+
+                Session[sessionKey] = true;
+            }
+            catch
+            {
+            }
+        }
+
+        private void VarsayilanSecenekleriHazirla(params string[] tipler)
+        {
+            foreach (var tip in tipler ?? Array.Empty<string>())
+            {
+                if (!VarsayilanSecenekAdlari.TryGetValue(tip ?? string.Empty, out var liste))
+                {
+                    continue;
+                }
+
+                var tanim = HizliSecenekTanimiGetir(tip);
+                if (tanim == null)
+                {
+                    continue;
+                }
+
+                var calismaAlaniId = tanim.CalismaAlaniKapsamli ? AktifCalismaAlaniId() : null;
+                if (tanim.CalismaAlaniKapsamli
+                    && (!calismaAlaniId.HasValue || !AyarTablosuCalismaAlaniKolonuVarMi(tip)))
+                {
+                    continue;
+                }
+
+                var sessionKey = tanim.CalismaAlaniKapsamli
+                    ? $"VarsayilanSecenekHazirlandi_{tip}_{calismaAlaniId.Value}"
+                    : $"VarsayilanSecenekHazirlandi_{tip}";
+                if (Session[sessionKey] != null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    foreach (var item in liste)
+                    {
+                        HizliSecenekIdAlVeyaOlustur(tip, item);
+                    }
+
+                    Session[sessionKey] = true;
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private static List<VarsayilanSecenekGrubu> VarsayilanSecenekGruplari()
+        {
+            return new List<VarsayilanSecenekGrubu>
+            {
+                new VarsayilanSecenekGrubu { Tip = "Unvan", Baslik = "Ünvan", Secenekler = YayginUnvanAdlari.ToList() },
+                new VarsayilanSecenekGrubu { Tip = "Cinsiyet", Baslik = "Cinsiyet", Secenekler = VarsayilanSecenekAdlari["Cinsiyet"].ToList() },
+                new VarsayilanSecenekGrubu { Tip = "Egitim", Baslik = "Eğitim", Secenekler = VarsayilanSecenekAdlari["Egitim"].ToList() },
+                new VarsayilanSecenekGrubu { Tip = "Departman", Baslik = "Departman", Secenekler = VarsayilanSecenekAdlari["Departman"].ToList() },
+                new VarsayilanSecenekGrubu { Tip = "Bolge", Baslik = "Bölge", Secenekler = VarsayilanSecenekAdlari["Bolge"].ToList() },
+                new VarsayilanSecenekGrubu { Tip = "Sehir", Baslik = "Şehir", Secenekler = TurkiyeIlAdlari.ToList() }
+            };
+        }
+
+        private void VarsayilanSecenekViewBagHazirla()
+        {
+            ViewBag.VarsayilanSecenekGruplari = VarsayilanSecenekGruplari();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult HizliSecenekEkle(string tip, string ad)
+        {
+            if (Session["id"] == null)
+            {
+                return Json(new { success = false, message = "Oturum suresi doldu. Lutfen tekrar giris yapin." });
+            }
+
+            var tanim = HizliSecenekTanimiGetir(tip);
+            if (tanim == null)
+            {
+                return Json(new { success = false, message = "Liste tipi taninamadi." });
+            }
+
+            ad = (ad ?? string.Empty).Trim();
+            if (ad.Length < 2)
+            {
+                return Json(new { success = false, message = "En az 2 karakter yazin." });
+            }
+
+            if (ad.Length > 80)
+            {
+                ad = ad.Substring(0, 80);
+            }
+
+            var calismaAlaniId = tanim.CalismaAlaniKapsamli ? AktifCalismaAlaniId() : null;
+            if (tanim.CalismaAlaniKapsamli && !calismaAlaniId.HasValue)
+            {
+                return Json(new { success = false, message = "Calisma alani bulunamadi." });
+            }
+
+            try
+            {
+                var id = HizliSecenekIdAlVeyaOlustur(tip, ad, out var sonuc, out var kayitAdi);
+                if (id <= 0 && sonuc == "gecersiz" && string.Equals(tip, "Sehir", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Json(new { success = false, message = "Sehir adi 81 il icinde bulunamadi. Resmi il adini yazin." });
+                }
+
+                return Json(new { success = id > 0, id, text = string.IsNullOrWhiteSpace(kayitAdi) ? ad : kayitAdi, kind = sonuc, message = id > 0 ? "" : "Secenek eklenemedi." });
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Secenek eklenemedi." });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult VarsayilanSecenekleriEkle(string[] secenekler, string donus = "UserIndex")
+        {
+            if (Session["id"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            var donusAction = string.Equals(donus, "Index", StringComparison.OrdinalIgnoreCase) ? "Index" : "UserIndex";
+            var gruplar = VarsayilanSecenekGruplari();
+            var izinliSecenekler = gruplar
+                .SelectMany(g => g.Secenekler.Select(s => $"{g.Tip}|{s}"))
+                .ToHashSet(StringComparer.Ordinal);
+            var secilenler = (secenekler ?? Array.Empty<string>())
+                .Where(x => !string.IsNullOrWhiteSpace(x) && izinliSecenekler.Contains(x))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            if (!secilenler.Any())
+            {
+                TempData["UserImportMesaj"] = "Varsayılan liste için en az bir seçenek işaretleyin.";
+                return RedirectToAction(donusAction);
+            }
+
+            var eklenen = 0;
+            var eslesen = 0;
+            var atlanan = 0;
+
+            foreach (var secenek in secilenler)
+            {
+                var parcalar = secenek.Split('|', 2);
+                if (parcalar.Length != 2)
+                {
+                    atlanan++;
+                    continue;
+                }
+
+                var id = HizliSecenekIdAlVeyaOlustur(parcalar[0], parcalar[1], out var sonuc);
+                if (id <= 0)
+                {
+                    atlanan++;
+                }
+                else if (sonuc == "yeni")
+                {
+                    eklenen++;
+                }
+                else
+                {
+                    eslesen++;
+                }
+            }
+
+            TempData["UserImportMesaj"] = $"{eklenen} varsayılan seçenek eklendi, {eslesen} seçenek mevcut kayıtla eşleşti, {atlanan} seçenek atlandı.";
+            return RedirectToAction(donusAction);
+        }
+
+        private int? ImportSecenekId(string tip, string ad, UserImportSonuc importSonuc = null)
+        {
+            var id = HizliSecenekIdAlVeyaOlustur(tip, ad, out var sonuc);
+            if (importSonuc != null && sonuc == "gecersiz" && !string.IsNullOrWhiteSpace(ad))
+            {
+                if (importSonuc.SecenekUyariOrnekleri.Count < 8)
+                {
+                    importSonuc.SecenekUyariOrnekleri.Add($"{tip}: {ad}");
+                }
+                return null;
+            }
+
+            if (importSonuc != null && id > 0)
+            {
+                if (sonuc == "benzer")
+                {
+                    importSonuc.BenzerSecenekEslesen++;
+                }
+                else if (sonuc == "mevcut")
+                {
+                    importSonuc.MevcutSecenekEslesen++;
+                }
+                else if (sonuc == "yeni")
+                {
+                    importSonuc.YeniSecenekEklenen++;
+                }
+            }
+
+            return id > 0 ? (int?)id : null;
+        }
+
+        private static object SqlDegeri(object value)
+        {
+            return value ?? DBNull.Value;
+        }
+
+        private const string KatilimciResimKlasoru = "~/Content/Katilimci/";
+        private const string YoneticiResimKlasoru = "~/Content/Yonetici/";
+        private const int ResimWebpKalite = 82;
+        private const int ResimWebpMaksimumKenar = 768;
+
+        private static string ResimDosyaAdiWebpYap(string dosyaAdi, string varsayilanAd)
+        {
+            var fileName = Path.GetFileName((dosyaAdi ?? string.Empty).Trim());
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return string.Empty;
+            }
+
+            var name = Path.GetFileNameWithoutExtension(fileName);
+            name = Regex.Replace(name, @"[^\p{L}\p{Nd}\-_ ]", "_");
+            name = Regex.Replace(name, @"\s+", "-").Trim('-', '_');
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = varsayilanAd;
+            }
+
+            const string extension = ".webp";
+            var maxNameLength = Math.Max(1, 50 - extension.Length);
+            if (name.Length > maxNameLength)
+            {
+                name = name.Substring(0, maxNameLength);
+            }
+
+            return name + extension;
+        }
+
+        private static string KatilimciResimDosyaAdiTemizle(string dosyaAdi)
+        {
+            return ResimDosyaAdiWebpYap(dosyaAdi, "katilimci");
+        }
+
+        private void ResmiWebpOlarakKaydet(IFormFile resimDosyasi, string klasor, string dosyaAdi)
+        {
+            using var stream = resimDosyasi.OpenReadStream();
+            ResmiWebpOlarakKaydet(stream, klasor, dosyaAdi);
+        }
+
+        private void ResmiWebpOlarakKaydet(Stream stream, string klasor, string dosyaAdi)
+        {
+            if (stream.CanSeek)
+            {
+                stream.Position = 0;
+            }
+
+            using var image = SixLabors.ImageSharp.Image.Load(stream);
+            if (image.Width > ResimWebpMaksimumKenar || image.Height > ResimWebpMaksimumKenar)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new SixLabors.ImageSharp.Size(ResimWebpMaksimumKenar, ResimWebpMaksimumKenar)
+                }));
+            }
+
+            var hedefPath = MapPath(klasor + dosyaAdi);
+            var hedefKlasor = Path.GetDirectoryName(hedefPath);
+            if (!string.IsNullOrWhiteSpace(hedefKlasor) && !Directory.Exists(hedefKlasor))
+            {
+                Directory.CreateDirectory(hedefKlasor);
+            }
+
+            image.SaveAsWebp(hedefPath, new WebpEncoder { Quality = ResimWebpKalite });
+        }
+
+        private string KatilimciResimBenzersizDosyaAdi(string dosyaAdi)
+        {
+            var fileName = KatilimciResimDosyaAdiTemizle(dosyaAdi);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return string.Empty;
+            }
+
+            var path = MapPath(KatilimciResimKlasoru + fileName);
+            if (!System.IO.File.Exists(path))
+            {
+                return fileName;
+            }
+
+            var extension = Path.GetExtension(fileName);
+            var name = Path.GetFileNameWithoutExtension(fileName);
+            var suffix = "-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+            var maxNameLength = Math.Max(1, 50 - extension.Length - suffix.Length);
+            if (name.Length > maxNameLength)
+            {
+                name = name.Substring(0, maxNameLength);
+            }
+
+            return name + suffix + extension;
+        }
+
+        private string KatilimciResimKaydet(IFormFile resimDosyasi)
+        {
+            if (resimDosyasi == null || resimDosyasi.Length <= 0)
+            {
+                return string.Empty;
+            }
+
+            var dosyaAdi = KatilimciResimBenzersizDosyaAdi(resimDosyasi.FileName);
+            if (string.IsNullOrWhiteSpace(dosyaAdi))
+            {
+                throw new InvalidOperationException("Katılımcı resmi jpg, jpeg, png, webp veya gif olmalı.");
+            }
+
+            try
+            {
+                ResmiWebpOlarakKaydet(resimDosyasi, KatilimciResimKlasoru, dosyaAdi);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Katılımcı resmi okunabilir bir görsel olmalı; sistem WebP olarak kaydeder.", ex);
+            }
+
+            return dosyaAdi;
+        }
+
+        private string KatilimciResimTopluKaydet(IFormFile resimDosyasi)
+        {
+            if (resimDosyasi == null || resimDosyasi.Length <= 0)
+            {
+                return string.Empty;
+            }
+
+            var dosyaAdi = KatilimciResimDosyaAdiTemizle(resimDosyasi.FileName);
+            if (string.IsNullOrWhiteSpace(dosyaAdi))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                ResmiWebpOlarakKaydet(resimDosyasi, KatilimciResimKlasoru, dosyaAdi);
+                return dosyaAdi;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string YoneticiResimDosyaAdiTemizle(string dosyaAdi)
+        {
+            return ResimDosyaAdiWebpYap(dosyaAdi, "yonetici");
+        }
+
+        private string YoneticiResimBenzersizDosyaAdi(string dosyaAdi)
+        {
+            var fileName = YoneticiResimDosyaAdiTemizle(dosyaAdi);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return string.Empty;
+            }
+
+            var path = MapPath(YoneticiResimKlasoru + fileName);
+            if (!System.IO.File.Exists(path))
+            {
+                return fileName;
+            }
+
+            var extension = Path.GetExtension(fileName);
+            var name = Path.GetFileNameWithoutExtension(fileName);
+            var suffix = "-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+            var maxNameLength = Math.Max(1, 50 - extension.Length - suffix.Length);
+            if (name.Length > maxNameLength)
+            {
+                name = name.Substring(0, maxNameLength);
+            }
+
+            return name + suffix + extension;
+        }
+
+        private string YoneticiResimKaydet(IFormFile resimDosyasi)
+        {
+            if (resimDosyasi == null || resimDosyasi.Length <= 0)
+            {
+                return string.Empty;
+            }
+
+            var dosyaAdi = YoneticiResimBenzersizDosyaAdi(resimDosyasi.FileName);
+            if (string.IsNullOrWhiteSpace(dosyaAdi))
+            {
+                throw new InvalidOperationException("Yönetici resmi jpg, jpeg, png, webp veya gif olmalı.");
+            }
+
+            try
+            {
+                ResmiWebpOlarakKaydet(resimDosyasi, YoneticiResimKlasoru, dosyaAdi);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Yönetici resmi okunabilir bir görsel olmalı; sistem WebP olarak kaydeder.", ex);
+            }
+
+            return dosyaAdi;
+        }
+
+        private string KirpilmisResimKaydet(string kirpilmisResim, string klasor, string dosyaOnEki)
+        {
+            if (string.IsNullOrWhiteSpace(kirpilmisResim))
+            {
+                return string.Empty;
+            }
+
+            var virgul = kirpilmisResim.IndexOf(',');
+            if (virgul <= 0)
+            {
+                return string.Empty;
+            }
+
+            var meta = kirpilmisResim.Substring(0, virgul).ToLowerInvariant();
+            if (!meta.StartsWith("data:image/"))
+            {
+                return string.Empty;
+            }
+
+            var dosyaAdi = dosyaOnEki + "-" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".webp";
+            var bytes = Convert.FromBase64String(kirpilmisResim.Substring(virgul + 1));
+            if (bytes.Length > 4 * 1024 * 1024)
+            {
+                throw new InvalidOperationException("Kırpılmış resim 4 MB altında olmalı.");
+            }
+
+            using var stream = new MemoryStream(bytes);
+            ResmiWebpOlarakKaydet(stream, klasor, dosyaAdi);
+            return dosyaAdi;
+        }
+
+        private bool YoneticiResimAlaniVarMi()
+        {
+            try
+            {
+                return db.Database.SqlQuery<int>("SELECT CAST(CASE WHEN COL_LENGTH('dbo.Yonetici', 'YoneticiResim') IS NULL THEN 0 ELSE 1 END AS int)").FirstOrDefault() == 1;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private string YoneticiResimGetir(int yoneticiId)
+        {
+            if (!YoneticiResimAlaniVarMi())
+            {
+                return string.Empty;
+            }
+
+            return db.Database
+                .SqlQuery<string>("SELECT YoneticiResim FROM dbo.Yonetici WHERE YoneticiId = @p0", yoneticiId)
+                .FirstOrDefault() ?? string.Empty;
+        }
+
+        private void YoneticiResimleriniYukle(IEnumerable<Yonetici> yoneticiler)
+        {
+            var liste = (yoneticiler ?? Enumerable.Empty<Yonetici>()).ToList();
+            if (!liste.Any() || !YoneticiResimAlaniVarMi())
+            {
+                return;
+            }
+
+            foreach (var yonetici in liste)
+            {
+                yonetici.YoneticiResim = db.Database
+                    .SqlQuery<string>("SELECT YoneticiResim FROM dbo.Yonetici WHERE YoneticiId = @p0", yonetici.YoneticiId)
+                    .FirstOrDefault() ?? string.Empty;
+            }
+        }
+
+        private void YoneticiResimGuncelle(int yoneticiId, string resim)
+        {
+            if (!YoneticiResimAlaniVarMi())
+            {
+                throw new InvalidOperationException("YoneticiResim alanı bulunamadı. DatabaseScripts/20260606_YoneticiResim.sql scriptini çalıştırın.");
+            }
+
+            db.Database.ExecuteSqlCommand(
+                "UPDATE dbo.Yonetici SET YoneticiResim = @p0 WHERE YoneticiId = @p1",
+                SqlDegeri(string.IsNullOrWhiteSpace(resim) ? null : resim),
+                yoneticiId);
+        }
+
+        private static readonly string[] KatilimciImportBasliklari =
+        {
+            "Katılımcı Adı",
+            "TC",
+            "Unvan",
+            "Cinsiyet",
+            "Eğitim",
+            "Doğum Tarihi",
+            "Bölüm",
+            "Şube",
+            "Bölge",
+            "Departman",
+            "Yönetici",
+            "Yaka",
+            "Şehir",
+            "E-posta",
+            "Resim Dosya Adı",
+            "Telefon",
+            "Adres",
+            "İşe Giriş Tarihi",
+            "Pasif",
+            "Kayıt Tarihi"
+        };
+
+        private static string MetniKirp(string value, int maxLength)
+        {
+            var text = (value ?? string.Empty).Trim();
+            return text.Length <= maxLength ? text : text.Substring(0, maxLength);
+        }
+
+        private static string BaslikAnahtari(string value)
+        {
+            var text = (value ?? string.Empty).Trim().ToLowerInvariant()
+                .Replace("ı", "i")
+                .Replace("ğ", "g")
+                .Replace("ü", "u")
+                .Replace("ş", "s")
+                .Replace("ö", "o")
+                .Replace("ç", "c");
+
+            return Regex.Replace(text, "[^a-z0-9]", string.Empty);
+        }
+
+        private static string Hucre(Dictionary<string, string> row, params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                if (row.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    return value.Trim();
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static string UserImportTcDegeri(Dictionary<string, string> row)
+        {
+            var value = Hucre(row, "tc", "tckimlikno", "kimlikno", "usertc");
+            value = Regex.Replace((value ?? string.Empty).Trim(), @"\s+", string.Empty);
+            value = Regex.Replace(value, @"([,.]0+)$", string.Empty);
+            return MetniKirp(value, 50);
+        }
+
+        private static string UserImportSatirEtiketi(int excelSatirNo, string katilimciAdi, string tc, string neden)
+        {
+            var ad = string.IsNullOrWhiteSpace(katilimciAdi) ? "adsiz" : katilimciAdi;
+            var kimlik = string.IsNullOrWhiteSpace(tc) ? "TC yok" : tc;
+            return $"{excelSatirNo}. satir: {ad} ({kimlik}) - {neden}";
+        }
+
+        private static HashSet<string> UserImportTumTcSeti(IEnumerable<Dictionary<string, string>> satirlar)
+        {
+            return (satirlar ?? Enumerable.Empty<Dictionary<string, string>>())
+                .Select(UserImportTcDegeri)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static bool PasifDegeri(string value)
+        {
+            var text = BaslikAnahtari(value);
+            return text == "1" || text == "true" || text == "evet" || text == "pasif" || text == "e";
+        }
+
+        private static DateTime? TarihDegeri(string value)
+        {
+            value = (value ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var formats = new[] { "yyyy-MM-dd", "dd.MM.yyyy", "d.M.yyyy", "dd/MM/yyyy", "d/M/yyyy" };
+            if (DateTime.TryParseExact(value, formats, new CultureInfo("tr-TR"), DateTimeStyles.None, out var exact))
+            {
+                return exact;
+            }
+
+            if (DateTime.TryParse(value, new CultureInfo("tr-TR"), DateTimeStyles.None, out var parsed))
+            {
+                return parsed;
+            }
+
+            if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var serial) && serial > 0)
+            {
+                try
+                {
+                    return DateTime.FromOADate(serial);
+                }
+                catch
+                {
+                }
+            }
+
+            return null;
+        }
+
+        private static string ExcelKolonAdi(int index)
+        {
+            var name = string.Empty;
+            while (index > 0)
+            {
+                index--;
+                name = (char)('A' + (index % 26)) + name;
+                index /= 26;
+            }
+
+            return name;
+        }
+
+        private static int ExcelKolonIndex(string cellReference)
+        {
+            var letters = new string((cellReference ?? string.Empty).TakeWhile(char.IsLetter).ToArray());
+            var index = 0;
+            foreach (var letter in letters.ToUpperInvariant())
+            {
+                index = index * 26 + (letter - 'A' + 1);
+            }
+
+            return index;
+        }
+
+        private static void ZipYaz(ZipArchive archive, string path, string content)
+        {
+            var entry = archive.CreateEntry(path);
+            using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false));
+            writer.Write(content);
+        }
+
+        private static byte[] KatilimciSablonuOlustur()
+        {
+            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            var satirlar = new[]
+            {
+                KatilimciImportBasliklari,
+                new[]
+                {
+                    "Ali Can",
+                    "34918219872",
+                    "Uzman",
+                    "Erkek",
+                    "Üniversite",
+                    "1974-01-01",
+                    "Operasyon",
+                    "Merkez",
+                    "Marmara",
+                    "İnsan Kaynakları",
+                    "Ayşe Yılmaz",
+                    "Beyaz",
+                    "İstanbul",
+                    "ali.can@ornek.com",
+                    "ali-can.webp",
+                    "05xx xxx xx xx",
+                    "Örnek adres",
+                    "2020-01-01",
+                    "Hayır",
+                    ""
+                }
+            };
+
+            var sheetRows = satirlar.Select((row, rowIndex) =>
+                new XElement(ns + "row",
+                    new XAttribute("r", rowIndex + 1),
+                    row.Select((value, colIndex) =>
+                        new XElement(ns + "c",
+                            new XAttribute("r", ExcelKolonAdi(colIndex + 1) + (rowIndex + 1)),
+                            new XAttribute("t", "inlineStr"),
+                            new XElement(ns + "is", new XElement(ns + "t", value ?? string.Empty))))));
+
+            var worksheet = new XDocument(
+                new XElement(ns + "worksheet",
+                    new XElement(ns + "sheetData", sheetRows)));
+
+            using var ms = new MemoryStream();
+            using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, true))
+            {
+                ZipYaz(archive, "[Content_Types].xml",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Types xmlns=""http://schemas.openxmlformats.org/package/2006/content-types"">
+  <Default Extension=""rels"" ContentType=""application/vnd.openxmlformats-package.relationships+xml""/>
+  <Default Extension=""xml"" ContentType=""application/xml""/>
+  <Override PartName=""/xl/workbook.xml"" ContentType=""application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml""/>
+  <Override PartName=""/xl/worksheets/sheet1.xml"" ContentType=""application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml""/>
+</Types>");
+                ZipYaz(archive, "_rels/.rels",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Relationships xmlns=""http://schemas.openxmlformats.org/package/2006/relationships"">
+  <Relationship Id=""rId1"" Type=""http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"" Target=""xl/workbook.xml""/>
+</Relationships>");
+                ZipYaz(archive, "xl/workbook.xml",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<workbook xmlns=""http://schemas.openxmlformats.org/spreadsheetml/2006/main"" xmlns:r=""http://schemas.openxmlformats.org/officeDocument/2006/relationships"">
+  <sheets>
+    <sheet name=""Katilimcilar"" sheetId=""1"" r:id=""rId1""/>
+  </sheets>
+</workbook>");
+                ZipYaz(archive, "xl/_rels/workbook.xml.rels",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Relationships xmlns=""http://schemas.openxmlformats.org/package/2006/relationships"">
+  <Relationship Id=""rId1"" Type=""http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"" Target=""worksheets/sheet1.xml""/>
+</Relationships>");
+                ZipYaz(archive, "xl/worksheets/sheet1.xml", worksheet.ToString(SaveOptions.DisableFormatting));
+            }
+
+            return ms.ToArray();
+        }
+
+        private static List<string> PaylasilanMetinleriOku(ZipArchive archive)
+        {
+            var entry = archive.GetEntry("xl/sharedStrings.xml");
+            if (entry == null)
+            {
+                return new List<string>();
+            }
+
+            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            using var stream = entry.Open();
+            var doc = XDocument.Load(stream);
+            return doc.Descendants(ns + "si")
+                .Select(si => string.Concat(si.Descendants(ns + "t").Select(t => t.Value)))
+                .ToList();
+        }
+
+        private static string ExcelHucreDegeri(XElement cell, List<string> sharedStrings)
+        {
+            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            var type = cell.Attribute("t")?.Value ?? string.Empty;
+            if (type == "inlineStr")
+            {
+                return string.Concat(cell.Descendants(ns + "t").Select(x => x.Value)).Trim();
+            }
+
+            var value = cell.Element(ns + "v")?.Value ?? string.Empty;
+            if (type == "s" && int.TryParse(value, out var sharedIndex) && sharedIndex >= 0 && sharedIndex < sharedStrings.Count)
+            {
+                return sharedStrings[sharedIndex].Trim();
+            }
+
+            return value.Trim();
+        }
+
+        private static List<Dictionary<string, string>> ExcelSatirlariniOku(Stream stream)
+        {
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, true);
+            var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")
+                ?? archive.Entries.FirstOrDefault(x => x.FullName.StartsWith("xl/worksheets/sheet", StringComparison.OrdinalIgnoreCase)
+                                                        && x.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase));
+            if (sheet == null)
+            {
+                return new List<Dictionary<string, string>>();
+            }
+
+            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            var sharedStrings = PaylasilanMetinleriOku(archive);
+            using var sheetStream = sheet.Open();
+            var doc = XDocument.Load(sheetStream);
+            var headerMap = new Dictionary<int, string>();
+            var rows = new List<Dictionary<string, string>>();
+
+            foreach (var row in doc.Descendants(ns + "row"))
+            {
+                var values = new Dictionary<int, string>();
+                var nextIndex = 1;
+                foreach (var cell in row.Elements(ns + "c"))
+                {
+                    var index = ExcelKolonIndex(cell.Attribute("r")?.Value);
+                    if (index <= 0)
+                    {
+                        index = nextIndex;
+                    }
+
+                    values[index] = ExcelHucreDegeri(cell, sharedStrings);
+                    nextIndex = index + 1;
+                }
+
+                if (!values.Values.Any(x => !string.IsNullOrWhiteSpace(x)))
+                {
+                    continue;
+                }
+
+                if (!headerMap.Any())
+                {
+                    foreach (var item in values)
+                    {
+                        var key = BaslikAnahtari(item.Value);
+                        if (!string.IsNullOrWhiteSpace(key))
+                        {
+                            headerMap[item.Key] = key;
+                        }
+                    }
+
+                    continue;
+                }
+
+                var mapped = new Dictionary<string, string>();
+                foreach (var item in values)
+                {
+                    if (headerMap.TryGetValue(item.Key, out var key))
+                    {
+                        mapped[key] = item.Value;
+                    }
+                }
+
+                if (mapped.Values.Any(x => !string.IsNullOrWhiteSpace(x)))
+                {
+                    rows.Add(mapped);
+                }
+            }
+
+            return rows;
+        }
+
         private void PersonelLookupHazirla()
         {
             ViewBag.KayitTar = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
@@ -538,23 +2093,25 @@ namespace survey.Controllers
 
         public ActionResult AiAyar()
         {
-            if (Session["id"] == null || Session["admin"] == null)
+            if (Session["id"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
             }
 
-            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!PlatformSahibiMi())
+            {
+                return RedirectToAction("Index");
+            }
+
             var model = AiAyarVarsayilan();
-            model.TableReady = AiAyarTablosuVarMi() && calismaAlaniId.HasValue;
+            model.TableReady = AiAyarTablosuVarMi();
             if (model.TableReady)
             {
                 var row = db.Database.SqlQuery<AiAyarForm>(
                     @"SELECT TOP 1 AiAyarId, Provider, Endpoint, ChatModel, EmbeddingModel, ApiKey, Aktif, GuncellemeTarihi,
                              CAST(1 AS bit) AS TableReady
                       FROM dbo.AiAyar
-                      WHERE CalismaAlaniId = @p0
-                      ORDER BY AiAyarId",
-                    calismaAlaniId.Value).FirstOrDefault();
+                      ORDER BY AiAyarId").FirstOrDefault();
 
                 if (row != null)
                 {
@@ -572,19 +2129,23 @@ namespace survey.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult AiAyar(AiAyarForm model)
         {
-            if (Session["id"] == null || Session["admin"] == null)
+            if (Session["id"] == null)
             {
                 return RedirectToAction("Giris", "Home", null);
             }
 
+            if (!PlatformSahibiMi())
+            {
+                return RedirectToAction("Index");
+            }
+
             model ??= AiAyarVarsayilan();
-            var calismaAlaniId = AktifCalismaAlaniId();
-            var tableReady = AiAyarTablosuVarMi() && calismaAlaniId.HasValue;
+            var tableReady = AiAyarTablosuVarMi();
             model.TableReady = tableReady;
 
             if (!tableReady)
             {
-                ModelState.AddModelError("", "AI ayar tablosu veya CalismaAlaniId kolonu bulunamadi. DatabaseScripts/20260605_AyarCalismaAlani.sql scriptini calistirin.");
+                ModelState.AddModelError("", "AI ayar tablosu bulunamadi. DatabaseScripts/20260602_AiAyar.sql scriptini calistirin.");
                 model.ApiKeyMasked = string.Empty;
                 return View(model);
             }
@@ -593,9 +2154,7 @@ namespace survey.Controllers
                 @"SELECT TOP 1 AiAyarId, Provider, Endpoint, ChatModel, EmbeddingModel, ApiKey, Aktif, GuncellemeTarihi,
                          CAST(1 AS bit) AS TableReady
                   FROM dbo.AiAyar
-                  WHERE CalismaAlaniId = @p0
-                  ORDER BY AiAyarId",
-                calismaAlaniId.Value).FirstOrDefault();
+                  ORDER BY AiAyarId").FirstOrDefault();
 
             var apiKey = string.IsNullOrWhiteSpace(model.ApiKey)
                 ? existing?.ApiKey
@@ -638,15 +2197,14 @@ namespace survey.Controllers
             if (existing == null)
             {
                 db.Database.ExecuteSqlCommand(
-                    @"INSERT INTO dbo.AiAyar (Provider, Endpoint, ChatModel, EmbeddingModel, ApiKey, Aktif, CalismaAlaniId)
-                      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6)",
+                    @"INSERT INTO dbo.AiAyar (Provider, Endpoint, ChatModel, EmbeddingModel, ApiKey, Aktif)
+                      VALUES (@p0, @p1, @p2, @p3, @p4, @p5)",
                     model.Provider,
                     model.Endpoint,
                     model.ChatModel,
                     model.EmbeddingModel,
                     apiKey,
-                    model.Aktif,
-                    calismaAlaniId.Value);
+                    model.Aktif);
             }
             else
             {
@@ -659,19 +2217,17 @@ namespace survey.Controllers
                           ApiKey = @p4,
                           Aktif = @p5,
                           GuncellemeTarihi = SYSDATETIME()
-                      WHERE AiAyarId = @p6
-                        AND CalismaAlaniId = @p7",
+                      WHERE AiAyarId = @p6",
                     model.Provider,
                     model.Endpoint,
                     model.ChatModel,
                     model.EmbeddingModel,
                     apiKey,
                     model.Aktif,
-                    existing.AiAyarId,
-                    calismaAlaniId.Value);
+                    existing.AiAyarId);
             }
 
-            TempData["AiAyarMesaj"] = "Yapay zeka ayarlari kaydedildi.";
+            TempData["AiAyarMesaj"] = "Platform yapay zeka ayarlari kaydedildi.";
             return RedirectToAction("AiAyar");
         }
 
@@ -680,7 +2236,7 @@ namespace survey.Controllers
             try
             {
                 return db.Database.SqlQuery<int>(
-                    "SELECT CASE WHEN OBJECT_ID(N'dbo.AiAyar', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.AiAyar', N'CalismaAlaniId') IS NOT NULL THEN 1 ELSE 0 END")
+                    "SELECT CASE WHEN OBJECT_ID(N'dbo.AiAyar', N'U') IS NOT NULL THEN 1 ELSE 0 END")
                     .FirstOrDefault() == 1;
             }
             catch
@@ -749,6 +2305,11 @@ namespace survey.Controllers
 
             try
             {
+                if (YayginUnvanAdiBul(dgskn.UnvanAdi, out var unvanAdi, out _))
+                {
+                    dgskn.UnvanAdi = unvanAdi;
+                }
+
                 db.Unvan.Add(dgskn);
                 db.SaveChanges();
                 CalismaAlaniKaydinaBagla("Unvan", "UnvanId", dgskn.UnvanId);
@@ -787,6 +2348,11 @@ namespace survey.Controllers
 
             try
             {
+                if (YayginUnvanAdiBul(dgskn.UnvanAdi, out var unvanAdi, out _))
+                {
+                    dgskn.UnvanAdi = unvanAdi;
+                }
+
                 if (!CalismaAlaniKaydiVarMi("Unvan", "UnvanId", dgskn.UnvanId))
                 {
                     return RedirectToAction("Hata1", "Ayar", null);
@@ -885,6 +2451,11 @@ namespace survey.Controllers
 
             try
             {
+                if (VarsayilanSecenekAdiBul("Departman", dgskn.DepartmanAdi, out var departmanAdi, out _))
+                {
+                    dgskn.DepartmanAdi = departmanAdi;
+                }
+
                 db.Departman.Add(dgskn);
                 db.SaveChanges();
                 CalismaAlaniKaydinaBagla("Departman", "DepartmanId", dgskn.DepartmanId);
@@ -923,6 +2494,11 @@ namespace survey.Controllers
 
             try
             {
+                if (VarsayilanSecenekAdiBul("Departman", dgskn.DepartmanAdi, out var departmanAdi, out _))
+                {
+                    dgskn.DepartmanAdi = departmanAdi;
+                }
+
                 if (!CalismaAlaniKaydiVarMi("Departman", "DepartmanId", dgskn.DepartmanId))
                 {
                     return RedirectToAction("Hata1", "Ayar", null);
@@ -1018,6 +2594,11 @@ namespace survey.Controllers
 
             try
             {
+                if (VarsayilanSecenekAdiBul("Bolge", dgskn.BolgeAdi, out var bolgeAdi, out _))
+                {
+                    dgskn.BolgeAdi = bolgeAdi;
+                }
+
                 db.Bolge.Add(dgskn);
                 db.SaveChanges();
                 CalismaAlaniKaydinaBagla("Bolge", "BolgeId", dgskn.BolgeId);
@@ -1056,6 +2637,11 @@ namespace survey.Controllers
 
             try
             {
+                if (VarsayilanSecenekAdiBul("Bolge", dgskn.BolgeAdi, out var bolgeAdi, out _))
+                {
+                    dgskn.BolgeAdi = bolgeAdi;
+                }
+
                 if (!CalismaAlaniKaydiVarMi("Bolge", "BolgeId", dgskn.BolgeId))
                 {
                     return RedirectToAction("Hata1", "Ayar", null);
@@ -1152,6 +2738,11 @@ namespace survey.Controllers
 
             try
             {
+                if (TurkiyeIlAdiBul(dgskn.SehiarAdi, out var ilAdi, out _))
+                {
+                    dgskn.SehiarAdi = ilAdi;
+                }
+
                 db.Sehir.Add(dgskn);
                 db.SaveChanges();
                 CalismaAlaniKaydinaBagla("Sehir", "SehirId", dgskn.SehirId);
@@ -1190,6 +2781,11 @@ namespace survey.Controllers
 
             try
             {
+                if (TurkiyeIlAdiBul(dgskn.SehiarAdi, out var ilAdi, out _))
+                {
+                    dgskn.SehiarAdi = ilAdi;
+                }
+
                 if (!CalismaAlaniKaydiVarMi("Sehir", "SehirId", dgskn.SehirId))
                 {
                     return RedirectToAction("Hata1", "Ayar", null);
@@ -1532,7 +3128,10 @@ namespace survey.Controllers
             {
                 return RedirectToAction("Giris", "Home", null);
             }
-            return View(CalismaAlaniKayitlari<Yonetici>("Yonetici", "YoneticiAdi"));
+
+            var yoneticiler = CalismaAlaniKayitlari<Yonetici>("Yonetici", "YoneticiAdi").ToList();
+            YoneticiResimleriniYukle(yoneticiler);
+            return View(yoneticiler);
         }
         public ActionResult YoneticiCreate()
         {
@@ -1545,7 +3144,7 @@ namespace survey.Controllers
 
         [ValidateAntiForgeryToken()]
         [HttpPost]
-        public ActionResult YoneticiCreate(Yonetici dgskn)
+        public ActionResult YoneticiCreate(Yonetici dgskn, IFormFile resimDosyasi, string kirpilmisResim)
         {
             if (Session["id"] == null)
             {
@@ -1554,15 +3153,38 @@ namespace survey.Controllers
 
             try
             {
+                if (((resimDosyasi != null && resimDosyasi.Length > 0) || !string.IsNullOrWhiteSpace(kirpilmisResim)) && !YoneticiResimAlaniVarMi())
+                {
+                    ModelState.AddModelError("", "YoneticiResim alanı bulunamadı. DatabaseScripts/20260606_YoneticiResim.sql scriptini çalıştırın.");
+                    return View(dgskn);
+                }
+
+                var yuklenenResim = KirpilmisResimKaydet(kirpilmisResim, YoneticiResimKlasoru, "yonetici");
+                if (string.IsNullOrWhiteSpace(yuklenenResim))
+                {
+                    yuklenenResim = YoneticiResimKaydet(resimDosyasi);
+                }
+                if (!string.IsNullOrWhiteSpace(yuklenenResim))
+                {
+                    dgskn.YoneticiResim = yuklenenResim;
+                }
+
                 db.Yonetici.Add(dgskn);
                 db.SaveChanges();
                 CalismaAlaniKaydinaBagla("Yonetici", "YoneticiId", dgskn.YoneticiId);
+
+                if (!string.IsNullOrWhiteSpace(dgskn.YoneticiResim))
+                {
+                    YoneticiResimGuncelle(dgskn.YoneticiId, dgskn.YoneticiResim);
+                }
+
                 return RedirectToAction("YoneticiIndex");
 
             }
-            catch
+            catch (Exception ex)
             {
-                return View();
+                ModelState.AddModelError("", ex.Message);
+                return View(dgskn);
             }
         }
         public ActionResult YoneticiEdit(int id)
@@ -1578,12 +3200,13 @@ namespace survey.Controllers
                 return RedirectToAction("Hata1", "Ayar", null);
             }
 
+            kayit.YoneticiResim = YoneticiResimGetir(id);
             return View(kayit);
         }
 
         [ValidateAntiForgeryToken()]
         [HttpPost]
-        public ActionResult YoneticiEdit(Yonetici dgskn)
+        public ActionResult YoneticiEdit(Yonetici dgskn, IFormFile resimDosyasi, bool resimKaldir = false, string kirpilmisResim = null)
         {
             if (Session["id"] == null)
             {
@@ -1597,16 +3220,48 @@ namespace survey.Controllers
                     return RedirectToAction("Hata1", "Ayar", null);
                 }
 
+                var resimDegisecek = resimKaldir || (resimDosyasi != null && resimDosyasi.Length > 0) || !string.IsNullOrWhiteSpace(kirpilmisResim);
+                if (resimDegisecek && !YoneticiResimAlaniVarMi())
+                {
+                    ModelState.AddModelError("", "YoneticiResim alanı bulunamadı. DatabaseScripts/20260606_YoneticiResim.sql scriptini çalıştırın.");
+                    return View(dgskn);
+                }
+
+                if (resimKaldir)
+                {
+                    dgskn.YoneticiResim = null;
+                }
+                else
+                {
+                    var yuklenenResim = KirpilmisResimKaydet(kirpilmisResim, YoneticiResimKlasoru, "yonetici");
+                    if (string.IsNullOrWhiteSpace(yuklenenResim))
+                    {
+                        yuklenenResim = YoneticiResimKaydet(resimDosyasi);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(yuklenenResim))
+                    {
+                        dgskn.YoneticiResim = yuklenenResim;
+                    }
+                }
+
                 {
                     db.Entry(dgskn).State = EntityState.Modified;
                     db.SaveChanges();
                 }
+
+                if (resimDegisecek)
+                {
+                    YoneticiResimGuncelle(dgskn.YoneticiId, dgskn.YoneticiResim);
+                }
+
                 return RedirectToAction("YoneticiIndex");
 
             }
-            catch
+            catch (Exception ex)
             {
-                return View();
+                ModelState.AddModelError("", ex.Message);
+                return View(dgskn);
             }
         }
         public ActionResult YoneticiDelete(int id)
@@ -1660,6 +3315,668 @@ namespace survey.Controllers
             }
         }
 
+        private List<UserImportMevcutKatilimci> UserImportKayitliKatilimcilar(int calismaAlaniId)
+        {
+            return db.Database.SqlQuery<UserImportMevcutKatilimci>(
+                @"SELECT UserId, UserAdi, UserTc, Pasif
+                  FROM dbo.[User]
+                  WHERE CalismaAlaniId = @p0
+                    AND (UserAdres IS NULL OR CONVERT(varchar(max), UserAdres) NOT LIKE @p1)",
+                calismaAlaniId,
+                "BilgiFormu:%").ToList();
+        }
+
+        private static HashSet<string> UserImportGecerliTcSeti(
+            IEnumerable<Dictionary<string, string>> satirlar,
+            out int gecerli,
+            out int atlanan,
+            out int tekrarEden,
+            out List<string> atlananSatirOrnekleri)
+        {
+            var tcSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            gecerli = 0;
+            atlanan = 0;
+            tekrarEden = 0;
+            atlananSatirOrnekleri = new List<string>();
+
+            var excelSatirNo = 1;
+            foreach (var satir in satirlar ?? Enumerable.Empty<Dictionary<string, string>>())
+            {
+                excelSatirNo++;
+                var katilimciAdi = MetniKirp(Hucre(satir, "katilimciadi", "adsoyad", "ad"), 50);
+                var tc = UserImportTcDegeri(satir);
+                if (string.IsNullOrWhiteSpace(katilimciAdi))
+                {
+                    atlanan++;
+                    if (atlananSatirOrnekleri.Count < 8)
+                    {
+                        atlananSatirOrnekleri.Add(UserImportSatirEtiketi(excelSatirNo, katilimciAdi, tc, "katilimci adi bos"));
+                    }
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(tc))
+                {
+                    atlanan++;
+                    if (atlananSatirOrnekleri.Count < 8)
+                    {
+                        atlananSatirOrnekleri.Add(UserImportSatirEtiketi(excelSatirNo, katilimciAdi, tc, "TC bos"));
+                    }
+                    continue;
+                }
+
+                if (!tcSet.Add(tc))
+                {
+                    tekrarEden++;
+                    atlanan++;
+                    if (atlananSatirOrnekleri.Count < 8)
+                    {
+                        atlananSatirOrnekleri.Add(UserImportSatirEtiketi(excelSatirNo, katilimciAdi, tc, "Excel icinde tekrar TC"));
+                    }
+                    continue;
+                }
+
+                gecerli++;
+            }
+
+            return tcSet;
+        }
+
+        private UserImportOnizleme UserImportOnizlemeOlustur(List<Dictionary<string, string>> satirlar, int calismaAlaniId)
+        {
+            satirlar ??= new List<Dictionary<string, string>>();
+            var tcSet = UserImportGecerliTcSeti(satirlar, out var gecerli, out var atlanan, out var tekrarEden, out var atlananOrnekleri);
+            var excelTcSet = UserImportTumTcSeti(satirlar);
+            var kayitli = UserImportKayitliKatilimcilar(calismaAlaniId);
+            var kayitliTcSet = kayitli
+                .Select(x => (x.UserTc ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var exceldeOlmayanAktif = kayitli
+                .Where(x => x.Pasif != true)
+                .Where(x =>
+                {
+                    var tc = (x.UserTc ?? string.Empty).Trim();
+                    return string.IsNullOrWhiteSpace(tc) || !excelTcSet.Contains(tc);
+                })
+                .OrderBy(x => x.UserAdi)
+                .ToList();
+
+            return new UserImportOnizleme
+            {
+                Satirlar = satirlar,
+                ExcelSatirSayisi = satirlar.Count,
+                GecerliKayitSayisi = gecerli,
+                AtlananSatirSayisi = atlanan,
+                TekrarEdenTcSayisi = tekrarEden,
+                KayitliToplamSayisi = kayitli.Count,
+                KayitliAktifSayisi = kayitli.Count(x => x.Pasif != true),
+                YeniKayitSayisi = tcSet.Count(x => !kayitliTcSet.Contains(x)),
+                GuncellenecekKayitSayisi = tcSet.Count(x => kayitliTcSet.Contains(x)),
+                ExceldeOlmayanAktifSayisi = exceldeOlmayanAktif.Count,
+                ExceldeOlmayanAktifOrnekleri = exceldeOlmayanAktif
+                    .Take(8)
+                    .Select(x => string.IsNullOrWhiteSpace(x.UserTc) ? x.UserAdi : $"{x.UserAdi} ({x.UserTc})")
+                    .ToList(),
+                AtlananSatirOrnekleri = atlananOrnekleri
+            };
+        }
+
+        private UserImportOnizleme UserImportOnizlemeSessiondanOku()
+        {
+            var json = Convert.ToString(Session[UserImportOnizlemeSessionKey]);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<UserImportOnizleme>(json);
+            }
+            catch
+            {
+                Session[UserImportOnizlemeSessionKey] = null;
+                return null;
+            }
+        }
+
+        private void UserImportOnizlemeViewBagHazirla()
+        {
+            var onizleme = UserImportOnizlemeSessiondanOku();
+            if (onizleme == null)
+            {
+                return;
+            }
+
+            ViewBag.UserImportOnizlemeVar = true;
+            ViewBag.UserImportExcelSatirSayisi = onizleme.ExcelSatirSayisi;
+            ViewBag.UserImportGecerliKayitSayisi = onizleme.GecerliKayitSayisi;
+            ViewBag.UserImportAtlananSatirSayisi = onizleme.AtlananSatirSayisi;
+            ViewBag.UserImportTekrarEdenTcSayisi = onizleme.TekrarEdenTcSayisi;
+            ViewBag.UserImportKayitliToplamSayisi = onizleme.KayitliToplamSayisi;
+            ViewBag.UserImportKayitliAktifSayisi = onizleme.KayitliAktifSayisi;
+            ViewBag.UserImportYeniKayitSayisi = onizleme.YeniKayitSayisi;
+            ViewBag.UserImportGuncellenecekKayitSayisi = onizleme.GuncellenecekKayitSayisi;
+            ViewBag.UserImportExceldeOlmayanAktifSayisi = onizleme.ExceldeOlmayanAktifSayisi;
+            ViewBag.UserImportExceldeOlmayanAktifOrnekleri = onizleme.ExceldeOlmayanAktifOrnekleri;
+            ViewBag.UserImportAtlananSatirOrnekleri = onizleme.AtlananSatirOrnekleri;
+        }
+
+        public ActionResult UserImportTemplate()
+        {
+            if (Session["id"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            var bytes = KatilimciSablonuOlustur();
+            return File(
+                bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "katilimci-import-sablonu.xlsx");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UserImport(IFormFile dosya)
+        {
+            if (Session["id"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            var calismaAlaniId = AktifCalismaAlaniId();
+            if (!calismaAlaniId.HasValue)
+            {
+                TempData["UserImportMesaj"] = "Çalışma alanı bulunamadı. Lütfen tekrar giriş yapın.";
+                return RedirectToAction("UserIndex");
+            }
+
+            if (dosya == null || dosya.Length == 0)
+            {
+                TempData["UserImportMesaj"] = "Lütfen dolu bir Excel dosyası seçin.";
+                return RedirectToAction("UserIndex");
+            }
+
+            try
+            {
+                using var dosyaStream = dosya.OpenReadStream();
+                var satirlar = ExcelSatirlariniOku(dosyaStream);
+
+                if (!satirlar.Any())
+                {
+                    TempData["UserImportMesaj"] = "Excel dosyasında aktarılacak satır bulunamadı. İlk satır başlık, ikinci satırdan itibaren katılımcı olmalı.";
+                    return RedirectToAction("UserIndex");
+                }
+
+                var onizleme = UserImportOnizlemeOlustur(satirlar, calismaAlaniId.Value);
+                if (onizleme.GecerliKayitSayisi <= 0)
+                {
+                    TempData["UserImportMesaj"] = "Excel dosyasında geçerli katılımcı bulunamadı. Katılımcı adı ve TC alanları dolu olmalı.";
+                    return RedirectToAction("UserIndex");
+                }
+
+                Session[UserImportOnizlemeSessionKey] = JsonSerializer.Serialize(onizleme);
+                TempData["UserImportMesaj"] =
+                    $"Excel okundu: {onizleme.GecerliKayitSayisi} geçerli kayıt, {onizleme.YeniKayitSayisi} yeni, {onizleme.GuncellenecekKayitSayisi} mevcut kayıt. Devam etmek için aşağıdaki aktarım kararını onaylayın.";
+            }
+            catch (Exception ex)
+            {
+                TempData["UserImportMesaj"] = "Excel içeri aktarılamadı: " + ex.Message;
+            }
+
+            return RedirectToAction("UserIndex");
+        }
+
+        private UserImportSonuc UserImportCalistir(List<Dictionary<string, string>> satirlar, int calismaAlaniId, bool exceldeOlmayanlariPasifeAl)
+        {
+            var sonuc = new UserImportSonuc();
+            var islenenTcSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var excelTcSet = UserImportTumTcSeti(satirlar);
+
+            using var transaction = db.Database.BeginTransaction();
+            try
+            {
+                var excelSatirNo = 1;
+                foreach (var satir in satirlar ?? new List<Dictionary<string, string>>())
+                {
+                    excelSatirNo++;
+                    var katilimciAdi = MetniKirp(Hucre(satir, "katilimciadi", "adsoyad", "ad"), 50);
+                    var tc = UserImportTcDegeri(satir);
+
+                    if (string.IsNullOrWhiteSpace(katilimciAdi))
+                    {
+                        sonuc.Atlanan++;
+                        if (sonuc.AtlananSatirOrnekleri.Count < 8)
+                        {
+                            sonuc.AtlananSatirOrnekleri.Add(UserImportSatirEtiketi(excelSatirNo, katilimciAdi, tc, "katilimci adi bos"));
+                        }
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(tc))
+                    {
+                        sonuc.Atlanan++;
+                        if (sonuc.AtlananSatirOrnekleri.Count < 8)
+                        {
+                            sonuc.AtlananSatirOrnekleri.Add(UserImportSatirEtiketi(excelSatirNo, katilimciAdi, tc, "TC bos"));
+                        }
+                        continue;
+                    }
+
+                    if (!islenenTcSet.Add(tc))
+                    {
+                        sonuc.Atlanan++;
+                        if (sonuc.AtlananSatirOrnekleri.Count < 8)
+                        {
+                            sonuc.AtlananSatirOrnekleri.Add(UserImportSatirEtiketi(excelSatirNo, katilimciAdi, tc, "Excel icinde tekrar TC"));
+                        }
+                        continue;
+                    }
+
+                    var mevcutId = db.Database.SqlQuery<int?>(
+                        @"SELECT TOP 1 UserId
+                          FROM dbo.[User]
+                          WHERE LTRIM(RTRIM(UserTc)) = @p0
+                            AND CalismaAlaniId = @p1
+                            AND (UserAdres IS NULL OR CONVERT(varchar(max), UserAdres) NOT LIKE @p2)
+                          ORDER BY UserId",
+                        tc,
+                        calismaAlaniId,
+                        "BilgiFormu:%").FirstOrDefault();
+
+                    var unvanId = ImportSecenekId("Unvan", Hucre(satir, "unvan", "unvani"), sonuc);
+                    var cinsiyetId = ImportSecenekId("Cinsiyet", Hucre(satir, "cinsiyet"), sonuc);
+                    var egitimId = ImportSecenekId("Egitim", Hucre(satir, "egitim"), sonuc);
+                    var dogumTarihi = TarihDegeri(Hucre(satir, "dogumtarihi", "dogumtar", "yas", "yasi"));
+                    var bolumId = ImportSecenekId("Bolum", Hucre(satir, "bolum", "bolumu"), sonuc);
+                    var subeId = ImportSecenekId("Sube", Hucre(satir, "sube", "subesi", "subeadi"), sonuc);
+                    var bolgeId = ImportSecenekId("Bolge", Hucre(satir, "bolge", "bolgesi", "bolgeadi"), sonuc);
+                    var departmanId = ImportSecenekId("Departman", Hucre(satir, "departman", "departmanadi"), sonuc);
+                    var yoneticiId = ImportSecenekId("Yonetici", Hucre(satir, "yonetici", "yoneticisi", "yoneticiadi"), sonuc);
+                    var yakaId = ImportSecenekId("Yaka", Hucre(satir, "yaka", "yakaadi"), sonuc);
+                    var sehirId = ImportSecenekId("Sehir", Hucre(satir, "sehir", "sehri", "sehiradi"), sonuc);
+                    var eposta = MetniKirp(Hucre(satir, "eposta", "email", "mail", "usermail"), 50);
+                    var resimHucre = Hucre(satir, "resimdosyaadi", "resimadi", "resimdosyasi", "resim", "foto", "fotograf", "userresim");
+                    var resim = KatilimciResimDosyaAdiTemizle(resimHucre);
+                    if (!string.IsNullOrWhiteSpace(resimHucre)
+                        && !string.IsNullOrWhiteSpace(resim)
+                        && !string.Equals(Path.GetExtension(resimHucre.Trim()), ".webp", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sonuc.ResimAdiWebpYapilan++;
+                    }
+                    var telefon = MetniKirp(Hucre(satir, "telefon", "tel", "usertelefon"), 50);
+                    var adres = Hucre(satir, "adres", "useradres");
+                    var iseGirisTarihi = TarihDegeri(Hucre(satir, "isegiristarihi", "isegiris", "userisegiristarihi"));
+                    var pasif = PasifDegeri(Hucre(satir, "pasif"));
+                    var kayitTarihi = TarihDegeri(Hucre(satir, "kayittarihi", "kayittar"));
+
+                    if (mevcutId.HasValue && mevcutId.Value > 0)
+                    {
+                        db.Database.ExecuteSqlCommand(
+                            @"UPDATE dbo.[User]
+                              SET UserAdi = @p0,
+                                  UserTc = @p1,
+                                  UserUnvan = @p2,
+                                  UserCinsiyet = @p3,
+                                  UserEgitim = @p4,
+                                  UserDogumTar = @p5,
+                                  UserBolumu = @p6,
+                                  UserSube = @p7,
+                                  UserBolge = @p8,
+                                  UserDepartman = @p9,
+                                  UserYoneticisi = @p10,
+                                  UserYaka = @p11,
+                                  UserSehir = @p12,
+                                  UserMail = @p13,
+                                  UserResim = @p14,
+                                  UserTelefon = @p15,
+                                  UserAdres = @p16,
+                                  UserIseGirisTarihi = @p17,
+                                  Pasif = @p18,
+                                  KayitTarihi = COALESCE(@p19, KayitTarihi),
+                                  CalismaAlaniId = @p20
+                              WHERE UserId = @p21",
+                            katilimciAdi,
+                            tc,
+                            SqlDegeri(unvanId),
+                            SqlDegeri(cinsiyetId),
+                            SqlDegeri(egitimId),
+                            SqlDegeri(dogumTarihi),
+                            SqlDegeri(bolumId),
+                            SqlDegeri(subeId),
+                            SqlDegeri(bolgeId),
+                            SqlDegeri(departmanId),
+                            SqlDegeri(yoneticiId),
+                            SqlDegeri(yakaId),
+                            SqlDegeri(sehirId),
+                            SqlDegeri(eposta),
+                            SqlDegeri(resim),
+                            SqlDegeri(telefon),
+                            SqlDegeri(adres),
+                            SqlDegeri(iseGirisTarihi),
+                            pasif,
+                            SqlDegeri(kayitTarihi),
+                            calismaAlaniId,
+                            mevcutId.Value);
+                        sonuc.Guncellenen++;
+                    }
+                    else
+                    {
+                        db.Database.SqlQuery<int>(
+                            @"INSERT INTO dbo.[User]
+                                (UserAdi, UserTc, UserUnvan, UserCinsiyet, UserEgitim, UserDogumTar,
+                                 UserBolumu, UserSube, UserBolge, UserDepartman, UserYoneticisi,
+                                 UserYaka, UserSehir, UserMail, UserResim, UserTelefon, UserAdres,
+                                 UserIseGirisTarihi, Pasif, KayitTarihi, CalismaAlaniId)
+                              VALUES
+                                (@p0, @p1, @p2, @p3, @p4, @p5,
+                                 @p6, @p7, @p8, @p9, @p10,
+                                 @p11, @p12, @p13, @p14, @p15, @p16,
+                                 @p17, @p18, @p19, @p20);
+                              SELECT CAST(SCOPE_IDENTITY() AS int);",
+                            katilimciAdi,
+                            tc,
+                            SqlDegeri(unvanId),
+                            SqlDegeri(cinsiyetId),
+                            SqlDegeri(egitimId),
+                            SqlDegeri(dogumTarihi),
+                            SqlDegeri(bolumId),
+                            SqlDegeri(subeId),
+                            SqlDegeri(bolgeId),
+                            SqlDegeri(departmanId),
+                            SqlDegeri(yoneticiId),
+                            SqlDegeri(yakaId),
+                            SqlDegeri(sehirId),
+                            SqlDegeri(eposta),
+                            SqlDegeri(resim),
+                            SqlDegeri(telefon),
+                            SqlDegeri(adres),
+                            SqlDegeri(iseGirisTarihi),
+                            pasif,
+                            kayitTarihi ?? DateTime.Now,
+                            calismaAlaniId).First();
+                        sonuc.Eklenen++;
+                    }
+                }
+
+                if (exceldeOlmayanlariPasifeAl)
+                {
+                    var pasifeAlinacaklar = UserImportKayitliKatilimcilar(calismaAlaniId)
+                        .Where(x => x.Pasif != true)
+                        .Where(x =>
+                        {
+                            var tc = (x.UserTc ?? string.Empty).Trim();
+                            return string.IsNullOrWhiteSpace(tc) || !excelTcSet.Contains(tc);
+                        })
+                        .ToList();
+
+                    foreach (var kayit in pasifeAlinacaklar)
+                    {
+                        sonuc.PasifeAlinan += db.Database.ExecuteSqlCommand(
+                            "UPDATE dbo.[User] SET Pasif = 1 WHERE UserId = @p0 AND CalismaAlaniId = @p1",
+                            kayit.UserId,
+                            calismaAlaniId);
+                    }
+                }
+
+                transaction.Commit();
+                return sonuc;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        private static string UserImportSonucMesaji(UserImportSonuc sonuc, bool exceldeOlmayanlariPasifeAl)
+        {
+            var webpBilgisi = sonuc.ResimAdiWebpYapilan > 0
+                ? $" Resim alanındaki {sonuc.ResimAdiWebpYapilan} dosya adı .webp olarak kaydedildi."
+                : " Resim alanları WebP uyumlu kaydedildi.";
+            var pasifBilgisi = exceldeOlmayanlariPasifeAl
+                ? $" Excel'de olmayan {sonuc.PasifeAlinan} aktif katılımcı pasife alındı."
+                : " Excel'de olmayan mevcut katılımcılar olduğu gibi bırakıldı.";
+            var secenekBilgisi =
+                $" {sonuc.MevcutSecenekEslesen} seçenek mevcut kayıtla eşleşti, {sonuc.BenzerSecenekEslesen} benzer yazım mevcut kayda bağlandı, {sonuc.YeniSecenekEklenen} yeni seçenek eklendi.";
+
+            var atlananBilgisi = sonuc.AtlananSatirOrnekleri.Any()
+                ? " Atlanan satır örnekleri: " + string.Join("; ", sonuc.AtlananSatirOrnekleri)
+                : string.Empty;
+            var secenekUyariBilgisi = sonuc.SecenekUyariOrnekleri.Any()
+                ? " Tanınmayan seçenekler kayıt açmadan boş bırakıldı: " + string.Join("; ", sonuc.SecenekUyariOrnekleri)
+                : string.Empty;
+
+            return $"{sonuc.Eklenen} katılımcı eklendi, {sonuc.Guncellenen} katılımcı güncellendi, {sonuc.Atlanan} satır atlandı.{pasifBilgisi}{webpBilgisi}{secenekBilgisi}{atlananBilgisi}{secenekUyariBilgisi}";
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UserImportOnayla(string eksikKayitIslemi)
+        {
+            if (Session["id"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            var calismaAlaniId = AktifCalismaAlaniId();
+            var onizleme = UserImportOnizlemeSessiondanOku();
+            if (!calismaAlaniId.HasValue || onizleme == null)
+            {
+                TempData["UserImportMesaj"] = "Onay bekleyen Excel aktarımı bulunamadı. Lütfen dosyayı yeniden seçin.";
+                return RedirectToAction("UserIndex");
+            }
+
+            var exceldeOlmayanlariPasifeAl = string.Equals(eksikKayitIslemi, "pasifeAl", StringComparison.OrdinalIgnoreCase);
+            try
+            {
+                var sonuc = UserImportCalistir(onizleme.Satirlar, calismaAlaniId.Value, exceldeOlmayanlariPasifeAl);
+                Session[UserImportOnizlemeSessionKey] = null;
+                TempData["UserImportMesaj"] = UserImportSonucMesaji(sonuc, exceldeOlmayanlariPasifeAl);
+            }
+            catch (Exception ex)
+            {
+                TempData["UserImportMesaj"] = "Excel aktarımı tamamlanamadı: " + ex.Message;
+            }
+
+            return RedirectToAction("UserIndex");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UserImportVazgec()
+        {
+            Session[UserImportOnizlemeSessionKey] = null;
+            TempData["UserImportMesaj"] = "Excel aktarımı iptal edildi; kayıtlar değiştirilmedi.";
+            return RedirectToAction("UserIndex");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UserResimTopluYukle(List<IFormFile> resimDosyalari)
+        {
+            if (Session["id"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            var dosyalar = (resimDosyalari ?? new List<IFormFile>())
+                .Where(x => x != null && x.Length > 0)
+                .ToList();
+
+            if (!dosyalar.Any())
+            {
+                TempData["UserImportMesaj"] = "Lütfen en az bir katılımcı fotoğrafı seçin.";
+                return RedirectToAction("UserIndex");
+            }
+
+            var calismaAlaniId = AktifCalismaAlaniId();
+            var yuklenen = 0;
+            var gecersiz = 0;
+            var otomatikBaglanan = 0;
+            var mevcutEslesen = 0;
+            var uzantisiWebpYapilan = 0;
+            var dosyaAdlari = new List<string>();
+
+            foreach (var dosya in dosyalar)
+            {
+                var dosyaAdi = KatilimciResimTopluKaydet(dosya);
+                if (string.IsNullOrWhiteSpace(dosyaAdi))
+                {
+                    gecersiz++;
+                    continue;
+                }
+
+                yuklenen++;
+                dosyaAdlari.Add(dosyaAdi);
+                if (!string.Equals(Path.GetExtension(dosya.FileName), ".webp", StringComparison.OrdinalIgnoreCase))
+                {
+                    uzantisiWebpYapilan++;
+                }
+
+                if (calismaAlaniId.HasValue)
+                {
+                    var tc = Path.GetFileNameWithoutExtension(dosyaAdi);
+                    if (!string.IsNullOrWhiteSpace(tc))
+                    {
+                        otomatikBaglanan += db.Database.ExecuteSqlCommand(
+                            @"UPDATE dbo.[User]
+                              SET UserResim = @p0
+                              WHERE CalismaAlaniId = @p1
+                                AND LTRIM(RTRIM(UserTc)) = @p2
+                                AND (UserResim IS NULL OR LTRIM(RTRIM(UserResim)) = '')",
+                            dosyaAdi,
+                            calismaAlaniId.Value,
+                            tc);
+                    }
+                }
+            }
+
+            if (calismaAlaniId.HasValue)
+            {
+                foreach (var dosyaAdi in dosyaAdlari.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    mevcutEslesen += db.Database.SqlQuery<int>(
+                        @"SELECT COUNT(1)
+                          FROM dbo.[User]
+                          WHERE CalismaAlaniId = @p0
+                            AND LTRIM(RTRIM(UserResim)) = @p1",
+                        calismaAlaniId.Value,
+                        dosyaAdi).FirstOrDefault();
+                }
+            }
+
+            TempData["UserImportMesaj"] =
+                $"{yuklenen} fotoğraf WebP olarak yüklendi, {uzantisiWebpYapilan} dosyanın uzantısı .webp'ye çevrildi, {otomatikBaglanan} katılımcıya TC dosya adından otomatik bağlandı, {mevcutEslesen} kayıt dosya adıyla eşleşiyor, {gecersiz} dosya atlandı.";
+
+            return RedirectToAction("UserIndex");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UserResimGuncelle(int id, IFormFile resimDosyasi, string kirpilmisResim, bool resimKaldir = false)
+        {
+            if (Session["id"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            var kayit = CalismaAlaniKaydiGetir<User>("User", "UserId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("Hata1", "Ayar", null);
+            }
+
+            try
+            {
+                if (resimKaldir)
+                {
+                    kayit.UserResim = null;
+                    db.SaveChanges();
+                    TempData["UserImportMesaj"] = "Katılımcı resmi kaldırıldı; avatar kullanılacak.";
+                    return RedirectToAction("UserIndex");
+                }
+
+                var yuklenenResim = KirpilmisResimKaydet(kirpilmisResim, KatilimciResimKlasoru, "katilimci");
+                if (string.IsNullOrWhiteSpace(yuklenenResim))
+                {
+                    yuklenenResim = KatilimciResimKaydet(resimDosyasi);
+                }
+
+                if (string.IsNullOrWhiteSpace(yuklenenResim))
+                {
+                    TempData["UserImportMesaj"] = "Fotoğraf seçilmediği için değişiklik yapılmadı.";
+                    return RedirectToAction("UserIndex");
+                }
+
+                kayit.UserResim = yuklenenResim;
+                db.SaveChanges();
+                TempData["UserImportMesaj"] = "Katılımcı fotoğrafı güncellendi.";
+            }
+            catch (Exception ex)
+            {
+                TempData["UserImportMesaj"] = ex.Message;
+            }
+
+            return RedirectToAction("UserIndex");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult YoneticiResimIndexGuncelle(int id, IFormFile resimDosyasi, string kirpilmisResim, bool resimKaldir = false)
+        {
+            if (Session["id"] == null)
+            {
+                return RedirectToAction("Giris", "Home", null);
+            }
+
+            var kayit = CalismaAlaniKaydiGetir<Yonetici>("Yonetici", "YoneticiId", id);
+            if (kayit == null)
+            {
+                return RedirectToAction("Hata1", "Ayar", null);
+            }
+
+            try
+            {
+                if (!YoneticiResimAlaniVarMi())
+                {
+                    TempData["YoneticiResimMesaj"] = "YoneticiResim alanı bulunamadı. DatabaseScripts/20260606_YoneticiResim.sql scriptini çalıştırın.";
+                    return RedirectToAction("YoneticiIndex");
+                }
+
+                if (resimKaldir)
+                {
+                    YoneticiResimGuncelle(id, null);
+                    TempData["YoneticiResimMesaj"] = "Yönetici resmi kaldırıldı; avatar kullanılacak.";
+                    return RedirectToAction("YoneticiIndex");
+                }
+
+                var yuklenenResim = KirpilmisResimKaydet(kirpilmisResim, YoneticiResimKlasoru, "yonetici");
+                if (string.IsNullOrWhiteSpace(yuklenenResim))
+                {
+                    yuklenenResim = YoneticiResimKaydet(resimDosyasi);
+                }
+
+                if (string.IsNullOrWhiteSpace(yuklenenResim))
+                {
+                    TempData["YoneticiResimMesaj"] = "Fotoğraf seçilmediği için değişiklik yapılmadı.";
+                    return RedirectToAction("YoneticiIndex");
+                }
+
+                YoneticiResimGuncelle(id, yuklenenResim);
+                TempData["YoneticiResimMesaj"] = "Yönetici fotoğrafı güncellendi.";
+            }
+            catch (Exception ex)
+            {
+                TempData["YoneticiResimMesaj"] = ex.Message;
+            }
+
+            return RedirectToAction("YoneticiIndex");
+        }
+
         public ActionResult UserIndex()
         {
             if (Session["id"] == null)
@@ -1667,6 +3984,8 @@ namespace survey.Controllers
                 return RedirectToAction("Giris", "Home", null);
             }
 
+            UserImportOnizlemeViewBagHazirla();
+            VarsayilanSecenekViewBagHazirla();
             return View(CalismaAlaniKayitlari<User>("User", "UserAdi"));
 
         }
@@ -1729,6 +4048,7 @@ namespace survey.Controllers
             var sadeceVideoIzleyenler = db.Izledim
                 .Include("Anket")
                 .Include("User")
+                .Include("User.Cinsiyet")
                 .Include("User.Departman")
                 .Include("User.Unvan")
                 .Include("User.Yaka")
@@ -1753,7 +4073,7 @@ namespace survey.Controllers
 
         [ValidateAntiForgeryToken()]
         [HttpPost]
-        public ActionResult UserCreate(User dgskn)
+        public ActionResult UserCreate(User dgskn, IFormFile resimDosyasi, string kirpilmisResim)
         {
             if (Session["id"] == null)
             {
@@ -1762,16 +4082,28 @@ namespace survey.Controllers
 
             try
             {
+                var yuklenenResim = KirpilmisResimKaydet(kirpilmisResim, KatilimciResimKlasoru, "katilimci");
+                if (string.IsNullOrWhiteSpace(yuklenenResim))
+                {
+                    yuklenenResim = KatilimciResimKaydet(resimDosyasi);
+                }
+
+                if (!string.IsNullOrWhiteSpace(yuklenenResim))
+                {
+                    dgskn.UserResim = yuklenenResim;
+                }
+
                 db.User.Add(dgskn);
                 db.SaveChanges();
                 CalismaAlaniKaydinaBagla("User", "UserId", dgskn.UserId);
                 return RedirectToAction("UserIndex");
 
             }
-            catch
+            catch (Exception ex)
             {
+                ModelState.AddModelError("", ex.Message);
                 UserLookupHazirla();
-                return View();
+                return View(dgskn);
             }
         }
         public ActionResult UserEdit(int id)
@@ -1793,7 +4125,7 @@ namespace survey.Controllers
 
         [ValidateAntiForgeryToken()]
         [HttpPost]
-        public ActionResult UserEdit(User dgskn)
+        public ActionResult UserEdit(User dgskn, IFormFile resimDosyasi, bool resimKaldir = false, string kirpilmisResim = null)
         {
             if (Session["id"] == null)
             {
@@ -1808,16 +4140,35 @@ namespace survey.Controllers
                 }
 
                 {
+                    if (resimKaldir)
+                    {
+                        dgskn.UserResim = null;
+                    }
+
+                    var yuklenenResim = resimKaldir
+                        ? string.Empty
+                        : KirpilmisResimKaydet(kirpilmisResim, KatilimciResimKlasoru, "katilimci");
+                    if (!resimKaldir && string.IsNullOrWhiteSpace(yuklenenResim))
+                    {
+                        yuklenenResim = KatilimciResimKaydet(resimDosyasi);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(yuklenenResim))
+                    {
+                        dgskn.UserResim = yuklenenResim;
+                    }
+
                     db.Entry(dgskn).State = EntityState.Modified;
                     db.SaveChanges();
                 }
                 return RedirectToAction("UserIndex");
 
             }
-            catch
+            catch (Exception ex)
             {
+                ModelState.AddModelError("", ex.Message);
                 UserLookupHazirla();
-                return View();
+                return View(dgskn);
             }
         }
         public ActionResult UserDelete(int id)
@@ -1908,6 +4259,13 @@ namespace survey.Controllers
             if (!YoneticiYetkisiVarMi())
             {
                 return YoneticiYetkisiYok();
+            }
+
+            if (!PaketKullanimKontrolu.PanelKullanicisiEklenebilirMi(db, AktifCalismaAlaniId(), out var paketLimitMesaji))
+            {
+                ModelState.AddModelError("", paketLimitMesaji);
+                PersonelLookupHazirla();
+                return View(model);
             }
 
             try

@@ -1,4 +1,4 @@
-@model survey.Controllers.HomeController.SertifikaWizardForm
+﻿@model survey.Controllers.HomeController.SertifikaWizardForm
 @{
     ViewBag.Title = "Sertifika Sihirbazı";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -11,6 +11,9 @@
     var baslikPunto = Model.SertifikaBaslikPunto.HasValue ? Model.SertifikaBaslikPunto.Value : 44;
     var logo = Model.SertifikaLogo;
     var imza = Model.Imza;
+    var returnUrl = string.IsNullOrWhiteSpace(Model.ReturnUrl)
+        ? Url.Action("Indexgosterge", "Home")
+        : Model.ReturnUrl;
     var fontOptions = new[]
     {
         new SelectListItem { Value = "Georgia", Text = "Georgia", Selected = font == "Georgia" },
@@ -984,14 +987,14 @@
     <div class="cert-shell">
         <div class="cert-head">
             <div>
-                <p class="cert-kicker">Aslana Survey Studio</p>
+                <p class="cert-kicker">Survey by Aslana Teknoloji</p>
                 <h1 class="cert-title">Sertifika Sihirbazı</h1>
                 <p class="cert-subtitle">
                     @Model.AnketAdi için sertifikanın kimlere, ne zaman ve hangi koşulla verileceğini buradan yönetin.
                 </p>
             </div>
             <div class="cert-actions">
-                <a class="cert-btn" href="@Url.Action("Indexgosterge", "Home")">Geri</a>
+                <a class="cert-btn" href="@returnUrl">Çalışmalarıma Dön</a>
             </div>
         </div>
 
@@ -1000,6 +1003,7 @@
             {
                 @Html.AntiForgeryToken()
                 @Html.HiddenFor(x => x.AnketId)
+                @Html.HiddenFor(x => x.ReturnUrl)
                 <input type="hidden" name="SertifikaLogo" value="@Model.SertifikaLogo" />
                 <input type="hidden" name="SertifikaTema" value="Modern" />
 
@@ -1282,7 +1286,7 @@
                         </section>
 
                         <div class="cert-footer">
-                            <a class="cert-btn" href="@Url.Action("Indexgosterge", "Home")">Vazgeç</a>
+                            <a class="cert-btn" href="@returnUrl">Vazgeç</a>
                             <button class="cert-btn primary" type="submit">Kaydet</button>
                         </div>
                     </div>

@@ -1,7 +1,28 @@
-@model IEnumerable<survey.Models.Havuz>
+﻿@model IEnumerable<survey.Models.Havuz>
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var modelKayitlari = (Model ?? Enumerable.Empty<survey.Models.Havuz>()).ToList();
+    var tanimli = modelKayitlari.Where(x => x.UserId != null).GroupBy(x => x.UserId).Count();
+    var tanimsiz = modelKayitlari.Where(x => x.Isimsiz != null).Count();
+    var toplamKatilim = tanimli + tanimsiz;
+    var cevapKaydiSayisi = modelKayitlari.Count;
+    var yoneticiAdlari = (ViewBag.baslik10 as System.Collections.Generic.IEnumerable<string> ?? Enumerable.Empty<string>()).ToList();
+    var yoneticiResimDosyalari = (ViewBag.yoneticiResim10 as System.Collections.Generic.IEnumerable<string> ?? Enumerable.Empty<string>()).ToList();
+    var yoneticiAvatarlar = yoneticiAdlari
+        .Select((ad, index) =>
+        {
+            var resim = index < yoneticiResimDosyalari.Count ? yoneticiResimDosyalari[index] : string.Empty;
+            var dosya = System.IO.Path.GetFileName(resim ?? string.Empty);
+            return new
+            {
+                ad = ad ?? string.Empty,
+                resim = string.IsNullOrWhiteSpace(dosya) ? string.Empty : Url.Content("~/Content/Yonetici/" + dosya)
+            };
+        })
+        .GroupBy(x => x.ad)
+        .Select(g => g.First())
+        .ToList();
 }
 
 <!-- Sadece CDN DataTables -->
@@ -18,33 +39,1805 @@
 <script src="~/Scripts/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 
-<div class="panel">
-    <div>
-        <h4 class="text-uppercase">
-            <a class="btn btn-primary btn-outline-primary fa fa-backward"
-               href="@Url.Action("AnketIndex1", "Home", new { id = ViewBag.ank })"></a>
-            @ViewBag.adi (@ViewBag.anketadi)
-        </h4>
+<style>
+    .elite-report {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        color: #122033;
+    }
+
+    .elite-report .panel-body,
+    .elite-report .card-block {
+        padding: 0;
+    }
+
+    .report-hero {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 20px;
+        align-items: start;
+        padding: 26px 30px;
+        border: 1px solid #d9e6f6;
+        border-radius: 8px;
+        background:
+            linear-gradient(135deg, rgba(12, 29, 50, .96), rgba(22, 62, 79, .92)),
+            linear-gradient(90deg, rgba(46, 196, 182, .18), rgba(69, 91, 224, .12));
+        box-shadow: 0 18px 45px rgba(24, 49, 83, .14);
+        color: #fff;
+    }
+
+    .report-hero::after {
+        content: "";
+        position: absolute;
+        inset: auto 24px 0 auto;
+        width: 220px;
+        height: 5px;
+        border-radius: 999px 999px 0 0;
+        background: linear-gradient(90deg, #2ec4b6, #4361ee, #f59e0b);
+        opacity: .95;
+    }
+
+    .report-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding: 7px 11px;
+        border: 1px solid rgba(255, 255, 255, .24);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .08);
+        color: #bdf7ef;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .report-hero h1 {
+        margin: 0;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 900;
+        letter-spacing: 0;
+    }
+
+    .report-hero p {
+        max-width: 780px;
+        margin: 10px 0 0;
+        color: rgba(255, 255, 255, .78);
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .report-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 14px;
+        border: 1px solid rgba(255, 255, 255, .28);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .1);
+        color: #fff;
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .report-back:hover {
+        background: rgba(255, 255, 255, .16);
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .report-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin: 16px 0 18px;
+    }
+
+    .report-kpi {
+        min-height: 94px;
+        padding: 16px;
+        border: 1px solid #dce7f6;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 14px 34px rgba(24, 49, 83, .08);
+    }
+
+    .report-kpi span {
+        display: block;
+        color: #607089;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+    }
+
+    .report-kpi strong {
+        display: block;
+        margin-top: 8px;
+        color: #0b1728;
+        font-size: 28px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .report-kpi small {
+        display: block;
+        margin-top: 8px;
+        color: #6d7c92;
+        font-weight: 700;
+    }
+
+    .report-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 12px;
+        border: 1px solid #dce7f6;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .94);
+        box-shadow: 0 10px 24px rgba(24, 49, 83, .07);
+    }
+
+    .report-tabs .nav-item {
+        flex: 0 0 auto;
+    }
+
+    .report-tabs .nav-link {
+        min-height: 38px;
+        padding: 9px 13px;
+        border: 1px solid #dbe7f6;
+        border-radius: 999px;
+        color: #1b3b65;
+        font-weight: 800;
+        background: #fff;
+    }
+
+    .report-tabs .nav-link.active {
+        border-color: #2ec4b6;
+        background: #e9fbf8;
+        color: #05695f;
+        box-shadow: inset 0 0 0 1px rgba(46, 196, 182, .18);
+    }
+
+    .elite-report .tab-content.card-block {
+        margin-top: 14px;
+        padding: 18px;
+        border: 1px solid #dce7f6;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 18px 45px rgba(24, 49, 83, .08);
+    }
+
+    #raporContainer {
+        width: 100%;
+        max-width: none;
+        display: block;
+        clear: both;
+    }
+
+    #Rapor {
+        width: 100%;
+        max-width: none;
+    }
+
+    .report-overview-head,
+    .insight-head,
+    .person-table-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: start;
+        margin-bottom: 16px;
+    }
+
+    .report-overview-head h3,
+    .insight-head h3,
+    .person-table-head h3 {
+        margin: 0;
+        color: #0b1728;
+        font-size: 22px;
+        font-weight: 900;
+    }
+
+    .report-overview-head p,
+    .insight-head p,
+    .person-table-head p {
+        max-width: 720px;
+        margin: 6px 0 0;
+        color: #65758c;
+        line-height: 1.6;
+    }
+
+    .report-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid #cfdcf0;
+        border-radius: 8px;
+        background: #fff;
+        color: #122033;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .report-action.primary {
+        border-color: transparent;
+        background: linear-gradient(90deg, #2ec4b6, #4361ee);
+        color: #fff;
+    }
+
+    .report-summary-grid,
+    .insight-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .insight-board {
+        display: grid;
+        gap: 16px;
+    }
+
+    .insight-metric,
+    .summary-card {
+        padding: 14px;
+        border: 1px solid #dce7f6;
+        border-radius: 8px;
+        background: #f9fbff;
+    }
+
+    .insight-metric span,
+    .summary-card span {
+        display: block;
+        color: #687995;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .insight-metric strong,
+    .summary-card strong {
+        display: block;
+        margin-top: 8px;
+        color: #0b1728;
+        font-size: 24px;
+        font-weight: 900;
+    }
+
+    .summary-card small {
+        display: block;
+        margin-top: 7px;
+        color: #6d7c92;
+        font-weight: 800;
+    }
+
+    .insight-layout {
+        display: grid;
+        grid-template-columns: minmax(560px, 1.15fr) minmax(560px, .95fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .chart-panel,
+    .table-panel,
+    .dimension-card {
+        border: 1px solid #dce7f6;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .chart-panel,
+    .table-panel {
+        min-width: 0;
+        padding: 16px;
+    }
+
+    .panel-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .panel-title h4 {
+        margin: 0;
+        color: #122033;
+        font-size: 16px;
+        font-weight: 900;
+    }
+
+    .panel-title small {
+        color: #718098;
+        font-weight: 800;
+    }
+
+    .bar-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .bar-row {
+        display: grid;
+        grid-template-columns: minmax(180px, 280px) minmax(130px, 1fr) 92px;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .bar-label {
+        min-width: 0;
+        color: #26364a;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .bar-track {
+        height: 12px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf3fb;
+    }
+
+    .bar-fill {
+        height: 100%;
+        min-width: 5px;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2ec4b6, #4361ee);
+    }
+
+    .bar-value {
+        color: #122033;
+        font-weight: 900;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .live-chart-summary {
+        min-height: 300px;
+    }
+
+    .live-pie-layout {
+        display: grid;
+        grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+        gap: 20px;
+        align-items: center;
+        min-height: 300px;
+    }
+
+    .live-pie-svg {
+        width: min(280px, 100%);
+        aspect-ratio: 1;
+        overflow: visible;
+        filter: drop-shadow(0 18px 26px rgba(24, 49, 83, .12));
+    }
+
+    .live-chart-legend {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .live-chart-legend-row {
+        display: grid;
+        grid-template-columns: 14px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #e3ebf6;
+        border-radius: 8px;
+        background: #f8fbff;
+    }
+
+    .live-chart-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+    }
+
+    .live-chart-legend-row > span:nth-child(2) {
+        min-width: 0;
+        color: #23354b;
+        font-weight: 850;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .live-chart-legend-row strong {
+        color: #0b1728;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .live-column-chart {
+        display: flex;
+        align-items: end;
+        gap: 14px;
+        min-height: 300px;
+        padding: 18px 12px 10px;
+        border: 1px solid #e3ebf6;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #f8fbff, #ffffff);
+    }
+
+    .live-column-item {
+        flex: 1 1 0;
+        min-width: 0;
+        display: grid;
+        grid-template-rows: 1fr auto;
+        gap: 10px;
+        align-items: end;
+    }
+
+    .live-column-track {
+        position: relative;
+        display: flex;
+        align-items: end;
+        justify-content: center;
+        height: 220px;
+        min-width: 42px;
+        border-radius: 12px;
+        background: #edf3fb;
+        overflow: hidden;
+    }
+
+    .live-column-fill {
+        width: 100%;
+        min-height: 8px;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .live-column-value {
+        position: absolute;
+        top: 10px;
+        left: 0;
+        right: 0;
+        color: #102033;
+        font-size: 12px;
+        font-weight: 950;
+        text-align: center;
+        z-index: 1;
+    }
+
+    .live-column-label {
+        color: #26364a;
+        font-size: 12px;
+        font-weight: 850;
+        line-height: 1.25;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
+    .live-column-label .live-avatar-name {
+        justify-content: center;
+        max-width: 100%;
+    }
+
+    .live-density-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .live-density-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 86px;
+        padding: 12px 12px 12px 16px;
+        border: 1px solid #e1eaf7;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .live-density-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: var(--accent, #2ec4b6);
+    }
+
+    .live-density-card > span {
+        display: block;
+        min-height: 34px;
+        color: #23354b;
+        font-weight: 900;
+        line-height: 1.35;
+    }
+
+    .live-density-card strong {
+        display: inline-flex;
+        margin-top: 8px;
+        color: #0b1728;
+        font-size: 18px;
+        font-weight: 950;
+    }
+
+    .live-density-card small {
+        display: inline-flex;
+        margin-left: 8px;
+        color: #63748d;
+        font-weight: 800;
+    }
+
+    .dim-search {
+        width: 100%;
+        min-height: 40px;
+        margin-bottom: 12px;
+        padding: 0 12px;
+        border: 1px solid #cfddf0;
+        border-radius: 8px;
+        color: #122033;
+        font-weight: 700;
+    }
+
+    .insight-table-wrap {
+        max-height: 640px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border: 1px solid #e1eaf7;
+        border-radius: 8px;
+    }
+
+    .insight-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    .insight-table th,
+    .insight-table td {
+        padding: 11px 12px;
+        border-bottom: 1px solid #edf2f8;
+        vertical-align: middle;
+    }
+
+    .insight-table th:first-child,
+    .insight-table td:first-child {
+        width: 48%;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .insight-table th:nth-child(2),
+    .insight-table td:nth-child(2) {
+        width: 18%;
+        text-align: right;
+    }
+
+    .insight-table th:nth-child(3),
+    .insight-table td:nth-child(3) {
+        width: 12%;
+        text-align: right;
+    }
+
+    .insight-table th:nth-child(4),
+    .insight-table td:nth-child(4) {
+        width: 22%;
+    }
+
+    .insight-table th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f4f8fd;
+        color: #53647d;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+    }
+
+    .mini-track {
+        width: 100%;
+        min-width: 80px;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf3fb;
+    }
+
+    .mini-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: #2ec4b6;
+    }
+
+    .avatar-name-cell,
+    .live-avatar-name {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .avatar-name-cell {
+        width: 100%;
+    }
+
+    .avatar-name-cell > span:last-child,
+    .avatar-name-cell > a,
+    .live-avatar-name > span:last-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .avatar-name-cell a {
+        color: #1b3b65;
+        font-weight: 850;
+        text-decoration: none;
+    }
+
+    .live-avatar {
+        position: relative;
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
+        overflow: hidden;
+        border-radius: 999px;
+        border: 2px solid #fff;
+        background: linear-gradient(135deg, var(--avatar-a, #2ec4b6), var(--avatar-b, #4361ee));
+        color: #fff;
+        box-shadow: 0 8px 18px rgba(24, 49, 83, .16);
+    }
+
+    .live-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .live-avatar-fallback {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    .live-avatar.has-photo .live-avatar-fallback {
+        display: none;
+    }
+
+    .live-avatar-initials {
+        color: #fff;
+        font-size: 11px;
+        font-weight: 950;
+        letter-spacing: .02em;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+
+    .live-avatar.sm {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+
+    .live-avatar.md {
+        width: 36px;
+        height: 36px;
+    }
+
+    .report-card-grid {
+        width: 100%;
+        max-width: none;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(320px, 1fr));
+        gap: 16px;
+        align-items: start;
+    }
+
+    .dimension-card {
+        min-width: 0;
+        overflow: hidden;
+        padding: 18px;
+        box-shadow: 0 12px 28px rgba(24, 49, 83, .07);
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .dimension-card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+        margin-bottom: 12px;
+    }
+
+    .dimension-card-head > div {
+        min-width: 0;
+    }
+
+    .dimension-card h4 {
+        margin: 0;
+        color: #0b1728;
+        font-weight: 900;
+    }
+
+    .dimension-card small {
+        display: block;
+        margin-top: 4px;
+        color: #6d7c92;
+        font-weight: 800;
+        line-height: 1.4;
+    }
+
+    .dimension-card .bar-list {
+        gap: 10px;
+    }
+
+    .dimension-card .bar-row {
+        grid-template-columns: minmax(130px, 1fr) minmax(115px, 160px) minmax(78px, 92px);
+        gap: 10px;
+    }
+
+    .dimension-card .bar-label {
+        font-size: 13px;
+    }
+
+    .dimension-card .bar-track {
+        height: 10px;
+    }
+
+    .dimension-card .bar-value {
+        font-size: 13px;
+    }
+
+    .dimension-card .bar-value small {
+        font-size: 11px;
+    }
+
+    .dimension-card .live-chart-summary {
+        min-height: 210px;
+    }
+
+    .dimension-card .live-pie-layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        min-height: 210px;
+    }
+
+    .dimension-card .live-pie-svg {
+        width: 172px;
+        margin: 0 auto;
+    }
+
+    .dimension-card .live-chart-legend {
+        gap: 7px;
+    }
+
+    .dimension-card .live-chart-legend-row {
+        padding: 7px 8px;
+        grid-template-columns: 11px minmax(0, 1fr) auto;
+    }
+
+    .dimension-card .live-chart-swatch {
+        width: 10px;
+        height: 10px;
+    }
+
+    .dimension-card .live-chart-legend-row > span:nth-child(2),
+    .dimension-card .live-chart-legend-row strong {
+        font-size: 12px;
+    }
+
+    .dimension-card .live-column-chart {
+        min-height: 210px;
+        gap: 8px;
+        padding: 12px 6px 8px;
+    }
+
+    .dimension-card .live-column-track {
+        height: 132px;
+        min-width: 30px;
+    }
+
+    .dimension-card .live-column-value,
+    .dimension-card .live-column-label {
+        font-size: 11px;
+    }
+
+    .dimension-card .live-density-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .dimension-card .live-density-card {
+        min-height: 68px;
+        padding: 9px 10px 9px 13px;
+    }
+
+    .dimension-card .live-density-card > span {
+        min-height: 0;
+        font-size: 12px;
+    }
+
+    .dimension-card .live-density-card strong {
+        font-size: 14px;
+    }
+
+    .dimension-link {
+        border: 1px solid #d5e2f4;
+        border-radius: 8px;
+        background: #fff;
+        color: #2456d6;
+        font-weight: 900;
+        padding: 7px 10px;
+    }
+
+    .chart-empty {
+        padding: 28px;
+        border: 1px dashed #cbd9ea;
+        border-radius: 8px;
+        background: #f8fbff;
+        color: #607089;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    .pdf-report-title {
+        display: none;
+    }
+
+    .pdf-page-shell {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 2147483647;
+        width: 1120px;
+        height: 792px;
+        overflow: hidden;
+        padding: 0;
+        background: #fff;
+        color: #122033;
+        pointer-events: none;
+    }
+
+    .pdf-page-shell .pdf-report-export {
+        display: block !important;
+        width: 1120px;
+        padding: 0;
+        background: #f5f8fc;
+        color: #122033;
+        font-family: "Inter", "Segoe UI", Arial, sans-serif;
+    }
+
+    .pdf-report-export .pdf-report-page {
+        display: none !important;
+    }
+
+    .pdf-slide-page {
+        position: relative;
+        overflow: hidden;
+        width: 1120px;
+        height: 792px;
+        padding: 32px;
+        box-sizing: border-box;
+        background: #fff;
+    }
+
+    .pdf-slide-page + .pdf-slide-page {
+        page-break-before: auto;
+        break-before: auto;
+    }
+
+    .pdf-slide-page::after {
+        content: "";
+        position: absolute;
+        left: 32px;
+        right: 32px;
+        bottom: 18px;
+        height: 3px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #2ec4b6, #4361ee, #f59e0b, #ef476f);
+        opacity: .78;
+    }
+
+    .pdf-cover-page {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        gap: 24px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 78% 16%, rgba(46, 196, 182, .42), transparent 30%),
+            radial-gradient(circle at 18% 84%, rgba(239, 71, 111, .28), transparent 34%),
+            linear-gradient(135deg, #0c1d32, #153f50 58%, #20335b);
+    }
+
+    .pdf-cover-page::after {
+        background: rgba(255, 255, 255, .5);
+    }
+
+    .pdf-cover-kicker,
+    .pdf-slide-kicker {
+        display: inline-flex;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
+        padding: 7px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .pdf-cover-kicker {
+        border: 1px solid rgba(255, 255, 255, .28);
+        background: rgba(255, 255, 255, .12);
+        color: #bdf7ef;
+    }
+
+    .pdf-slide-kicker {
+        background: #e9fbf8;
+        color: #087267;
+    }
+
+    .pdf-cover-title h1 {
+        max-width: 820px;
+        margin: 18px 0 10px;
+        color: #fff;
+        font-size: 42px;
+        line-height: 1.08;
+        font-weight: 950;
+    }
+
+    .pdf-cover-title p {
+        max-width: 740px;
+        margin: 0;
+        color: rgba(255, 255, 255, .82);
+        font-size: 16px;
+        line-height: 1.7;
+    }
+
+    .pdf-cover-meta {
+        position: absolute;
+        top: 32px;
+        right: 32px;
+        text-align: right;
+        color: rgba(255, 255, 255, .78);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .pdf-cover-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .pdf-cover-stat {
+        min-height: 112px;
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, .2);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .1);
+        box-shadow: 0 22px 46px rgba(0, 0, 0, .18);
+    }
+
+    .pdf-cover-stat span,
+    .pdf-kpi-card span,
+    .pdf-insight-card span {
+        display: block;
+        margin-bottom: 10px;
+        color: #63728a;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+    }
+
+    .pdf-cover-stat span {
+        color: rgba(255, 255, 255, .72);
+    }
+
+    .pdf-cover-stat strong {
+        display: block;
+        color: #fff;
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 950;
+    }
+
+    .pdf-cover-stat small {
+        display: block;
+        margin-top: 10px;
+        color: rgba(255, 255, 255, .72);
+        font-weight: 800;
+    }
+
+    .pdf-slide-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+        padding-bottom: 14px;
+        border-bottom: 2px solid #e1e8f2;
+    }
+
+    .pdf-slide-header h2 {
+        margin: 10px 0 6px;
+        color: #141f31;
+        font-size: 28px;
+        font-weight: 950;
+        line-height: 1.1;
+    }
+
+    .pdf-slide-header p {
+        max-width: 720px;
+        margin: 0;
+        color: #607089;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .pdf-slide-number {
+        min-width: 62px;
+        min-height: 42px;
+        padding: 10px 12px;
+        border: 1px solid #d8e4f3;
+        border-radius: 10px;
+        background: #f7faff;
+        color: #16345f;
+        font-weight: 950;
+        text-align: center;
+    }
+
+    .pdf-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .pdf-kpi-card,
+    .pdf-insight-card,
+    .pdf-chart-panel,
+    .pdf-table-panel,
+    .pdf-overview-card {
+        border: 1px solid #dbe6f4;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 14px 30px rgba(24, 49, 83, .07);
+    }
+
+    .pdf-kpi-card {
+        min-height: 92px;
+        padding: 14px;
+    }
+
+    .pdf-kpi-card strong,
+    .pdf-insight-card strong {
+        display: block;
+        color: #071426;
+        font-size: 24px;
+        line-height: 1.1;
+        font-weight: 950;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pdf-kpi-card small,
+    .pdf-insight-card small {
+        display: block;
+        margin-top: 8px;
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .pdf-overview-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .pdf-overview-card {
+        min-height: 128px;
+        padding: 13px;
+    }
+
+    .pdf-overview-card h3 {
+        margin: 0 0 6px;
+        color: #10233d;
+        font-size: 16px;
+        font-weight: 950;
+    }
+
+    .pdf-overview-card p {
+        margin: 0 0 10px;
+        color: #607089;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .pdf-overview-bars {
+        display: grid;
+        gap: 7px;
+    }
+
+    .pdf-overview-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 92px 54px;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .pdf-overview-row span {
+        overflow: hidden;
+        color: #14243a;
+        font-size: 10px;
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pdf-overview-row strong {
+        color: #0d1b2f;
+        font-size: 10px;
+        font-weight: 950;
+        text-align: right;
+    }
+
+    .pdf-dim-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(270px, .8fr);
+        gap: 14px;
+    }
+
+    .pdf-chart-panel,
+    .pdf-table-panel {
+        padding: 14px;
+    }
+
+    .pdf-panel-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .pdf-panel-title h3 {
+        margin: 0;
+        color: #122033;
+        font-size: 17px;
+        font-weight: 950;
+    }
+
+    .pdf-panel-title small {
+        color: #607089;
+        font-weight: 900;
+    }
+
+    .pdf-bars {
+        display: grid;
+        gap: 8px;
+    }
+
+    .pdf-bar-row {
+        display: grid;
+        grid-template-columns: 34px minmax(220px, 1fr) minmax(220px, 1.1fr) 72px 58px;
+        gap: 10px;
+        align-items: center;
+        min-height: 28px;
+    }
+
+    .pdf-bar-rank {
+        width: 28px;
+        height: 24px;
+        border-radius: 8px;
+        background: #eef5ff;
+        color: #315077;
+        font-size: 10px;
+        font-weight: 950;
+        line-height: 24px;
+        text-align: center;
+    }
+
+    .pdf-bar-label {
+        overflow: hidden;
+        color: #14243a;
+        font-size: 11px;
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pdf-bar-track,
+    .pdf-detail-track {
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf3fb;
+    }
+
+    .pdf-bar-track {
+        height: 12px;
+    }
+
+    .pdf-detail-track {
+        height: 8px;
+    }
+
+    .pdf-bar-fill,
+    .pdf-detail-fill {
+        height: 100%;
+        border-radius: inherit;
+    }
+
+    .pdf-bar-score,
+    .pdf-bar-count {
+        color: #0d1b2f;
+        font-size: 11px;
+        font-weight: 950;
+        text-align: right;
+    }
+
+    .pdf-insight-grid {
+        display: grid;
+        gap: 10px;
+    }
+
+    .pdf-insight-card {
+        min-height: 92px;
+        padding: 14px;
+    }
+
+    .pdf-table-panel {
+        margin-top: 16px;
+    }
+
+    .pdf-combined-page {
+        padding: 26px 32px;
+    }
+
+    .pdf-combined-page .pdf-slide-header {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+    }
+
+    .pdf-combined-page .pdf-slide-header h2 {
+        margin: 8px 0 4px;
+        font-size: 24px;
+    }
+
+    .pdf-combined-page .pdf-slide-header p {
+        max-width: 820px;
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .pdf-combined-kpis {
+        gap: 9px;
+        margin-bottom: 10px;
+    }
+
+    .pdf-combined-kpis .pdf-kpi-card {
+        min-height: 62px;
+        padding: 10px 12px;
+    }
+
+    .pdf-combined-kpis .pdf-kpi-card span {
+        margin-bottom: 5px;
+        font-size: 8px;
+    }
+
+    .pdf-combined-kpis .pdf-kpi-card strong {
+        font-size: 19px;
+    }
+
+    .pdf-combined-kpis .pdf-kpi-card small {
+        margin-top: 5px;
+        font-size: 9px;
+    }
+
+    .pdf-combined-table {
+        margin-top: 0;
+        padding: 10px;
+    }
+
+    .pdf-combined-table .pdf-panel-title {
+        margin-bottom: 8px;
+    }
+
+    .pdf-combined-table .pdf-panel-title h3 {
+        font-size: 14px;
+    }
+
+    .pdf-combined-table .pdf-detail-table {
+        font-size: 8.6px;
+        line-height: 1.08;
+    }
+
+    .pdf-combined-table .pdf-detail-table th {
+        padding: 6px 8px;
+        font-size: 7.8px;
+    }
+
+    .pdf-combined-table .pdf-detail-table td {
+        padding: 4px 8px;
+    }
+
+    .pdf-combined-table .pdf-detail-track {
+        height: 7px;
+    }
+
+    .pdf-small-data-layout {
+        display: grid;
+        grid-template-columns: minmax(430px, .92fr) minmax(0, 1.08fr);
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .pdf-small-data-layout-pie {
+        grid-template-columns: minmax(500px, .98fr) minmax(0, 1.02fr);
+    }
+
+    .pdf-small-data-visual {
+        min-height: 502px;
+        padding: 14px;
+        border: 1px solid #dbe6f4;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 14px 30px rgba(24, 49, 83, .07);
+    }
+
+    .pdf-small-data-visual .pdf-panel-title {
+        margin-bottom: 10px;
+    }
+
+    .pdf-small-data-visual .pdf-panel-title h3 {
+        font-size: 17px;
+    }
+
+    .pdf-small-data-visual .pdf-panel-title small {
+        font-size: 10px;
+    }
+
+    .pdf-pie-layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 18px;
+        align-items: center;
+        min-height: 390px;
+    }
+
+    .pdf-pie-svg {
+        width: 300px;
+        height: 300px;
+    }
+
+    .pdf-chart-legend {
+        display: grid;
+        gap: 11px;
+    }
+
+    .pdf-chart-legend-row {
+        display: grid;
+        grid-template-columns: 14px minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: center;
+        color: #122033;
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+    .pdf-chart-legend-row span:nth-child(2) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pdf-chart-legend-row strong {
+        color: #0d1b2f;
+        font-size: 11px;
+        text-align: right;
+    }
+
+    .pdf-chart-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+    }
+
+    .pdf-column-chart {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+        gap: 12px;
+        align-items: end;
+        height: 340px;
+        margin-top: 12px;
+        padding: 14px 12px 8px;
+        border-radius: 10px;
+        background: #f6f9fd;
+    }
+
+    .pdf-column-item {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        gap: 7px;
+        min-width: 0;
+        height: 100%;
+        text-align: center;
+    }
+
+    .pdf-column-track {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: end;
+        justify-content: center;
+        border-radius: 10px;
+        background: #e9f0f8;
+    }
+
+    .pdf-column-fill {
+        width: 64%;
+        min-height: 8px;
+        border-radius: 9px 9px 0 0;
+    }
+
+    .pdf-column-label {
+        overflow: hidden;
+        color: #122033;
+        font-size: 10px;
+        font-weight: 950;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pdf-column-value {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 8px;
+        color: #0d1b2f;
+        font-size: 10px;
+        font-weight: 950;
+        text-align: center;
+    }
+
+    .pdf-small-bar-chart {
+        display: grid;
+        gap: 11px;
+        margin-top: 12px;
+        padding: 14px;
+        border-radius: 10px;
+        background: #f6f9fd;
+    }
+
+    .pdf-small-bar-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) minmax(165px, 1.2fr) 56px;
+        gap: 10px;
+        align-items: center;
+        min-height: 30px;
+    }
+
+    .pdf-small-bar-label {
+        overflow: hidden;
+        color: #122033;
+        font-size: 10.5px;
+        font-weight: 950;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pdf-small-bar-track {
+        overflow: hidden;
+        height: 12px;
+        border-radius: 999px;
+        background: #e7eef7;
+    }
+
+    .pdf-small-bar-fill {
+        height: 100%;
+        border-radius: inherit;
+    }
+
+    .pdf-small-bar-score {
+        color: #0d1b2f;
+        font-size: 10px;
+        font-weight: 950;
+        text-align: right;
+    }
+
+    .pdf-table-readable .pdf-detail-table {
+        font-size: 10px;
+        line-height: 1.18;
+    }
+
+    .pdf-table-readable .pdf-detail-table th {
+        padding: 8px 9px;
+        font-size: 8.3px;
+    }
+
+    .pdf-table-readable .pdf-detail-table td {
+        padding: 7px 9px;
+    }
+
+    .pdf-table-readable .pdf-detail-table th:nth-child(2),
+    .pdf-table-readable .pdf-detail-table td:nth-child(2) {
+        text-align: left;
+    }
+
+    .pdf-table-readable .pdf-detail-table th:nth-child(3),
+    .pdf-table-readable .pdf-detail-table td:nth-child(3),
+    .pdf-table-readable .pdf-detail-table th:nth-child(4),
+    .pdf-table-readable .pdf-detail-table td:nth-child(4) {
+        text-align: right;
+    }
+
+    .pdf-two-column-table {
+        margin-top: 0;
+        padding: 10px;
+    }
+
+    .pdf-two-column-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table {
+        font-size: 8.8px;
+        line-height: 1.1;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table th {
+        padding: 6px 7px;
+        font-size: 7.5px;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table td {
+        padding: 5px 7px;
+    }
+
+    .pdf-list-page .pdf-table-panel {
+        margin-top: 0;
+    }
+
+    .pdf-list-page .pdf-detail-table {
+        font-size: 9px;
+    }
+
+    .pdf-list-page .pdf-detail-table td {
+        padding: 5px 9px;
+    }
+
+    .pdf-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 10px;
+        line-height: 1.22;
+    }
+
+    .pdf-detail-table th {
+        padding: 9px 10px;
+        background: #f0f5fb;
+        color: #53657e;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: .06em;
+        text-align: left;
+        text-transform: uppercase;
+    }
+
+    .pdf-detail-table td {
+        padding: 7px 10px;
+        border-bottom: 1px solid #e7edf5;
+        color: #122033;
+        font-weight: 800;
+        vertical-align: middle;
+        overflow-wrap: anywhere;
+    }
+
+    .pdf-detail-table td:nth-child(2),
+    .pdf-detail-table td:nth-child(3) {
+        text-align: right;
+        font-weight: 950;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table {
+        table-layout: fixed;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table col:nth-child(1) {
+        width: 30px !important;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table col:nth-child(3) {
+        width: 58px !important;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table col:nth-child(4) {
+        width: 44px !important;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table th:nth-child(2),
+    .pdf-two-column-grid .pdf-detail-table td:nth-child(2) {
+        text-align: left !important;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.22;
+        font-weight: 900;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table th:nth-child(3),
+    .pdf-two-column-grid .pdf-detail-table td:nth-child(3),
+    .pdf-two-column-grid .pdf-detail-table th:nth-child(4),
+    .pdf-two-column-grid .pdf-detail-table td:nth-child(4) {
+        text-align: right !important;
+        white-space: nowrap;
+    }
+
+    .pdf-two-column-grid .pdf-detail-table td {
+        vertical-align: top;
+    }
+
+    .person-table-shell {
+        border: 1px solid #dce7f6;
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .person-table-shell .table-responsive {
+        padding: 0;
+    }
+
+    #Grid {
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    #Grid thead tr:first-child th {
+        background: #0f2333;
+        color: #fff;
+        border-color: #0f2333;
+    }
+
+    #Grid thead input {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid #d1dcec;
+        border-radius: 8px;
+        padding: 0 10px;
+        color: #122033;
+    }
+
+    @@media (max-width: 1200px) {
+        .insight-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .report-kpi-grid,
+        .report-summary-grid,
+        .insight-kpis {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 1280px) {
+        .report-card-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .report-hero {
+            grid-template-columns: 1fr;
+            padding: 20px;
+        }
+
+        .report-hero h1 {
+            font-size: 24px;
+        }
+
+        .report-kpi-grid,
+        .report-summary-grid,
+        .insight-kpis {
+            grid-template-columns: 1fr;
+        }
+
+        .report-card-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .bar-row {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .bar-value {
+            text-align: left;
+        }
+
+        .live-pie-layout,
+        .live-density-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .live-pie-svg {
+            width: 220px;
+            margin: 0 auto;
+        }
+
+        .live-column-chart {
+            min-height: 230px;
+            gap: 8px;
+        }
+
+        .live-column-track {
+            height: 160px;
+            min-width: 28px;
+        }
+    }
+</style>
+
+<div class="panel elite-report">
+    <div class="report-hero">
+        <div>
+            <div class="report-eyebrow"><i class="fa fa-chart-line"></i> Analiz Merkezi</div>
+            <h1>@ViewBag.adi</h1>
+            <p>@ViewBag.anketadi çalışmasının tüm sonuç kırılımları burada toparlandı. Kalabalık ünvan ve soru listeleri artık grafiği boğmadan, özet ve detay dengesiyle okunur.</p>
+        </div>
+        <a class="report-back" href="@Url.Action("AnketIndex1", "Home", new { id = ViewBag.ank })">
+            <i class="fa fa-arrow-left"></i> Çalışmaya dön
+        </a>
     </div>
 
     <div class="panel-body">
-        <table class="table">
-            <tr>
-                <th>
-                    @{
-                        var item3 = Model.Where(x => x.UserId != null);
-                        var item4 = Model.Where(x => x.Isimsiz != null);
-
-                        var tanimli = item3.GroupBy(x => x.UserId).Count();
-                        var tanimsiz = item4.Count();
-                    }
-                    <b style="color:green">@tanimli Tanımlı </b>
-                    <b style="color:orangered">@tanimsiz Tanımsız Katılım</b>
-                </th>
-            </tr>
-        </table>
+        <div class="report-kpi-grid">
+            <div class="report-kpi">
+                <span>Toplam katılım</span>
+                <strong>@toplamKatilim</strong>
+                <small>Tanımlı ve anonim toplamı</small>
+            </div>
+            <div class="report-kpi">
+                <span>Tanımlı katılım</span>
+                <strong>@tanimli</strong>
+                <small>Personel kaydı eşleşen</small>
+            </div>
+            <div class="report-kpi">
+                <span>Tanımsız katılım</span>
+                <strong>@tanimsiz</strong>
+                <small>Kodla takip edilen</small>
+            </div>
+            <div class="report-kpi">
+                <span>Cevap kaydı</span>
+                <strong>@cevapKaydiSayisi</strong>
+                <small>Rapor hesaplamasına giren satır</small>
+            </div>
+        </div>
     </div>
 
     <div class="card-block">
@@ -52,7 +1845,7 @@
             <div class="col-lg-12 col-xl-12">
 
                 <!-- Nav tabs -->
-                <ul class="nav nav-tabs tabs" role="tablist">
+                <ul class="nav nav-tabs tabs report-tabs" role="tablist">
                     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#Rapor">Rapor</a></li>
                     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Genel">Genel</a></li>
                     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Departman">Departman</a></li>
@@ -75,32 +1868,48 @@
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
                     <div class="tab-pane active" id="Rapor">
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <h3>Genel Rapor</h3>
-                            <button class="btn btn-danger" onclick="downloadPDF()">PDF İndir</button>
-
+                        <div class="pdf-report-title">
+                            <span>Analiz raporu</span>
+                            <h2>@ViewBag.adi</h2>
+                            <p>@ViewBag.anketadi</p>
                         </div>
-                        <p>Departman, Cinsiyet, Eğitim, Yaş, Şehir, Şube, Ünvan, Yaka, Yönetici, Soru ve Soru Grup analizleri tek sayfada özetlenmiştir.</p>
+                        <div class="report-overview-head">
+                            <div>
+                                <h3>Akıllı Rapor Özeti</h3>
+                                <p>En kalabalık ve en kritik kırılımlar tek ekranda izlenir. Detay gerektiğinde ilgili sekmeye geçip tüm liste içinde arama yapabilirsiniz.</p>
+                            </div>
+                            <button type="button" class="report-action primary" onclick="downloadPDF()">
+                                <i class="fa fa-file-pdf"></i> PDF indir
+                            </button>
+                        </div>
+                        <div id="reportSummary" class="report-summary-grid"></div>
                         <div id="raporContainer"></div>
                     </div>
 
 
                     <!-- Genel -->
-                    <div class="tab-pane" id="Genel"><canvas id="myChart1" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Departman"><canvas id="myChart2" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Cinsiyet"><canvas id="myChart3" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Egitim"><canvas id="myChart4" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Yas"><canvas id="myChart5" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Sehir"><canvas id="myChart6" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Sube"><canvas id="myChart7" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Unvani"><canvas id="myChart8" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Yaka"><canvas id="myChart9" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Yonetici"><canvas id="myChart10" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Soru"><canvas id="myChart11" style="width:100%; height:100%"></canvas></div>
-                    <div class="tab-pane" id="Sorugrup"><canvas id="myChart12" style="width:100%; height:100%"></canvas></div>
+                    <div class="tab-pane" id="Genel"><div class="insight-board" id="insight1"></div></div>
+                    <div class="tab-pane" id="Departman"><div class="insight-board" id="insight2"></div></div>
+                    <div class="tab-pane" id="Cinsiyet"><div class="insight-board" id="insight3"></div></div>
+                    <div class="tab-pane" id="Egitim"><div class="insight-board" id="insight4"></div></div>
+                    <div class="tab-pane" id="Yas"><div class="insight-board" id="insight5"></div></div>
+                    <div class="tab-pane" id="Sehir"><div class="insight-board" id="insight6"></div></div>
+                    <div class="tab-pane" id="Sube"><div class="insight-board" id="insight7"></div></div>
+                    <div class="tab-pane" id="Unvani"><div class="insight-board" id="insight8"></div></div>
+                    <div class="tab-pane" id="Yaka"><div class="insight-board" id="insight9"></div></div>
+                    <div class="tab-pane" id="Yonetici"><div class="insight-board" id="insight10"></div></div>
+                    <div class="tab-pane" id="Soru"><div class="insight-board" id="insight11"></div></div>
+                    <div class="tab-pane" id="Sorugrup"><div class="insight-board" id="insight12"></div></div>
 
                     <!-- Kişi Tablosu -->
                     <div class="tab-pane" id="Kisi">
+                        <div class="person-table-head">
+                            <div>
+                                <h3>Kişiye Göre Detay</h3>
+                                <p>Katılımcı bazında puan, departman ve diğer profil alanlarını tek tabloda inceleyin.</p>
+                            </div>
+                        </div>
+                        <div class="person-table-shell">
                         <div class="table-responsive">
                             <table class="table table-striped table-hover" id="Grid">
                                 <thead>
@@ -134,35 +1943,72 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var item in Model.GroupBy(x => x.UserId))
+                                    @foreach (var item in modelKayitlari.GroupBy(x => x.UserId.HasValue
+                                        ? "u:" + x.UserId.Value
+                                        : x.Isimsiz.HasValue
+                                            ? "k:" + x.Isimsiz.Value
+                                            : "h:" + x.HavuzId))
                                     {
+                                        var ilkKayit = item
+                                            .OrderByDescending(x => x.KayitTar ?? DateTime.MinValue)
+                                            .ThenByDescending(x => x.HavuzId)
+                                            .FirstOrDefault();
+                                        var kullanici = ilkKayit?.User;
+                                        var raporId = kullanici?.UserId ?? ilkKayit?.Isimsiz ?? ilkKayit?.UserId ?? ilkKayit?.HavuzId ?? 0;
+                                        var katilimciAdi = !string.IsNullOrWhiteSpace(kullanici?.UserAdi)
+                                            ? kullanici.UserAdi
+                                            : ilkKayit?.Isimsiz.HasValue == true
+                                                ? "Katılımcı #" + ilkKayit.Isimsiz.Value
+                                                : "Tanımsız katılımcı";
+                                        var departmanAdi = !string.IsNullOrWhiteSpace(kullanici?.Departman?.DepartmanAdi) ? kullanici.Departman.DepartmanAdi : "Tanımsız";
+                                        var cinsiyetAdi = !string.IsNullOrWhiteSpace(kullanici?.Cinsiyet?.CinsiyetAdi) ? kullanici.Cinsiyet.CinsiyetAdi : "Tanımsız";
+                                        var egitimAdi = !string.IsNullOrWhiteSpace(kullanici?.Egitim?.EgitimAdi) ? kullanici.Egitim.EgitimAdi : "Tanımsız";
+                                        var sehirAdi = !string.IsNullOrWhiteSpace(kullanici?.Sehir?.SehiarAdi) ? kullanici.Sehir.SehiarAdi : "Tanımsız";
+                                        var subeAdi = !string.IsNullOrWhiteSpace(kullanici?.Sube?.SubeAdi) ? kullanici.Sube.SubeAdi : "Tanımsız";
+                                        var unvanAdi = !string.IsNullOrWhiteSpace(kullanici?.Unvan?.UnvanAdi) ? kullanici.Unvan.UnvanAdi : "Tanımsız";
+                                        var yakaAdi = !string.IsNullOrWhiteSpace(kullanici?.Yaka?.YakaAdi) ? kullanici.Yaka.YakaAdi : "Tanımsız";
+                                        var yoneticiAdi = !string.IsNullOrWhiteSpace(kullanici?.Yonetici?.YoneticiAdi) ? kullanici.Yonetici.YoneticiAdi : "Tanımsız";
                                         <tr>
                                             <!-- ID gizli olacak -->
 
                                             <td>
-                                                <a href="@Url.Action("AnketUserIndex", "Home", new { id = item.Key, ank = ViewBag.id })">
-                                                    @item.First().User.UserAdi
-                                                </a>
+                                                <div class="avatar-name-cell">
+                                                    @await Html.PartialAsync("_KatilimciAvatar", new survey.Models.KatilimciAvatarModel { Ad = katilimciAdi, Resim = kullanici?.UserResim, Cinsiyet = kullanici?.Cinsiyet?.CinsiyetAdi, Size = "sm" })
+                                                    @if (raporId > 0)
+                                                    {
+                                                        <a href="@Url.Action("AnketUserIndex", "Home", new { id = raporId, ank = ViewBag.id })">
+                                                            @katilimciAdi
+                                                        </a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@katilimciAdi</span>
+                                                    }
+                                                </div>
                                             </td>
-                                            <td>@item.First().User.Departman.DepartmanAdi</td>
-                                            <td>@item.First().User.Cinsiyet.CinsiyetAdi</td>
-                                            <td>@item.First().User.Egitim.EgitimAdi</td>
+                                            <td>@departmanAdi</td>
+                                            <td>@cinsiyetAdi</td>
+                                            <td>@egitimAdi</td>
                                             <td>
                                                 @{
-                                                    var dogumTarihi = item.First().User.UserDogumTar;
+                                                    var dogumTarihi = kullanici?.UserDogumTar;
                                                     if (dogumTarihi != null)
                                                     {
                                                         var yas = DateTime.Today.Year - dogumTarihi.Value.Year;
                                                         if (DateTime.Today < dogumTarihi.Value.AddYears(yas)) { yas--; }
                                                         @yas
                                                     }
+                                                    else
+                                                    {
+                                                        <span>Tanımsız</span>
+                                                    }
                                                 }
                                             </td>
-                                            <td>@item.First().User.Sehir.SehiarAdi</td>
-                                            <td>@item.First().User.Sube.SubeAdi</td>
-                                            <td>@item.First().User.Unvan.UnvanAdi</td>
-                                            <td>@item.First().User.Yaka.YakaAdi</td>
-                                            <td>@item.First().User.Yonetici.YoneticiAdi</td>
+                                            <td>@sehirAdi</td>
+                                            <td>@subeAdi</td>
+                                            <td>@unvanAdi</td>
+                                            <td>@yakaAdi</td>
+                                            <td>@yoneticiAdi</td>
                                             <td>
                                                 @if (ViewBag.sinav != true)
                                                 {
@@ -195,6 +2041,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        </div>
                     </div>
                 </div> <!-- tab-content -->
             </div>
@@ -203,92 +2050,7 @@
 </div>
 @using Newtonsoft.Json
 <script>
-    // Column olması istenen grafikler
-    const columnCharts = ["Genel", "Cinsiyet", "Şehir", "Şube", "Yaka", "Soru   ","Soru Grup", "Eğitim"];
-
-    function createChart(ctxId, label, labels, data, type = 'bar', adet = null) {
-        if (!labels || !data || labels.length === 0 || data.length === 0) return;
-
-
-        let isColumn = columnCharts.includes(label);
-        let indexAxis = isColumn ? 'x' : 'y';
-
-        const canvas = document.getElementById(ctxId);
-
-        // Eğer column ise class ekle
-        if (isColumn) {
-            canvas.classList.add("column-chart");
-        }
-
-        new Chart(canvas, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: label,
-                    data: data,
-                    backgroundColor: [
-                        'rgba(0,123,255,0.7)',
-                        'rgba(232,62,140,0.7)',
-                        'rgba(40,167,69,0.7)',
-                        'rgba(255,193,7,0.7)',
-                        'rgba(220,53,69,0.7)',
-                        'rgba(23,162,184,0.7)',
-                        'rgba(111,66,193,0.7)',
-                        'rgba(52,58,64,0.7)',
-                    ],
-                    borderColor: 'white',
-                    borderWidth: 1,
-                    adet: adet
-                }]
-            },
-            options: {
-                responsive: true,
-                indexAxis: indexAxis,
-                layout: {
-                    padding: {
-                        top: 20,
-                        right: 100,  // sağ taraftaki yazılar için boşluk
-                        left: 10,   // yaş etiketleri için boşluk
-                        bottom: 10
-                    }                },
-                plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                        anchor: 'end',
-                        align: isColumn ? 'top' : 'right',
-                        color: '#000',
-                        font: { weight: 'bold', size: 11 },
-                        formatter: function (value, context) {
-                            let adetVal = context.dataset.adet
-                                ? context.dataset.adet[context.dataIndex]
-                                : null;
-                            return adetVal
-                                ? `${value.toFixed(2)} (${adetVal} kişi)`
-                                : value.toFixed(2);
-                        }
-                    }
-                },
-                // 🔽 scales artık options içinde
-                scales: {
-                    y: {
-                        ticks: {
-                            autoSkip: false,
-                            callback: function (value) {
-                                const label = this.getLabelForValue(value);
-                                return label.length > 40
-                                    ? label.match(/.{1,40}/g)   // 40 karakterlik parçalar
-                                    : label;
-                            }
-                        }
-                    }
-                }
-            },
-            plugins: [ChartDataLabels]
-        });
-    }
-
-    // Razor'dan JSON veriler
+    // Razor'dan JSON verileri
     var baslik1  = @Html.Raw(JsonConvert.SerializeObject(ViewBag.baslik1));
     var puan1    = @Html.Raw(JsonConvert.SerializeObject(ViewBag.puan1));
     var adet1    = @Html.Raw(JsonConvert.SerializeObject(ViewBag.adet1));
@@ -325,118 +2087,982 @@
     var baslik12 = @Html.Raw(JsonConvert.SerializeObject(ViewBag.baslik12));
     var puan12   = @Html.Raw(JsonConvert.SerializeObject(ViewBag.puan12));
     var adet12   = @Html.Raw(JsonConvert.SerializeObject(ViewBag.adet12));
+    var yoneticiAvatarlar = @Html.Raw(JsonConvert.SerializeObject(yoneticiAvatarlar));
 
-    // Genel grafik çağrıları
-    createChart("myChart1", "Genel", baslik1, puan1, "bar", adet1);
-    createChart("myChart2", "Departman", baslik2, puan2, "bar", adet2);
-    createChart("myChart3", "Cinsiyet", baslik3, puan3, "bar", adet3);
-    createChart("myChart4", "Eğitim", baslik4, puan4, "bar", adet4);
-    createChart("myChart5", "Yaş", baslik5, puan5, "bar", adet5);
-    createChart("myChart6", "Şehir", baslik6, puan6, "bar", adet6);
-    createChart("myChart7", "Şube", baslik7, puan7, "bar", adet7);
-    createChart("myChart8", "Ünvan", baslik8, puan8, "bar", adet8);
-    createChart("myChart9", "Yaka", baslik9, puan9, "bar", adet9);
-    createChart("myChart10", "Yönetici", baslik10, puan10, "bar", adet10);
-    createChart("myChart11", "Soru", baslik11, puan11, "bar", adet11);
-    createChart("myChart12", "Soru Grup", baslik12, puan12, "bar", adet12);
+</script>
 
-    // Dinamik rapor verileri
-    const raporData = [
-        { id: 2, baslik: baslik2, puan: puan2, adet: adet2, label: "Departman", type: "bar" },
-        { id: 3, baslik: baslik3, puan: puan3, adet: adet3, label: "Cinsiyet", type: "bar" },
-        { id: 4, baslik: baslik4, puan: puan4, adet: adet4, label: "Eğitim", type: "bar" },
-        { id: 5, baslik: baslik5, puan: puan5, adet: adet5, label: "Yaş", type: "bar" },
-        { id: 6, baslik: baslik6, puan: puan6, adet: adet6, label: "Şehir", type: "bar" },
-        { id: 7, baslik: baslik7, puan: puan7, adet: adet7, label: "Şube", type: "bar" },
-        { id: 8, baslik: baslik8, puan: puan8, adet: adet8, label: "Ünvan", type: "bar" },
-        { id: 9, baslik: baslik9, puan: puan9, adet: adet9, label: "Yaka", type: "bar" },
-        { id: 10, baslik: baslik10, puan: puan10, adet: adet10, label: "Yönetici", type: "bar" },
-        { id: 11, baslik: baslik11, puan: puan11, adet: adet11, label: "Soru", type: "bar" },
-        { id: 12, baslik: baslik12, puan: puan12, adet: adet12, label: "Soru Grup", type: "bar" }
-    ];
+<script>
+    (function () {
+        const workTitle = @Html.Raw(JsonConvert.SerializeObject(Convert.ToString(ViewBag.adi) ?? ""));
+        const workSubtitle = @Html.Raw(JsonConvert.SerializeObject(Convert.ToString(ViewBag.anketadi) ?? ""));
+        const participantTotals = {
+            total: @toplamKatilim,
+            defined: @tanimli,
+            anonymous: @tanimsiz,
+            answerRows: @cevapKaydiSayisi
+        };
 
-    // 🔹 sadece buradan çağırıyoruz
-    document.addEventListener("DOMContentLoaded", function () {
-        const container = document.getElementById("raporContainer");
+        const dimensions = [
+            { id: 1, target: "insight1", tab: "#Genel", label: "Genel", labels: baslik1, scores: puan1, counts: adet1, note: "Çalışmanın genel skor dağılımı." },
+            { id: 2, target: "insight2", tab: "#Departman", label: "Departman", labels: baslik2, scores: puan2, counts: adet2, note: "Departman bazında katılım ve ortalama puan." },
+            { id: 3, target: "insight3", tab: "#Cinsiyet", label: "Cinsiyet", labels: baslik3, scores: puan3, counts: adet3, note: "Cinsiyet kırılımında sonuç dengesi." },
+            { id: 4, target: "insight4", tab: "#Egitim", label: "Eğitim", labels: baslik4, scores: puan4, counts: adet4, note: "Eğitim seviyesine göre sonuç görünümü." },
+            { id: 5, target: "insight5", tab: "#Yas", label: "Yaş", labels: baslik5, scores: puan5, counts: adet5, note: "Yaş gruplarında skor ve katılımcı yoğunluğu." },
+            { id: 6, target: "insight6", tab: "#Sehir", label: "Şehir", labels: baslik6, scores: puan6, counts: adet6, note: "Şehir bazında karşılaştırmalı görünüm." },
+            { id: 7, target: "insight7", tab: "#Sube", label: "Şube", labels: baslik7, scores: puan7, counts: adet7, note: "Şubelerin ortalama performansı ve katılımı." },
+            { id: 8, target: "insight8", tab: "#Unvani", label: "Ünvan", labels: baslik8, scores: puan8, counts: adet8, note: "Çok uzun ünvan listeleri özetlenir, tüm detay tabloda aranır." },
+            { id: 9, target: "insight9", tab: "#Yaka", label: "Yaka", labels: baslik9, scores: puan9, counts: adet9, note: "Yaka tipine göre sonuçların ayrımı." },
+            { id: 10, target: "insight10", tab: "#Yonetici", label: "Yönetici", labels: baslik10, scores: puan10, counts: adet10, note: "Yönetici kırılımında ekiplerin genel görünümü." },
+            { id: 11, target: "insight11", tab: "#Soru", label: "Soru", labels: baslik11, scores: puan11, counts: adet11, note: "Soruların ortalama başarı ve cevap yoğunluğu." },
+            { id: 12, target: "insight12", tab: "#Sorugrup", label: "Soru Grup", labels: baslik12, scores: puan12, counts: adet12, note: "Soru gruplarının rapor başlığı bazında özeti." }
+        ];
+        let lastReportCards = [];
+        const livePalette = [
+            "#2ec4b6", "#4361ee", "#f59e0b", "#ef476f", "#06d6a0", "#118ab2",
+            "#9b5de5", "#f15bb5", "#00bbf9", "#fb8500", "#4cc9f0", "#70e000"
+        ];
+        function avatarMapKey(value) {
+            return String(value || "")
+                .normalize("NFKC")
+                .toLocaleLowerCase("tr-TR")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
 
-        raporData.forEach((grp) => {
-            if (grp.baslik && grp.baslik.length > 0) {
-                let section = document.createElement("div");
-                section.classList.add("page-break"); // ✅ burada zaten ekliyoruz
+        const managerAvatarMap = (Array.isArray(yoneticiAvatarlar) ? yoneticiAvatarlar : []).reduce(function (map, item) {
+            const key = avatarMapKey(item.ad);
+            if (key) {
+                map[key] = item.resim || "";
+            }
+            return map;
+        }, {});
 
-                section.innerHTML = `
-                <h4>${grp.label}</h4>
-                <canvas id="raporChart${grp.id}"></canvas>
-                <table class="table table-bordered mt-3">
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, function (char) {
+                return {
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    "\"": "&quot;",
+                    "'": "&#39;"
+                }[char];
+            });
+        }
+
+        function asNumber(value) {
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? numeric : 0;
+        }
+
+        function formatScore(value) {
+            return asNumber(value).toLocaleString("tr-TR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function formatCount(value) {
+            return Math.round(asNumber(value)).toLocaleString("tr-TR");
+        }
+
+        function normalizeRows(dimension) {
+            const labels = Array.isArray(dimension.labels) ? dimension.labels : [];
+            const scores = Array.isArray(dimension.scores) ? dimension.scores : [];
+            const counts = Array.isArray(dimension.counts) ? dimension.counts : [];
+
+            return labels.map(function (label, index) {
+                const name = String(label || "Tanımsız").trim() || "Tanımsız";
+                const managerKey = avatarMapKey(name);
+                const hasAvatar = dimension.id === 10;
+                return {
+                    name,
+                    score: asNumber(scores[index]),
+                    count: asNumber(counts[index]),
+                    hasAvatar,
+                    avatarUrl: hasAvatar ? (managerAvatarMap[managerKey] || "") : ""
+                };
+            }).filter(function (row) {
+                return row.name || row.score || row.count;
+            }).sort(function (a, b) {
+                return (b.count - a.count) || (b.score - a.score) || a.name.localeCompare(b.name, "tr");
+            });
+        }
+
+        function weightedScore(rows) {
+            const totalCount = rows.reduce(function (sum, row) { return sum + row.count; }, 0);
+            if (totalCount > 0) {
+                return rows.reduce(function (sum, row) { return sum + (row.score * row.count); }, 0) / totalCount;
+            }
+
+            return rows.length
+                ? rows.reduce(function (sum, row) { return sum + row.score; }, 0) / rows.length
+                : 0;
+        }
+
+        function topRow(rows) {
+            return rows.slice().sort(function (a, b) {
+                return (b.score - a.score) || (b.count - a.count) || a.name.localeCompare(b.name, "tr");
+            })[0] || null;
+        }
+
+        function buildBars(rows, limit) {
+            const visible = rows.slice(0, limit);
+            if (!visible.length) {
+                return '<div class="chart-empty">Bu kırılım için gösterilecek veri yok.</div>';
+            }
+
+            const maxScore = Math.max(100, ...visible.map(function (row) { return row.score; }));
+            return '<div class="bar-list">' + visible.map(function (row) {
+                const width = Math.max(3, Math.min(100, (row.score / maxScore) * 100));
+                return `
+                    <div class="bar-row" title="${escapeHtml(row.name)}">
+                        <div class="bar-label">${buildLabelContent(row, "sm")}</div>
+                        <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
+                        <div class="bar-value">${formatScore(row.score)} <small>(${formatCount(row.count)})</small></div>
+                    </div>`;
+            }).join("") + "</div>";
+        }
+
+        function liveColor(index) {
+            return livePalette[index % livePalette.length];
+        }
+
+        function liveVerticalGradient(index) {
+            return `linear-gradient(180deg, ${liveColor(index)}, ${liveColor(index + 2)})`;
+        }
+
+        function liveChartLabel(rows) {
+            if (rows.length <= 3) return "Pasta grafik";
+            if (rows.length <= 9) return "Kolon grafik";
+            return "Yo\u011fun liste \u00f6zeti";
+        }
+
+        function buildLiveAvatar(row, size) {
+            if (!row?.hasAvatar) return "";
+            const safeName = escapeHtml(row.name);
+            const safeSrc = escapeHtml(row.avatarUrl || "");
+            const photoClass = safeSrc ? " has-photo" : "";
+            const image = safeSrc
+                ? `<img src="${safeSrc}" alt="${safeName}" onerror="this.parentElement.classList.remove('has-photo'); this.remove();">`
+                : "";
+
+            return `
+                <span class="katilimci-avatar ${size || "sm"} is-neutral${photoClass}"
+                      title="${safeName}"
+                      aria-label="${safeName}"
+                      data-avatar-preview-open
+                      data-avatar-name="${safeName}"
+                      data-avatar-src="${safeSrc}"
+                      data-avatar-tone="is-neutral"
+                      data-avatar-icon="fa-user">
+                    ${image}
+                    <span class="katilimci-avatar-fallback">
+                        <i class="fa fa-user" aria-hidden="true"></i>
+                    </span>
+                </span>`;
+        }
+
+        function buildLabelContent(row, size) {
+            if (!row?.hasAvatar) return escapeHtml(row.name);
+            return `
+                <span class="live-avatar-name">
+                    ${buildLiveAvatar(row, size || "sm")}
+                    <span>${escapeHtml(row.name)}</span>
+                </span>`;
+        }
+
+        function buildLiveChartLegend(rows, colorOffset) {
+            return `
+                <div class="live-chart-legend">
+                    ${rows.map(function (row, index) {
+                        return `
+                            <div class="live-chart-legend-row">
+                                <span class="live-chart-swatch" style="background:${liveColor(colorOffset + index)}"></span>
+                                <span title="${escapeHtml(row.name)}">${buildLabelContent(row, "sm")}</span>
+                                <strong>${formatScore(row.score)}</strong>
+                            </div>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function buildLivePieVisual(rows, colorOffset) {
+            const values = rows.map(function (row) { return Math.max(0, row.count); });
+            const total = values.reduce(function (sum, value) { return sum + value; }, 0);
+            const safeValues = total > 0 ? values : rows.map(function () { return 1; });
+            const safeTotal = safeValues.reduce(function (sum, value) { return sum + value; }, 0);
+            let angle = 0;
+
+            const slices = rows.length === 1
+                ? `<circle cx="110" cy="110" r="86" fill="${liveColor(colorOffset)}"></circle>`
+                : rows.map(function (row, index) {
+                    const sliceAngle = (safeValues[index] / safeTotal) * 360;
+                    const start = angle;
+                    const end = angle + sliceAngle;
+                    angle = end;
+                    return `<path d="${pieSlicePath(110, 110, 86, start, end)}" fill="${liveColor(colorOffset + index)}"></path>`;
+                }).join("");
+
+            return `
+                <div class="live-pie-layout">
+                    <svg class="live-pie-svg" viewBox="0 0 220 220" role="img" aria-label="Pasta grafik">
+                        <circle cx="110" cy="110" r="94" fill="#edf3fb"></circle>
+                        ${slices}
+                        <circle cx="110" cy="110" r="43" fill="#ffffff"></circle>
+                        <text x="110" y="105" text-anchor="middle" fill="#122033" font-size="23" font-weight="900">${formatCount(rows.length)}</text>
+                        <text x="110" y="125" text-anchor="middle" fill="#66758c" font-size="10" font-weight="800">kay&#305;t</text>
+                    </svg>
+                    ${buildLiveChartLegend(rows, colorOffset)}
+                </div>`;
+        }
+
+        function buildLiveColumnVisual(rows, colorOffset) {
+            return `
+                <div class="live-column-chart">
+                    ${rows.map(function (row, index) {
+                        const height = Math.max(6, Math.min(100, row.score));
+                        return `
+                            <div class="live-column-item">
+                                <div class="live-column-track">
+                                    <div class="live-column-value">${formatScore(row.score)}</div>
+                                    <div class="live-column-fill" style="height:${height}%; background:${liveVerticalGradient(colorOffset + index)}"></div>
+                                </div>
+                                <div class="live-column-label" title="${escapeHtml(row.name)}">${buildLabelContent(row, "sm")}</div>
+                            </div>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function buildLiveDensityVisual(rows, colorOffset, compact) {
+            const visible = rows.slice(0, compact ? 5 : 8);
+            return `
+                <div class="live-density-grid">
+                    ${visible.map(function (row, index) {
+                        return `
+                            <div class="live-density-card" style="--accent:${liveColor(colorOffset + index)}">
+                                <span title="${escapeHtml(row.name)}">${buildLabelContent(row, compact ? "sm" : "md")}</span>
+                                <strong>${formatScore(row.score)}</strong>
+                                <small>${formatCount(row.count)} ki&#351;i</small>
+                            </div>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function buildAdaptiveLiveChart(rows, options) {
+            const settings = options || {};
+            const compact = settings.compact === true;
+            const colorOffset = settings.colorOffset || 0;
+
+            if (!rows.length) {
+                return '<div class="chart-empty">Bu k\u0131r\u0131l\u0131m i\u00e7in g\u00f6sterilecek veri yok.</div>';
+            }
+
+            if (rows.length <= 3) {
+                return `<div class="live-chart-summary">${buildLivePieVisual(rows, colorOffset)}</div>`;
+            }
+
+            if (rows.length <= 9 && !compact) {
+                return `<div class="live-chart-summary">${buildLiveColumnVisual(rows, colorOffset)}</div>`;
+            }
+
+            if (rows.length <= 6) {
+                return `<div class="live-chart-summary">${buildLiveColumnVisual(rows, colorOffset)}</div>`;
+            }
+
+            return `<div class="live-chart-summary">${buildLiveDensityVisual(rows, colorOffset, compact)}</div>`;
+        }
+
+        function buildTable(dimension, rows) {
+            if (!rows.length) {
+                return '<div class="chart-empty">Tabloya aktarılacak veri bulunamadı.</div>';
+            }
+
+            return `
+                <input id="dimSearch${dimension.id}" class="dim-search" type="search" placeholder="${escapeHtml(dimension.label)} içinde ara">
+                <div class="insight-table-wrap">
+                    <table class="insight-table">
+                        <thead>
+                            <tr>
+                                <th>${escapeHtml(dimension.label)}</th>
+                                <th>Ortalama</th>
+                                <th>Kişi</th>
+                                <th>Dağılım</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(function (row) {
+                                const width = Math.max(3, Math.min(100, row.score));
+                                return `
+                                    <tr data-label="${escapeHtml(row.name.toLocaleLowerCase("tr-TR"))}">
+                                        <td>${buildLabelContent(row, "sm")}</td>
+                                        <td><strong>${formatScore(row.score)}</strong></td>
+                                        <td>${formatCount(row.count)}</td>
+                                        <td><div class="mini-track"><div class="mini-fill" style="width:${width}%"></div></div></td>
+                                    </tr>`;
+                            }).join("")}
+                        </tbody>
+                    </table>
+                </div>`;
+        }
+
+        function bindTableFilter(dimension) {
+            const input = document.getElementById(`dimSearch${dimension.id}`);
+            if (!input) return;
+
+            input.addEventListener("input", function () {
+                const query = this.value.trim().toLocaleLowerCase("tr-TR");
+                document.querySelectorAll(`#${dimension.target} tbody tr`).forEach(function (row) {
+                    row.style.display = row.dataset.label.includes(query) ? "" : "none";
+                });
+            });
+        }
+
+        function renderDimension(dimension) {
+            const target = document.getElementById(dimension.target);
+            if (!target) return;
+
+            const rows = normalizeRows(dimension);
+            const totalCount = rows.reduce(function (sum, row) { return sum + row.count; }, 0);
+            const weighted = weightedScore(rows);
+            const leader = topRow(rows);
+            const visualLimit = rows.length > 18 ? 12 : rows.length;
+            const visualLabel = liveChartLabel(rows);
+
+            target.innerHTML = `
+                <div class="insight-head">
+                    <div>
+                        <h3>${escapeHtml(dimension.label)} Analizi</h3>
+                        <p>${escapeHtml(dimension.note)} Grafik alanı en anlamlı kayıtlarla sınırlı, tam liste aramalı tabloda.</p>
+                    </div>
+                </div>
+                <div class="insight-kpis">
+                    <div class="insight-metric"><span>Kırılım</span><strong>${formatCount(rows.length)}</strong></div>
+                    <div class="insight-metric"><span>Ortalama puan</span><strong>${formatScore(weighted)}</strong></div>
+                    <div class="insight-metric"><span>Kişi sayısı</span><strong>${formatCount(totalCount)}</strong></div>
+                    <div class="insight-metric"><span>En yüksek</span><strong title="${escapeHtml(leader?.name || "-")}">${escapeHtml(leader ? leader.name : "-")}</strong></div>
+                </div>
+                <div class="insight-layout">
+                    <div class="chart-panel">
+                        <div class="panel-title">
+                            <h4>Öne çıkan ${visualLimit} kayıt</h4>
+                            <small>Puan / kişi</small>
+                        </div>
+                        ${buildAdaptiveLiveChart(rows, { colorOffset: dimension.id * 3 })}
+                    </div>
+                    <div class="table-panel">
+                        <div class="panel-title">
+                            <h4>Tüm detay</h4>
+                            <small>${formatCount(rows.length)} satır</small>
+                        </div>
+                        ${buildTable(dimension, rows)}
+                    </div>
+                </div>`;
+
+            bindTableFilter(dimension);
+        }
+
+        function renderSummaryCards(reportRows) {
+            const best = reportRows.slice().sort(function (a, b) { return b.average - a.average; })[0];
+            const widest = reportRows.slice().sort(function (a, b) { return b.categoryCount - a.categoryCount; })[0];
+            const bestLabel = best?.dimension?.label || "-";
+            const widestLabel = widest?.dimension?.label || "-";
+
+            document.getElementById("reportSummary").innerHTML = `
+                <div class="summary-card"><span>Katılım</span><strong>${formatCount(participantTotals.total)}</strong></div>
+                <div class="summary-card"><span>Cevap satırı</span><strong>${formatCount(participantTotals.answerRows)}</strong></div>
+                <div class="summary-card"><span>En yüksek kırılım</span><strong>${escapeHtml(bestLabel)}</strong><small>${best ? formatScore(best.average) + " ort." : ""}</small></div>
+                <div class="summary-card"><span>En yoğun liste</span><strong>${escapeHtml(widestLabel)}</strong><small>${widest ? formatCount(widest.categoryCount) + " kırılım" : ""}</small></div>`;
+        }
+
+        function buildReportCardGrid(cards, includeDetailButton, barLimit) {
+            const limit = barLimit || 5;
+            return `
+                <div class="report-card-grid">
+                    ${cards.map(function (card) {
+                        const detailButton = includeDetailButton
+                            ? `<button type="button" class="dimension-link" data-tab="${card.dimension.tab}">Detay</button>`
+                            : "";
+
+                        return `
+                            <section class="dimension-card">
+                                <div class="dimension-card-head">
+                                    <div>
+                                        <h4>${escapeHtml(card.dimension.label)}</h4>
+                                        <small>${formatCount(card.categoryCount)} kırılım · ${formatCount(card.totalCount)} kişi · ${formatScore(card.average)} ort.</small>
+                                    </div>
+                                    ${detailButton}
+                                </div>
+                                ${buildAdaptiveLiveChart(card.rows, { compact: true, colorOffset: card.dimension.id * 3 })}
+                            </section>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function renderReportDashboard() {
+            const container = document.getElementById("raporContainer");
+            if (!container) return;
+
+            const cards = dimensions.filter(function (dimension) {
+                return dimension.id !== 1;
+            }).map(function (dimension) {
+                const rows = normalizeRows(dimension);
+                return {
+                    dimension,
+                    rows,
+                    average: weightedScore(rows),
+                    categoryCount: rows.length,
+                    totalCount: rows.reduce(function (sum, row) { return sum + row.count; }, 0)
+                };
+            });
+            lastReportCards = cards;
+
+            renderSummaryCards(cards);
+            container.innerHTML = buildReportCardGrid(cards, true, 5);
+
+            container.querySelectorAll("[data-tab]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    const link = document.querySelector(`.report-tabs a[href="${this.dataset.tab}"]`);
+                    if (link) link.click();
+                });
+            });
+        }
+
+        function renderAll() {
+            dimensions.forEach(renderDimension);
+            renderReportDashboard();
+        }
+
+        const pdfPalette = [
+            "#2ec4b6", "#4361ee", "#f59e0b", "#ef476f", "#06d6a0", "#118ab2",
+            "#9b5de5", "#f15bb5", "#00bbf9", "#fb8500", "#4cc9f0", "#70e000"
+        ];
+
+        function truncateText(value, limit) {
+            const text = String(value ?? "").trim();
+            if (!limit || text.length <= limit) return text;
+            return text.slice(0, Math.max(0, limit - 3)) + "...";
+        }
+
+        function pdfColor(index) {
+            return pdfPalette[index % pdfPalette.length];
+        }
+
+        function pdfGradient(index) {
+            return `linear-gradient(90deg, ${pdfColor(index)}, ${pdfColor(index + 2)})`;
+        }
+
+        function pdfVerticalGradient(index) {
+            return `linear-gradient(180deg, ${pdfColor(index)}, ${pdfColor(index + 2)})`;
+        }
+
+        function lowestRow(rows) {
+            return rows.slice().sort(function (a, b) {
+                return (a.score - b.score) || (b.count - a.count) || a.name.localeCompare(b.name, "tr");
+            })[0] || null;
+        }
+
+        function densestRow(rows) {
+            return rows.slice().sort(function (a, b) {
+                return (b.count - a.count) || (b.score - a.score) || a.name.localeCompare(b.name, "tr");
+            })[0] || null;
+        }
+
+        function getPdfCards() {
+            return dimensions.map(function (dimension) {
+                const rows = normalizeRows(dimension);
+                return {
+                    dimension,
+                    rows,
+                    average: weightedScore(rows),
+                    categoryCount: rows.length,
+                    totalCount: rows.reduce(function (sum, row) { return sum + row.count; }, 0)
+                };
+            }).filter(function (card) {
+                return card.rows.length || card.dimension.id === 1;
+            });
+        }
+
+        function buildPdfKpi(label, value, note) {
+            return `
+                <div class="pdf-kpi-card">
+                    <span>${escapeHtml(label)}</span>
+                    <strong title="${escapeHtml(value)}">${escapeHtml(value)}</strong>
+                    ${note ? `<small>${escapeHtml(note)}</small>` : ""}
+                </div>`;
+        }
+
+        function buildPdfBars(rows, limit, colorOffset) {
+            const visible = rows.slice(0, limit);
+            if (!visible.length) {
+                return '<div class="chart-empty">Bu bölüm için gösterilecek veri yok.</div>';
+            }
+
+            return `
+                <div class="pdf-bars">
+                    ${visible.map(function (row, index) {
+                        const width = Math.max(4, Math.min(100, row.score));
+                        return `
+                            <div class="pdf-bar-row">
+                                <div class="pdf-bar-rank">${index + 1}</div>
+                                <div class="pdf-bar-label" title="${escapeHtml(row.name)}">${escapeHtml(truncateText(row.name, 54))}</div>
+                                <div class="pdf-bar-track">
+                                    <div class="pdf-bar-fill" style="width:${width}%; background:${pdfGradient(colorOffset + index)}"></div>
+                                </div>
+                                <div class="pdf-bar-score">${formatScore(row.score)}</div>
+                                <div class="pdf-bar-count">${formatCount(row.count)}</div>
+                            </div>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function buildPdfMiniBars(rows, colorOffset) {
+            const visible = rows.slice(0, 3);
+            if (!visible.length) return "";
+
+            return `
+                <div class="pdf-overview-bars">
+                    ${visible.map(function (row, index) {
+                        const width = Math.max(4, Math.min(100, row.score));
+                        return `
+                            <div class="pdf-overview-row">
+                                <span title="${escapeHtml(row.name)}">${escapeHtml(truncateText(row.name, 26))}</span>
+                                <div class="pdf-detail-track">
+                                    <div class="pdf-detail-fill" style="width:${width}%; background:${pdfGradient(colorOffset + index)}"></div>
+                                </div>
+                                <strong>${formatScore(row.score)}</strong>
+                            </div>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function piePoint(cx, cy, radius, angle) {
+            const radians = (angle - 90) * Math.PI / 180;
+            return {
+                x: cx + radius * Math.cos(radians),
+                y: cy + radius * Math.sin(radians)
+            };
+        }
+
+        function pieSlicePath(cx, cy, radius, startAngle, endAngle) {
+            const start = piePoint(cx, cy, radius, startAngle);
+            const end = piePoint(cx, cy, radius, endAngle);
+            const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+            return [
+                `M ${cx} ${cy}`,
+                `L ${start.x.toFixed(2)} ${start.y.toFixed(2)}`,
+                `A ${radius} ${radius} 0 ${largeArc} 1 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`,
+                "Z"
+            ].join(" ");
+        }
+
+        function buildPdfChartLegend(rows, colorOffset) {
+            return `
+                <div class="pdf-chart-legend">
+                    ${rows.map(function (row, index) {
+                        return `
+                            <div class="pdf-chart-legend-row">
+                                <span class="pdf-chart-swatch" style="background:${pdfColor(colorOffset + index)}"></span>
+                                <span title="${escapeHtml(row.name)}">${escapeHtml(truncateText(row.name, 34))}</span>
+                                <strong>${formatScore(row.score)}</strong>
+                            </div>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function buildPdfPieVisual(rows, colorOffset) {
+            const values = rows.map(function (row) { return Math.max(0, row.count); });
+            const total = values.reduce(function (sum, value) { return sum + value; }, 0);
+            const safeValues = total > 0 ? values : rows.map(function () { return 1; });
+            const safeTotal = safeValues.reduce(function (sum, value) { return sum + value; }, 0);
+            let angle = 0;
+
+            const slices = rows.length === 1
+                ? `<circle cx="110" cy="110" r="86" fill="${pdfColor(colorOffset)}"></circle>`
+                : rows.map(function (row, index) {
+                    const sliceAngle = (safeValues[index] / safeTotal) * 360;
+                    const start = angle;
+                    const end = angle + sliceAngle;
+                    angle = end;
+                    return `<path d="${pieSlicePath(110, 110, 86, start, end)}" fill="${pdfColor(colorOffset + index)}"></path>`;
+                }).join("");
+
+            return `
+                <div class="pdf-pie-layout">
+                    <svg class="pdf-pie-svg" viewBox="0 0 220 220" role="img" aria-label="Pasta grafik">
+                        <circle cx="110" cy="110" r="92" fill="#eef4fb"></circle>
+                        ${slices}
+                        <circle cx="110" cy="110" r="40" fill="#fff"></circle>
+                        <text x="110" y="105" text-anchor="middle" fill="#122033" font-size="22" font-weight="900">${formatCount(rows.length)}</text>
+                        <text x="110" y="124" text-anchor="middle" fill="#66758c" font-size="10" font-weight="800">kayıt</text>
+                    </svg>
+                    ${buildPdfChartLegend(rows, colorOffset)}
+                </div>`;
+        }
+
+        function buildPdfColumnVisual(rows, colorOffset) {
+            return `
+                <div class="pdf-column-chart">
+                    ${rows.map(function (row, index) {
+                        const height = Math.max(6, Math.min(100, row.score));
+                        return `
+                            <div class="pdf-column-item">
+                                <div class="pdf-column-track">
+                                    <div class="pdf-column-value">${formatScore(row.score)}</div>
+                                    <div class="pdf-column-fill" style="height:${height}%; background:${pdfVerticalGradient(colorOffset + index)}"></div>
+                                </div>
+                                <div class="pdf-column-label" title="${escapeHtml(row.name)}">${escapeHtml(truncateText(row.name, 18))}</div>
+                            </div>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function buildPdfSmallBarVisual(rows, colorOffset) {
+            return `
+                <div class="pdf-small-bar-chart">
+                    ${rows.map(function (row, index) {
+                        const width = Math.max(4, Math.min(100, row.score));
+                        return `
+                            <div class="pdf-small-bar-row">
+                                <div class="pdf-small-bar-label" title="${escapeHtml(row.name)}">${escapeHtml(truncateText(row.name, 30))}</div>
+                                <div class="pdf-small-bar-track">
+                                    <div class="pdf-small-bar-fill" style="width:${width}%; background:${pdfGradient(colorOffset + index)}"></div>
+                                </div>
+                                <div class="pdf-small-bar-score">${formatScore(row.score)}</div>
+                            </div>`;
+                    }).join("")}
+                </div>`;
+        }
+
+        function buildPdfSmallDataVisual(card, rows, colorOffset) {
+            if (!rows.length || rows.length > 10) return "";
+
+            const chartType = rows.length <= 3
+                ? "Pasta grafiği"
+                : rows.length <= 6
+                    ? "Kolon grafiği"
+                    : "Bar grafiği";
+            const chartMarkup = rows.length <= 3
+                ? buildPdfPieVisual(rows, colorOffset)
+                : rows.length <= 6
+                    ? buildPdfColumnVisual(rows, colorOffset)
+                    : buildPdfSmallBarVisual(rows, colorOffset);
+
+            return `
+                <div class="pdf-small-data-visual">
+                    <div class="pdf-panel-title">
+                        <h3>${escapeHtml(card.dimension.label)} görsel özet</h3>
+                        <small>${chartType} · ${formatCount(rows.length)} kayıt</small>
+                    </div>
+                    ${chartMarkup}
+                </div>`;
+        }
+
+        function buildPdfCover(cards) {
+            const best = cards.slice().sort(function (a, b) { return b.average - a.average; })[0];
+            const dense = cards.slice().sort(function (a, b) { return b.categoryCount - a.categoryCount; })[0];
+            const reportDate = new Date().toLocaleDateString("tr-TR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            });
+
+            return `
+                <section class="pdf-slide-page pdf-cover-page">
+                    <div class="pdf-cover-meta">
+                        ${escapeHtml(reportDate)}<br>
+                        Survey by Aslana Teknoloji
+                    </div>
+                    <div class="pdf-cover-title">
+                        <span class="pdf-cover-kicker">Sunum raporu</span>
+                        <h1>${escapeHtml(workTitle || "Analiz Raporu")}</h1>
+                        <p>${escapeHtml(workSubtitle || "Katılım, başarı ve kırılım analizleri renkli grafikler ve detay tablolarla sunuma hazırlandı.")}</p>
+                    </div>
+                    <div class="pdf-cover-stats">
+                        <div class="pdf-cover-stat"><span>Toplam katılım</span><strong>${formatCount(participantTotals.total)}</strong><small>Tanımlı ve anonim toplamı</small></div>
+                        <div class="pdf-cover-stat"><span>Cevap satırı</span><strong>${formatCount(participantTotals.answerRows)}</strong><small>Rapora giren kayıt</small></div>
+                        <div class="pdf-cover-stat"><span>En yüksek kırılım</span><strong>${escapeHtml(best ? best.dimension.label : "-")}</strong><small>${best ? formatScore(best.average) + " ortalama" : ""}</small></div>
+                        <div class="pdf-cover-stat"><span>En yoğun liste</span><strong>${escapeHtml(dense ? dense.dimension.label : "-")}</strong><small>${dense ? formatCount(dense.categoryCount) + " kırılım" : ""}</small></div>
+                    </div>
+                </section>`;
+        }
+
+        function buildPdfExecutivePage(cards) {
+            const best = cards.slice().sort(function (a, b) { return b.average - a.average; })[0];
+            const low = cards.slice().sort(function (a, b) { return a.average - b.average; })[0];
+            const dense = cards.slice().sort(function (a, b) { return b.categoryCount - a.categoryCount; })[0];
+
+            return `
+                <section class="pdf-slide-page">
+                    <div class="pdf-slide-header">
+                        <div>
+                            <span class="pdf-slide-kicker">Yönetici özeti</span>
+                            <h2>Raporun genel resmi</h2>
+                            <p>Bu sayfa tüm kırılımları hızlıca okumak için hazırlanmıştır. Devamındaki sayfalarda her başlık ayrı grafik ve tam detay listesiyle verilir.</p>
+                        </div>
+                        <div class="pdf-slide-number">01</div>
+                    </div>
+                    <div class="pdf-kpi-grid">
+                        ${buildPdfKpi("Toplam katılım", formatCount(participantTotals.total), "Tanımlı + anonim")}
+                        ${buildPdfKpi("Tanımlı katılım", formatCount(participantTotals.defined), "Personel kaydı eşleşen")}
+                        ${buildPdfKpi("Tanımsız katılım", formatCount(participantTotals.anonymous), "Kodla takip edilen")}
+                        ${buildPdfKpi("Cevap satırı", formatCount(participantTotals.answerRows), "Hesaplamaya giren satır")}
+                    </div>
+                    <div class="pdf-kpi-grid">
+                        ${buildPdfKpi("En yüksek ortalama", best ? best.dimension.label : "-", best ? formatScore(best.average) + " puan" : "")}
+                        ${buildPdfKpi("En düşük ortalama", low ? low.dimension.label : "-", low ? formatScore(low.average) + " puan" : "")}
+                        ${buildPdfKpi("En yoğun kırılım", dense ? dense.dimension.label : "-", dense ? formatCount(dense.categoryCount) + " satır" : "")}
+                        ${buildPdfKpi("Analiz başlığı", formatCount(cards.length), "PDF içinde detaylı")}
+                    </div>
+                    <div class="pdf-overview-grid">
+                        ${cards.filter(function (card) { return card.dimension.id !== 1; }).slice(0, 6).map(function (card, index) {
+                            return `
+                                <div class="pdf-overview-card">
+                                    <h3>${escapeHtml(card.dimension.label)}</h3>
+                                    <p>${formatCount(card.categoryCount)} kırılım · ${formatCount(card.totalCount)} kişi · ${formatScore(card.average)} ort.</p>
+                                    ${buildPdfMiniBars(card.rows, index * 2)}
+                                </div>`;
+                        }).join("")}
+                    </div>
+                </section>`;
+        }
+
+        function buildPdfDimensionPage(card, index) {
+            const rows = card.rows;
+            const hasSmallDataVisual = rows.length > 0 && rows.length <= 10;
+            const useTwoColumnList = rows.length > 10;
+            const hasLongLabels = rows.some(function (row) { return String(row.name || "").length > 52; });
+            const firstPageLimit = hasSmallDataVisual ? rows.length : hasLongLabels ? 34 : 52;
+            const nextPageLimit = hasLongLabels ? 40 : 60;
+            const firstRows = rows.slice(0, firstPageLimit);
+            const remainingChunks = chunkRows(rows.slice(firstPageLimit), nextPageLimit);
+            const pageCount = 1 + remainingChunks.length;
+            const pageLabel = pageCount > 1 ? `1/${formatCount(pageCount)}` : String(index + 2).padStart(2, "0");
+            const pageBody = hasSmallDataVisual
+                ? `
+                    <div class="pdf-small-data-layout ${rows.length <= 3 ? "pdf-small-data-layout-pie" : "pdf-small-data-layout-chart"}">
+                        ${buildPdfSmallDataVisual(card, firstRows, index * 5)}
+                        ${buildPdfTablePanel(card, firstRows, 0, index * 5, rows.length, "Tam liste", { hideGraph: true, className: "pdf-table-readable" })}
+                    </div>`
+                : useTwoColumnList
+                    ? buildPdfTwoColumnTablePanel(card, firstRows, 0, index * 5, rows.length, "Tam liste")
+                    : buildPdfTablePanel(card, firstRows, 0, index * 5, rows.length, "Tam liste", { className: "pdf-table-readable" });
+            const pages = [`
+                <section class="pdf-slide-page pdf-combined-page">
+                    <div class="pdf-slide-header">
+                        <div>
+                            <span class="pdf-slide-kicker">${escapeHtml(card.dimension.label)} tam liste</span>
+                            <h2>${escapeHtml(card.dimension.label)} tam liste</h2>
+                            <p>${escapeHtml(card.dimension.note)} ${hasSmallDataVisual ? "Az kayıtlı listelerde sayfa dengesi için görsel özet ve tam liste birlikte verilir." : "Kırılım özeti üst kartlarda, tüm kayıtlar alttaki tabloda verilir."}</p>
+                        </div>
+                        <div class="pdf-slide-number">${pageLabel}</div>
+                    </div>
+                    <div class="pdf-kpi-grid pdf-combined-kpis">
+                        ${buildPdfKpi("Kırılım", formatCount(card.categoryCount), "Ayrı analiz satırı")}
+                        ${buildPdfKpi("Ortalama puan", formatScore(card.average), "Ağırlıklı ortalama")}
+                        ${buildPdfKpi("Kişi sayısı", formatCount(card.totalCount), "Bu kırılımdaki toplam")}
+                        ${buildPdfKpi("Tam liste", formatCount(rows.length), pageCount > 1 ? formatCount(pageCount) + " sayfa" : "Tek sayfa")}
+                    </div>
+                    ${pageBody}
+                </section>`];
+
+            remainingChunks.forEach(function (chunk, chunkIndex) {
+                const startIndex = firstPageLimit + (chunkIndex * nextPageLimit);
+                pages.push(`
+                    <section class="pdf-slide-page pdf-list-page">
+                        <div class="pdf-slide-header">
+                            <div>
+                                <span class="pdf-slide-kicker">${escapeHtml(card.dimension.label)} tam liste</span>
+                                <h2>${escapeHtml(card.dimension.label)} tam liste devamı</h2>
+                                <p>${formatCount(startIndex + 1)}-${formatCount(startIndex + chunk.length)} arası kayıtlar. Tam liste korunması için kalan satırlar devam sayfasına taşındı.</p>
+                            </div>
+                            <div class="pdf-slide-number">${formatCount(chunkIndex + 2)}/${formatCount(pageCount)}</div>
+                        </div>
+                        ${useTwoColumnList
+                            ? buildPdfTwoColumnTablePanel(card, chunk, startIndex, index * 5, rows.length, "Tam liste devamı")
+                            : buildPdfTablePanel(card, chunk, startIndex, index * 5, rows.length, "Tam liste devamı", { className: "pdf-table-readable" })}
+                    </section>`);
+            });
+
+            return pages.join("");
+        }
+
+        function chunkRows(rows, size) {
+            const chunks = [];
+            for (let index = 0; index < rows.length; index += size) {
+                chunks.push(rows.slice(index, index + size));
+            }
+            return chunks;
+        }
+
+        function buildPdfDetailRows(rows, startIndex, colorOffset, options) {
+            const hideGraph = !!options?.hideGraph;
+            return rows.map(function (row, index) {
+                const width = Math.max(4, Math.min(100, row.score));
+                return `
+                    <tr>
+                        <td>${formatCount(startIndex + index + 1)}</td>
+                        <td>${escapeHtml(row.name)}</td>
+                        <td>${formatScore(row.score)}</td>
+                        <td>${formatCount(row.count)}</td>
+                        ${hideGraph ? "" : `<td><div class="pdf-detail-track"><div class="pdf-detail-fill" style="width:${width}%; background:${pdfGradient(colorOffset + index)}"></div></div></td>`}
+                    </tr>`;
+            }).join("");
+        }
+
+        function buildPdfDetailTable(card, rows, startIndex, colorOffset, options) {
+            const hideGraph = !!options?.hideGraph;
+            return `
+                <table class="pdf-detail-table">
+                    <colgroup>
+                        <col style="width:46px">
+                        <col>
+                        <col style="width:90px">
+                        <col style="width:72px">
+                        ${hideGraph ? "" : '<col style="width:220px">'}
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th>${grp.label}</th>
-                            <th>Ortalama Puan</th>
-                            <th>Kişi Sayısı</th>
+                            <th>#</th>
+                            <th>${escapeHtml(card.dimension.label)}</th>
+                            <th>Puan</th>
+                            <th>Kişi</th>
+                            ${hideGraph ? "" : "<th>Grafik</th>"}
                         </tr>
                     </thead>
                     <tbody>
-                        ${grp.baslik.map((b, i) => `
-                            <tr>
-                                <td>${b}</td>
-                                <td>${grp.puan[i]?.toFixed(2) ?? '-'}</td>
-                                <td>${grp.adet[i] ?? '-'}</td>
-                            </tr>
-                        `).join("")}
+                        ${buildPdfDetailRows(rows, startIndex, colorOffset, { hideGraph })}
                     </tbody>
-                </table>
-            `;
+                </table>`;
+        }
 
-                container.appendChild(section);
-
-                createChart(`raporChart${grp.id}`, grp.label, grp.baslik, grp.puan, grp.type, grp.adet);
+        function buildPdfTablePanel(card, rows, startIndex, colorOffset, totalRows, title, options) {
+            if (!rows.length) {
+                return '<div class="chart-empty">Bu bölüm için gösterilecek veri yok.</div>';
             }
-        });
-    });
-</script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
-<script>
-    function downloadPDF() {
-        const container = document.getElementById("raporContainer");
-        const sections = container.querySelectorAll("div"); // her kutu
+            const className = options?.className ? " " + options.className : "";
+            return `
+                <div class="pdf-table-panel pdf-combined-table${className}">
+                    <div class="pdf-panel-title">
+                        <h3>${escapeHtml(card.dimension.label)} ${escapeHtml(title || "tam liste")}</h3>
+                        <small>${formatCount(startIndex + 1)}-${formatCount(startIndex + rows.length)} / ${formatCount(totalRows)} kayıt</small>
+                    </div>
+                    ${buildPdfDetailTable(card, rows, startIndex, colorOffset, options)}
+                </div>`;
+        }
 
-        // ✅ Başlık div'i oluştur
-        const header = document.createElement("div");
-        header.innerHTML = `
-            <div style="display:flex; justify-content:center; align-items:center; height:600px;">
-                <h1 style="font-size:48px; font-weight:bold; text-align:center;">
-                    @ViewBag.adi (@ViewBag.anketadi)
-                </h1>
-            </div>
-        `;
+        function buildPdfTwoColumnTablePanel(card, rows, startIndex, colorOffset, totalRows, title) {
+            if (!rows.length) {
+                return '<div class="chart-empty">Bu bölüm için gösterilecek veri yok.</div>';
+            }
 
-        var opt = {
-            margin: 10,
-            filename: 'Rapor.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-        };
+            const splitIndex = Math.ceil(rows.length / 2);
+            const leftRows = rows.slice(0, splitIndex);
+            const rightRows = rows.slice(splitIndex);
 
-        // pdf nesnesi
-        var worker = html2pdf().set(opt);
+            return `
+                <div class="pdf-table-panel pdf-two-column-table pdf-table-readable">
+                    <div class="pdf-panel-title">
+                        <h3>${escapeHtml(card.dimension.label)} ${escapeHtml(title || "tam liste")}</h3>
+                        <small>${formatCount(startIndex + 1)}-${formatCount(startIndex + rows.length)} / ${formatCount(totalRows)} kayıt</small>
+                    </div>
+                    <div class="pdf-two-column-grid">
+                        <div>${buildPdfDetailTable(card, leftRows, startIndex, colorOffset, { hideGraph: true })}</div>
+                        <div>${rightRows.length ? buildPdfDetailTable(card, rightRows, startIndex + splitIndex, colorOffset + splitIndex, { hideGraph: true }) : ""}</div>
+                    </div>
+                </div>`;
+        }
 
-        // ✅ Önce başlığı ekle
-        worker = worker.from(header).toContainer().toCanvas().toPdf();
-
-        // Sonra diğer bölümler
-        sections.forEach((section, index) => {
-            worker = worker.from(section).toPdf().get('pdf').then((pdf) => {
-                pdf.addPage(); // ✅ her kutu öncesi yeni sayfa
+        function buildPdfDocument(cards) {
+            const pages = [buildPdfCover(cards), buildPdfExecutivePage(cards)];
+            cards.forEach(function (card, index) {
+                pages.push(buildPdfDimensionPage(card, index));
             });
-            worker = worker.from(section).toContainer().toCanvas().toPdf();
-        });
+            return pages.join("");
+        }
 
-        worker.save(); // ✅ sonunda kaydet
-    }
+        document.addEventListener("DOMContentLoaded", renderAll);
+
+        function getJsPdfConstructor() {
+            if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+            return window.jsPDF || null;
+        }
+
+        function getPdfPageSize(pdf, dimension, fallback) {
+            const pageSize = pdf?.internal?.pageSize;
+            if (!pageSize) return fallback;
+
+            const getter = dimension === "width" ? "getWidth" : "getHeight";
+            return typeof pageSize[getter] === "function"
+                ? pageSize[getter]()
+                : pageSize[dimension] || fallback;
+        }
+
+        function waitForPdfLayout() {
+            return new Promise(function (resolve) {
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(resolve);
+                });
+            });
+        }
+
+        async function savePdfSlides(pdfCards) {
+            const JsPdfConstructor = getJsPdfConstructor();
+            if (typeof html2canvas === "undefined" || !JsPdfConstructor) return;
+
+            const source = document.createElement("div");
+            source.innerHTML = buildPdfDocument(pdfCards);
+            const sourcePages = Array.from(source.querySelectorAll(".pdf-slide-page"));
+            if (!sourcePages.length) return;
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "pdf-page-shell";
+            wrapper.setAttribute("aria-hidden", "true");
+            wrapper.innerHTML = '<section class="pdf-report-export"></section>';
+            document.body.appendChild(wrapper);
+
+            const exportRoot = wrapper.querySelector(".pdf-report-export");
+            const pdf = new JsPdfConstructor("landscape", "pt", "a4");
+            const pageWidth = getPdfPageSize(pdf, "width", 841.89);
+            const pageHeight = getPdfPageSize(pdf, "height", 595.28);
+
+            try {
+                for (let index = 0; index < sourcePages.length; index += 1) {
+                    exportRoot.innerHTML = "";
+                    exportRoot.appendChild(sourcePages[index].cloneNode(true));
+                    await waitForPdfLayout();
+
+                    const pageNode = exportRoot.querySelector(".pdf-slide-page");
+                    const canvas = await html2canvas(pageNode, {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: "#ffffff",
+                        width: 1120,
+                        height: 792,
+                        windowWidth: 1120,
+                        windowHeight: 792,
+                        scrollX: 0,
+                        scrollY: 0
+                    });
+
+                    if (index > 0) pdf.addPage("a4", "landscape");
+                    pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", 0, 0, pageWidth, pageHeight);
+                }
+
+                pdf.save(`${workTitle || "Rapor"}-detayli-analiz.pdf`);
+            } finally {
+                if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+            }
+        }
+
+        window.downloadPDF = async function () {
+            if (typeof html2canvas === "undefined" || !getJsPdfConstructor()) return;
+            if (!lastReportCards.length) renderReportDashboard();
+
+            const pdfCards = getPdfCards();
+            await savePdfSlides(pdfCards);
+        };
+    })();
 </script>
-
 
 @section Scripts {
     <script>

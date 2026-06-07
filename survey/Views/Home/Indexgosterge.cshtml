@@ -1,22 +1,27 @@
-@model survey.Models.Tumcontroller
+﻿@model survey.Models.Tumcontroller
 @{
     ViewBag.Title = "Çalışma Alanım";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
     var anketler = (Model.Ank ?? Enumerable.Empty<survey.Models.Anket>()).ToList();
-    var havuz = (Model.Hav ?? Enumerable.Empty<survey.Models.Havuz>()).ToList();
     var anketGruplari = (Model.AnkGrp ?? Enumerable.Empty<survey.Models.AnketGrup>()).ToList();
     var sorular = (Model.Sor ?? Enumerable.Empty<survey.Models.Soru>()).ToList();
     var aktifSayisi = anketler.Count(x => x.Pasif != true);
     var taslakSayisi = anketler.Count(x => x.Pasif == true);
-    var kayitliKatilimSayisi = havuz.Where(x => x.UserId != null && x.UserId != 1).Select(x => x.UserId).Distinct().Count();
-    var anonimKatilimSayisi = havuz.Where(x => x.UserId == null && x.Isimsiz != null).Select(x => x.Isimsiz).Distinct().Count();
-    var katilimSayisi = kayitliKatilimSayisi + anonimKatilimSayisi;
+    var katilimSayisi = ViewBag.KatilimSayisi == null ? 0 : Convert.ToInt32(ViewBag.KatilimSayisi);
+    var cevapliKatilimMap = ViewBag.CevapliKatilimMap as System.Collections.Generic.Dictionary<int, int>
+        ?? new System.Collections.Generic.Dictionary<int, int>();
+    var havuzSoruSayisiMap = ViewBag.HavuzSoruSayisiMap as System.Collections.Generic.Dictionary<int, int>
+        ?? new System.Collections.Generic.Dictionary<int, int>();
     var katilimTokenMap = ViewBag.KatilimTokenMap as System.Collections.Generic.Dictionary<int, string>
         ?? new System.Collections.Generic.Dictionary<int, string>();
     var katilimYontemiMap = ViewBag.KatilimYontemiMap as System.Collections.Generic.Dictionary<int, string>
         ?? new System.Collections.Generic.Dictionary<int, string>();
+    var sureKayitMap = ViewBag.SureKayitMap as System.Collections.Generic.Dictionary<int, int>
+        ?? new System.Collections.Generic.Dictionary<int, int>();
+    var sureKayitSayisi = ViewBag.SureKayitSayisi == null ? 0 : Convert.ToInt32(ViewBag.SureKayitSayisi);
     var kullaniciAdi = (Session["adi"] as string) ?? "Çalışma Alanım";
+    var workspaceReturnUrl = Context.Request.Path.ToString() + Context.Request.QueryString.ToString();
 }
 
 <style>
@@ -686,6 +691,30 @@
         background: #eef9ff;
     }
 
+    .mini-btn.questions {
+        color: #075985;
+        border-color: #bae6fd;
+        background: #ecfeff;
+    }
+
+    .mini-btn.answer-key {
+        color: #08724f;
+        border-color: #bdebd7;
+        background: #f0fff8;
+    }
+
+    .mini-btn.danger {
+        color: #b42318;
+        border-color: #fecaca;
+        background: #fff1f2;
+    }
+
+    .mini-btn.danger:hover {
+        color: #7f1d1d;
+        border-color: #fda4af;
+        background: #ffe4e6;
+    }
+
     .share-modal[hidden] {
         display: none;
     }
@@ -693,19 +722,29 @@
     .share-modal {
         position: fixed;
         inset: 0;
-        z-index: 1050;
-        display: grid;
-        place-items: center;
-        padding: 22px;
+        z-index: 5000;
+        display: block;
+        padding: 0;
+        overflow: hidden;
         background: rgba(15, 23, 42, .48);
     }
 
     .share-dialog {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         width: min(560px, 100%);
+        max-height: calc(100vh - 44px);
+        overflow-y: auto;
         padding: 22px;
         border-radius: 8px;
         background: #fff;
         box-shadow: 0 24px 70px rgba(15, 23, 42, .25);
+    }
+
+    .delete-dialog {
+        width: min(720px, 100%);
     }
 
     .share-dialog-head {
@@ -729,6 +768,208 @@
         color: #667085;
         font-size: 13px;
         line-height: 1.5;
+    }
+
+    .delete-warning {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        margin: 14px 0;
+        padding: 14px;
+        border: 1px solid #fed7aa;
+        border-radius: 8px;
+        color: #7c2d12;
+        background: #fff7ed;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .delete-warning i {
+        width: 32px;
+        height: 32px;
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 8px;
+        color: #fff;
+        background: #f97316;
+    }
+
+    .delete-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 14px 0;
+    }
+
+    .delete-stat {
+        padding: 12px;
+        border: 1px solid #d9e1ec;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+
+    .delete-stat strong {
+        display: block;
+        color: #0b1220;
+        font-size: 22px;
+        line-height: 1.1;
+    }
+
+    .delete-stat span {
+        display: block;
+        margin-top: 5px;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .delete-impact {
+        display: grid;
+        gap: 8px;
+        margin: 12px 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .delete-impact li {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 10px 12px;
+        border: 1px solid #e4eaf3;
+        border-radius: 8px;
+        background: #fff;
+        color: #344054;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .delete-impact b {
+        color: #0b1220;
+        white-space: nowrap;
+    }
+
+    .delete-people {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .delete-person {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        color: #0b4b77;
+        background: #eef9ff;
+        border: 1px solid #c7e8f8;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .delete-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .delete-confirm {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 16px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: #fff;
+        background: #dc2626;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .delete-confirm:disabled {
+        opacity: .65;
+        cursor: wait;
+    }
+
+    .delete-cancel {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 16px;
+        border: 1px solid #d9e1ec;
+        border-radius: 8px;
+        color: #344054;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .share-access-panel {
+        margin: 10px 0 14px;
+        padding: 10px;
+        border: 1px solid #d9e1ec;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+
+    .share-access-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        color: #344054;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .share-access-current {
+        color: #0b4b77;
+    }
+
+    .share-access-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .share-access-option {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 0 10px;
+        border: 1px solid #d9e1ec;
+        border-radius: 8px;
+        color: #172033;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .share-access-option:hover {
+        border-color: #9fb2cf;
+        background: #f4f8ff;
+    }
+
+    .share-access-option.is-active {
+        color: #075985;
+        border-color: #7dd3fc;
+        background: #ecfeff;
+        box-shadow: inset 0 0 0 1px rgba(14, 165, 233, .18);
+    }
+
+    .share-access-option[disabled] {
+        opacity: .7;
+        cursor: progress;
     }
 
     .share-close {
@@ -827,8 +1068,27 @@
     }
 
     @@media (max-width: 620px) {
+        .share-dialog {
+            width: calc(100vw - 28px);
+            max-height: calc(100vh - 28px);
+            padding: 18px;
+        }
+
         .share-platform-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .share-access-options {
+            grid-template-columns: 1fr;
+        }
+
+        .delete-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .delete-actions {
+            display: grid;
+            grid-template-columns: 1fr;
         }
     }
 
@@ -1083,7 +1343,7 @@
         <div>
             <div class="workspace-kicker">
                 <i class="ti-dashboard"></i>
-                Aslana Survey Studio çalışma alanı
+                Survey by Aslana Teknoloji çalışma alanı
             </div>
             <h1 class="workspace-title">Merhaba @kullaniciAdi, bugün neyi yayına alıyoruz?</h1>
             <p class="workspace-subtitle">
@@ -1175,12 +1435,13 @@
         <div class="section-head">
             <div>
                 <h2 class="section-title"><i class="ti-briefcase"></i> Çalışmalarım</h2>
-                <p class="section-note">@katilimSayisi katılımcı kaydı sistemde takip ediliyor.</p>
+                <p class="section-note">@katilimSayisi cevaplı katılım, @sureKayitSayisi süre kaydı sistemde takip ediliyor.</p>
             </div>
             <div class="works-summary">
                 <span><i class="ti-signal"></i> @aktifSayisi yayında</span>
                 <span><i class="ti-pencil-alt"></i> @taslakSayisi taslak</span>
-                <span><i class="ti-user"></i> @katilimSayisi katılım</span>
+                <span><i class="ti-user"></i> @katilimSayisi cevaplı</span>
+                <span><i class="ti-timer"></i> @sureKayitSayisi süre kaydı</span>
             </div>
         </div>
 
@@ -1200,22 +1461,18 @@
             <div class="assessment-grid">
                 @foreach (var item in anketler.OrderByDescending(x => x.AnketId))
                 {
-                    var itemHavuz = havuz.Where(x => x.AnketId == item.AnketId).ToList();
                     var soruGruplari = anketGruplari.Where(x => x.AnketId == item.AnketId).ToList();
                     var soruSayisi = (from detay in soruGruplari
                                       join soru in sorular on detay.SoruGrupId equals soru.SoruGrupId
                                       select soru.SoruId).Distinct().Count();
                     if (soruSayisi == 0)
                     {
-                        soruSayisi = itemHavuz
-                            .Where(x => x.SoruID != null)
-                            .Select(x => x.SoruID)
-                            .Distinct()
-                            .Count();
+                        soruSayisi = havuzSoruSayisiMap.ContainsKey(item.AnketId)
+                            ? havuzSoruSayisiMap[item.AnketId]
+                            : 0;
                     }
-                    var kayitliKatilim = itemHavuz.Where(x => x.UserId != null && x.UserId != 1).Select(x => x.UserId).Distinct().Count();
-                    var anonimKatilim = itemHavuz.Where(x => x.UserId == null && x.Isimsiz != null).Select(x => x.Isimsiz).Distinct().Count();
-                    var katilim = kayitliKatilim + anonimKatilim;
+                    var katilim = cevapliKatilimMap.ContainsKey(item.AnketId) ? cevapliKatilimMap[item.AnketId] : 0;
+                    var sureKaydi = sureKayitMap.ContainsKey(item.AnketId) ? sureKayitMap[item.AnketId] : 0;
                     var durumClass = item.Pasif == true ? "draft" : "live";
                     var durumText = item.Pasif == true ? "Taslak" : "Yayında";
                     var tipText = item.Sinav == true ? "Sınav" : "Anket";
@@ -1227,17 +1484,17 @@
                     var qrUrl = Url.Action("KatilimQr", "Home", new { token = katilimToken });
                     var katilimYontemi = katilimYontemiMap.ContainsKey(item.AnketId) ? katilimYontemiMap[item.AnketId] : "HerkeseAcik";
                     var katilimYontemiText = katilimYontemi == "Kayitli"
-                        ? "Kayitli kisiler"
+                        ? "Kayıtlı kişiler"
                         : katilimYontemi == "KisiyeOzel"
-                            ? "Kisiye ozel"
+                            ? "Kişiye özel"
                             : katilimYontemi == "BilgiFormu"
                                 ? "Bilgi formu"
-                                : "Herkese acik";
+                                : "Herkese açık";
                     var shareSubtitle = katilimYontemi == "Kayitli" || katilimYontemi == "KisiyeOzel"
-                        ? "Bu baglanti kayitli katilimcilara ozeldir. Giris yapan uygun kisilerin sonuclari kendi profiline islenir."
+                        ? "Bu bağlantı kayıtlı katılımcılara özeldir. Giriş yapan uygun kişilerin sonuçları kendi profiline işlenir."
                         : katilimYontemi == "BilgiFormu"
-                            ? "Bu baglanti genel katilima aciktir; kayitli olmayan kisiler kod ile takip edilir."
-                            : "Bu baglanti herkese aciktir; giris yapan kayitli kisiler kendi profiliyle, digerleri katilim koduyla izlenir.";
+                            ? "Bu bağlantı bilgi formu ile açılır; katılımcıdan ad soyad ve TC / numara veya e-posta alınır."
+                            : "Bu bağlantı herkese açıktır; giriş yapan kayıtlı kişiler kendi profiliyle, diğerleri katılım koduyla izlenir.";
 
                     <article class="assessment-card @tipClass @durumClass">
                         <div class="assessment-top">
@@ -1259,7 +1516,7 @@
                             </div>
                             <div class="meta-box">
                                 <strong>@katilim</strong>
-                                <span>Katılım</span>
+                                <span>Cevaplı</span>
                             </div>
                         </div>
 
@@ -1277,28 +1534,36 @@
                             {
                                 <span class="tag-pill time">@item.Zaman dk</span>
                             }
-                            <span class="tag-pill audience">@katilimYontemiText</span>
+                            @if (sureKaydi > 0)
+                            {
+                                <span class="tag-pill time">@sureKaydi süre kaydı</span>
+                            }
+                            <span class="tag-pill audience js-audience-label">@katilimYontemiText</span>
                             <span class="tag-pill @(publicLinkEnabled ? "open" : "closed")">@(publicLinkEnabled ? "Link hazır" : "Link kapalı")</span>
                         </div>
 
                         <div class="assessment-actions">
-                            <a class="mini-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = item.AnketId, adi = item.AnketAdi })">
-                                <i class="ti-pencil"></i>
-                                Düzenle
+                            <a class="mini-btn questions" href="@Url.Action("AnketSoruYonetim", "Home", new { id = item.AnketId, returnUrl = workspaceReturnUrl })">
+                                <i class="ti-write"></i>
+                                Sorular
                             </a>
-                            <a class="mini-btn" href="@Url.Action("DogruCevapEditor", "Home", new { id = item.AnketId })">
+                            <a class="mini-btn" href="@Url.Action("AnketGrupIndex", "Home", new { id = item.AnketId, adi = item.AnketAdi, returnUrl = workspaceReturnUrl })">
+                                <i class="ti-view-list"></i>
+                                Rapor Başlıkları
+                            </a>
+                            <a class="mini-btn answer-key" href="@Url.Action("DogruCevapEditor", "Home", new { id = item.AnketId, returnUrl = workspaceReturnUrl })">
                                 <i class="ti-check"></i>
                                 Doğru Cevap
                             </a>
-                            <a class="mini-btn" href="@Url.Action("AnketIndex1", "Home", new { id = item.AnketId })">
+                            <a class="mini-btn" href="@Url.Action("AnketIndex1", "Home", new { id = item.AnketId, returnUrl = workspaceReturnUrl })">
                                 <i class="ti-bar-chart"></i>
                                 Rapor
                             </a>
-                            <a class="mini-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = item.AnketId })">
+                            <a class="mini-btn" href="@Url.Action("AnketAdEdit", "Home", new { id = item.AnketId, returnUrl = workspaceReturnUrl })">
                                 <i class="ti-settings"></i>
                                 Ayarlar
                             </a>
-                            <a class="mini-btn" href="@Url.Action("SertifikaWizard", "Home", new { id = item.AnketId })">
+                            <a class="mini-btn" href="@Url.Action("SertifikaWizard", "Home", new { id = item.AnketId, returnUrl = workspaceReturnUrl })">
                                 <i class="ti-cup"></i>
                                 Sertifika
                             </a>
@@ -1306,9 +1571,11 @@
                             {
                                 <button class="mini-btn share js-share"
                                         type="button"
+                                        data-anket-id="@item.AnketId"
                                         data-share-url="@paylasimUrl"
                                         data-qr-url="@qrUrl"
                                         data-share-title="@item.AnketAdi"
+                                        data-katilim-yontemi="@katilimYontemi"
                                         data-share-subtitle="@shareSubtitle">
                                     <i class="ti-share"></i>
                                     Paylaş
@@ -1321,6 +1588,13 @@
                                     Paylaşım Kapalı
                                 </button>
                             }
+                            <button class="mini-btn danger js-delete-work"
+                                    type="button"
+                                    data-delete-id="@item.AnketId"
+                                    data-delete-title="@item.AnketAdi">
+                                <i class="ti-trash"></i>
+                                Sil
+                            </button>
                         </div>
                     </article>
                 }
@@ -1331,6 +1605,7 @@
 
 <div class="share-modal" id="shareModal" hidden>
     <div class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+        @Html.AntiForgeryToken()
         <div class="share-dialog-head">
             <div>
                 <h3 id="shareModalTitle">Paylaşım Bağlantısı</h3>
@@ -1339,6 +1614,19 @@
             <button class="share-close" type="button" id="shareModalClose" aria-label="Kapat">
                 <span aria-hidden="true">x</span>
             </button>
+        </div>
+
+        <div class="share-access-panel">
+            <div class="share-access-head">
+                <span>Katılım yöntemi</span>
+                <span class="share-access-current" id="shareAccessCurrent">Herkese açık</span>
+            </div>
+            <div class="share-access-options" role="group" aria-label="Katılım yöntemi">
+                <button class="share-access-option" type="button" data-share-method="HerkeseAcik">Herkese açık</button>
+                <button class="share-access-option" type="button" data-share-method="BilgiFormu">Bilgi formu</button>
+                <button class="share-access-option" type="button" data-share-method="Kayitli">Kayıtlı kişiler</button>
+                <button class="share-access-option" type="button" data-share-method="KisiyeOzel">Kişiye özel</button>
+            </div>
         </div>
 
         <div class="share-url-row">
@@ -1383,9 +1671,60 @@
     </div>
 </div>
 
+<div class="share-modal" id="deleteWorkModal" hidden>
+    <div class="share-dialog delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteWorkTitle">
+        @Html.AntiForgeryToken()
+        <div class="share-dialog-head">
+            <div>
+                <h3 id="deleteWorkTitle">Çalışmayı Sil</h3>
+                <p id="deleteWorkSubtitle">Silmeden önce bağlı kayıtları kontrol ediyoruz.</p>
+            </div>
+            <button class="share-close" type="button" id="deleteWorkClose" aria-label="Kapat">
+                <span aria-hidden="true">x</span>
+            </button>
+        </div>
+
+        <div class="delete-warning" id="deleteWorkWarning">
+            <i class="ti-alert"></i>
+            <div id="deleteWorkWarningText">
+                Bu işlem çalışmayı ve bağlı kayıtları kalıcı olarak siler.
+            </div>
+        </div>
+
+        <div class="delete-stats" id="deleteWorkStats"></div>
+
+        <ul class="delete-impact" id="deleteWorkImpact"></ul>
+
+        <div id="deleteWorkPeopleBlock" hidden>
+            <p>Bu çalışmada kayıtlı katılım bulundu. Silme onaylanırsa bu cevaplar raporlardan da kalkar.</p>
+            <div class="delete-people" id="deleteWorkPeople"></div>
+        </div>
+
+        <div class="share-feedback" id="deleteWorkFeedback" aria-live="polite"></div>
+
+        <div class="delete-actions">
+            <button class="delete-cancel" type="button" id="deleteWorkCancel">Vazgeç</button>
+            <button class="delete-confirm" type="button" id="deleteWorkConfirm">
+                <i class="ti-trash"></i>
+                Çalışmayı Sil
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     (function () {
         const modal = document.getElementById("shareModal");
+        const deleteModal = document.getElementById("deleteWorkModal");
+
+        if (modal && modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+
+        if (deleteModal && deleteModal.parentElement !== document.body) {
+            document.body.appendChild(deleteModal);
+        }
+
         const title = document.getElementById("shareModalTitle");
         const subtitle = document.getElementById("shareModalSubtitle");
         const input = document.getElementById("shareUrlInput");
@@ -1396,22 +1735,140 @@
         const closeButton = document.getElementById("shareModalClose");
         const nativeShareButton = document.getElementById("shareNativeButton");
         const platformButtons = document.querySelectorAll("[data-share-platform]");
+        const accessCurrent = document.getElementById("shareAccessCurrent");
+        const accessButtons = document.querySelectorAll("[data-share-method]");
+        const accessUpdateUrl = "@Url.Action("KatilimYontemiGuncelle", "Home")";
+        const deleteSummaryUrl = "@Url.Action("AnketSilmeOzeti", "Home")";
+        const deleteWorkUrl = "@Url.Action("AnketSil", "Home")";
+        const antiForgeryToken = modal.querySelector("input[name='__RequestVerificationToken']")?.value || "";
+        const deleteAntiForgeryToken = deleteModal.querySelector("input[name='__RequestVerificationToken']")?.value || antiForgeryToken;
+        const deleteTitle = document.getElementById("deleteWorkTitle");
+        const deleteSubtitle = document.getElementById("deleteWorkSubtitle");
+        const deleteWarningText = document.getElementById("deleteWorkWarningText");
+        const deleteStats = document.getElementById("deleteWorkStats");
+        const deleteImpact = document.getElementById("deleteWorkImpact");
+        const deletePeopleBlock = document.getElementById("deleteWorkPeopleBlock");
+        const deletePeople = document.getElementById("deleteWorkPeople");
+        const deleteFeedback = document.getElementById("deleteWorkFeedback");
+        const deleteCloseButton = document.getElementById("deleteWorkClose");
+        const deleteCancelButton = document.getElementById("deleteWorkCancel");
+        const deleteConfirmButton = document.getElementById("deleteWorkConfirm");
+        const accessInfo = {
+            HerkeseAcik: {
+                label: "Herkese açık",
+                subtitle: "Bu bağlantı herkese açıktır; giriş yapan kayıtlı kişiler kendi profiliyle, diğerleri katılım koduyla izlenir."
+            },
+            BilgiFormu: {
+                label: "Bilgi formu",
+                subtitle: "Bu bağlantı bilgi formu ile açılır; katılımcıdan ad soyad ve TC / numara veya e-posta alınır."
+            },
+            Kayitli: {
+                label: "Kayıtlı kişiler",
+                subtitle: "Bu bağlantı kayıtlı katılımcılara özeldir. Giriş yapan uygun kişilerin sonuçları kendi profiline işlenir."
+            },
+            KisiyeOzel: {
+                label: "Kişiye özel",
+                subtitle: "Bu bağlantı kayıtlı katılımcılara özeldir. Giriş yapan uygun kişilerin sonuçları kendi profiline işlenir."
+            }
+        };
         let currentShareTitle = "";
+        let currentShareButton = null;
+        let currentAnketId = "";
+        let currentAccessMethod = "HerkeseAcik";
+        let currentDeleteId = "";
+
+        function normalizeAccessMethod(value) {
+            return accessInfo[value] ? value : "HerkeseAcik";
+        }
+
+        function renderAccessMethod(value) {
+            currentAccessMethod = normalizeAccessMethod(value);
+            const info = accessInfo[currentAccessMethod];
+            accessCurrent.textContent = info.label;
+            subtitle.textContent = info.subtitle;
+
+            accessButtons.forEach(function (button) {
+                const active = button.dataset.shareMethod === currentAccessMethod;
+                button.classList.toggle("is-active", active);
+                button.setAttribute("aria-pressed", active ? "true" : "false");
+            });
+        }
+
+        function setAccessButtonsBusy(isBusy) {
+            accessButtons.forEach(function (button) {
+                button.disabled = isBusy;
+            });
+        }
+
+        function updateCurrentCardAccess(value, label, subtitleText) {
+            if (!currentShareButton) return;
+
+            currentShareButton.dataset.katilimYontemi = value;
+            currentShareButton.dataset.shareSubtitle = subtitleText;
+
+            const card = currentShareButton.closest(".assessment-card");
+            const audience = card ? card.querySelector(".js-audience-label") : null;
+            if (audience) {
+                audience.textContent = label;
+            }
+        }
+
+        async function saveAccessMethod(value) {
+            const nextMethod = normalizeAccessMethod(value);
+            if (!currentAnketId || nextMethod === currentAccessMethod) {
+                renderAccessMethod(nextMethod);
+                return;
+            }
+
+            const body = new URLSearchParams();
+            body.set("__RequestVerificationToken", antiForgeryToken);
+            body.set("anketId", currentAnketId);
+            body.set("katilimYontemi", nextMethod);
+
+            setAccessButtonsBusy(true);
+            feedback.textContent = "Kaydediliyor...";
+
+            try {
+                const response = await fetch(accessUpdateUrl, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                    body: body.toString()
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    feedback.textContent = result.message || "Katılım yöntemi kaydedilemedi.";
+                    return;
+                }
+
+                const savedMethod = normalizeAccessMethod(result.katilimYontemi || nextMethod);
+                const info = accessInfo[savedMethod];
+                renderAccessMethod(savedMethod);
+                updateCurrentCardAccess(savedMethod, result.label || info.label, result.subtitle || info.subtitle);
+                feedback.textContent = "Katılım yöntemi kaydedildi.";
+            } catch {
+                feedback.textContent = "Katılım yöntemi kaydedilemedi.";
+            } finally {
+                setAccessButtonsBusy(false);
+            }
+        }
 
         function openShareModal(button) {
             const shareUrl = button.dataset.shareUrl || "";
             const qrUrl = button.dataset.qrUrl || "";
             const shareTitle = button.dataset.shareTitle || "Çalışma";
-            const shareSubtitle = button.dataset.shareSubtitle || "Bu bağlantıyı veya QR kodu kendi biriminizle paylaşabilirsiniz.";
+            const accessMethod = normalizeAccessMethod(button.dataset.katilimYontemi || "");
 
+            currentShareButton = button;
+            currentAnketId = button.dataset.anketId || "";
             currentShareTitle = shareTitle;
             title.textContent = shareTitle;
-            subtitle.textContent = shareSubtitle;
             input.value = shareUrl;
             qrImage.src = qrUrl || "";
             qrBox.style.display = qrUrl ? "grid" : "none";
             qrImage.style.display = qrUrl ? "block" : "none";
             feedback.textContent = "";
+            renderAccessMethod(accessMethod);
             modal.hidden = false;
             input.select();
         }
@@ -1435,8 +1892,8 @@
 
         function platformShareUrl(platform, shareUrl, shareTitle) {
             const encodedUrl = encodeURIComponent(shareUrl);
-            const encodedTitle = encodeURIComponent(shareTitle || "Aslana Survey Studio");
-            const encodedText = encodeURIComponent((shareTitle || "Aslana Survey Studio") + " " + shareUrl);
+            const encodedTitle = encodeURIComponent(shareTitle || "Survey by Aslana Teknoloji");
+            const encodedText = encodeURIComponent((shareTitle || "Survey by Aslana Teknoloji") + " " + shareUrl);
 
             switch (platform) {
                 case "whatsapp":
@@ -1461,8 +1918,8 @@
             if (navigator.share) {
                 try {
                     await navigator.share({
-                        title: currentShareTitle || "Aslana Survey Studio",
-                        text: currentShareTitle || "Aslana Survey Studio",
+                        title: currentShareTitle || "Survey by Aslana Teknoloji",
+                        text: currentShareTitle || "Survey by Aslana Teknoloji",
                         url: value
                     });
                     feedback.textContent = "Paylasim penceresi acildi.";
@@ -1494,6 +1951,118 @@
             feedback.textContent = "Paylasim kanali acildi.";
         }
 
+        function deleteStatTemplate(value, label) {
+            return "<div class=\"delete-stat\"><strong>" + value + "</strong><span>" + label + "</span></div>";
+        }
+
+        function renderDeleteSummary(result) {
+            const katilimVar = Number(result.katilimKaydi || 0) > 0;
+            deleteTitle.textContent = (result.anketAdi || "Çalışma") + " silinsin mi?";
+            deleteSubtitle.textContent = katilimVar
+                ? "Bu çalışmada katılım var; cevap kayıtları ve rapor sonuçları da silinecek."
+                : "Katılım yok; çalışma ve bağlı hazırlık kayıtları silinecek.";
+            deleteWarningText.textContent = katilimVar
+                ? "Bu işlem geri alınamaz. Katılımcı cevapları, süre takipleri ve rapor çıktıları bu çalışma için temizlenir."
+                : "Bu işlem geri alınamaz. Henüz katılım olmadığı için sadece çalışma kurulumu ve bağlı hazırlık kayıtları silinir.";
+
+            deleteStats.innerHTML = [
+                deleteStatTemplate(result.katilimciSayisi || 0, "Katılımcı"),
+                deleteStatTemplate(result.katilimKaydi || 0, "Cevap kaydı"),
+                deleteStatTemplate(result.raporBasligi || 0, "Rapor başlığı"),
+                deleteStatTemplate(result.soru || 0, "Soru")
+            ].join("");
+
+            const kalemler = Array.isArray(result.kalemler) ? result.kalemler : [];
+            deleteImpact.innerHTML = kalemler.length
+                ? kalemler.map(function (item) {
+                    return "<li><span>" + item.label + "</span><b>" + item.count + "</b></li>";
+                }).join("")
+                : "<li><span>Silinecek bağlı kayıt bulunmadı</span><b>0</b></li>";
+
+            const people = Array.isArray(result.katilimcilar) ? result.katilimcilar : [];
+            const fazla = Number(result.katilimciFazla || 0);
+            deletePeopleBlock.hidden = people.length === 0 && fazla === 0;
+            deletePeople.innerHTML = people.map(function (name) {
+                return "<span class=\"delete-person\">" + name + "</span>";
+            }).join("");
+
+            if (fazla > 0) {
+                deletePeople.innerHTML += "<span class=\"delete-person\">+" + fazla + " kişi daha</span>";
+            }
+
+            deleteFeedback.textContent = "";
+            deleteConfirmButton.disabled = false;
+        }
+
+        async function openDeleteModal(button) {
+            currentDeleteId = button.dataset.deleteId || "";
+            deleteTitle.textContent = (button.dataset.deleteTitle || "Çalışma") + " silinsin mi?";
+            deleteSubtitle.textContent = "Bağlı kayıtlar kontrol ediliyor...";
+            deleteWarningText.textContent = "Lütfen bekleyin; bu çalışma için silinecek kayıtları hazırlıyoruz.";
+            deleteStats.innerHTML = "";
+            deleteImpact.innerHTML = "";
+            deletePeople.innerHTML = "";
+            deletePeopleBlock.hidden = true;
+            deleteFeedback.textContent = "";
+            deleteConfirmButton.disabled = true;
+            deleteModal.hidden = false;
+
+            try {
+                const response = await fetch(deleteSummaryUrl + "?id=" + encodeURIComponent(currentDeleteId), {
+                    method: "GET",
+                    credentials: "same-origin"
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    deleteFeedback.textContent = result.message || "Silme özeti hazırlanamadı.";
+                    return;
+                }
+
+                renderDeleteSummary(result);
+            } catch {
+                deleteFeedback.textContent = "Silme özeti hazırlanamadı.";
+            }
+        }
+
+        function closeDeleteModal() {
+            deleteModal.hidden = true;
+            currentDeleteId = "";
+        }
+
+        async function confirmDeleteWork() {
+            if (!currentDeleteId) return;
+
+            const body = new URLSearchParams();
+            body.set("__RequestVerificationToken", deleteAntiForgeryToken);
+            body.set("id", currentDeleteId);
+
+            deleteConfirmButton.disabled = true;
+            deleteFeedback.textContent = "Siliniyor...";
+
+            try {
+                const response = await fetch(deleteWorkUrl, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                    body: body.toString()
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    deleteFeedback.textContent = result.message || "Silme işlemi tamamlanamadı.";
+                    deleteConfirmButton.disabled = false;
+                    return;
+                }
+
+                deleteFeedback.textContent = result.message || "Çalışma silindi.";
+                window.setTimeout(function () {
+                    window.location.reload();
+                }, 450);
+            } catch {
+                deleteFeedback.textContent = "Silme işlemi tamamlanamadı.";
+                deleteConfirmButton.disabled = false;
+            }
+        }
+
         function closeShareModal() {
             modal.hidden = true;
             qrBox.style.display = "none";
@@ -1505,6 +2074,11 @@
                 openShareModal(button);
             });
         });
+        document.querySelectorAll(".js-delete-work").forEach(function (button) {
+            button.addEventListener("click", function () {
+                openDeleteModal(button);
+            });
+        });
 
         nativeShareButton.addEventListener("click", nativeShare);
         platformButtons.forEach(function (button) {
@@ -1512,16 +2086,32 @@
                 openPlatformShare(button.dataset.sharePlatform || "");
             });
         });
+        accessButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                saveAccessMethod(button.dataset.shareMethod || "");
+            });
+        });
         copyButton.addEventListener("click", copyShareUrl);
         closeButton.addEventListener("click", closeShareModal);
+        deleteCloseButton.addEventListener("click", closeDeleteModal);
+        deleteCancelButton.addEventListener("click", closeDeleteModal);
+        deleteConfirmButton.addEventListener("click", confirmDeleteWork);
         modal.addEventListener("click", function (event) {
             if (event.target === modal) {
                 closeShareModal();
             }
         });
+        deleteModal.addEventListener("click", function (event) {
+            if (event.target === deleteModal) {
+                closeDeleteModal();
+            }
+        });
         document.addEventListener("keydown", function (event) {
             if (event.key === "Escape" && !modal.hidden) {
                 closeShareModal();
+            }
+            if (event.key === "Escape" && !deleteModal.hidden) {
+                closeDeleteModal();
             }
         });
     })();

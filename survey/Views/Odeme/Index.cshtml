@@ -1,0 +1,408 @@
+@model OdemePaketleriSayfaModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Paketler ve Ödeme";
+}
+
+@section HeadExtra {
+    <style>
+        .billing-page {
+            color: #142033;
+        }
+
+        .billing-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 18px;
+            align-items: center;
+            padding: 26px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, #101827, #183a45);
+            box-shadow: 0 18px 48px rgba(21, 34, 50, .14);
+        }
+
+        .billing-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 30px;
+            padding: 0 11px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,.22);
+            border-radius: 999px;
+            color: rgba(255,255,255,.8);
+            background: rgba(255,255,255,.08);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .billing-title {
+            margin: 0;
+            color: #fff;
+            font-size: 30px;
+            font-weight: 900;
+            line-height: 1.18;
+            letter-spacing: 0;
+        }
+
+        .billing-subtitle {
+            max-width: 760px;
+            margin: 10px 0 0;
+            color: rgba(255,255,255,.74);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .billing-status {
+            min-width: 240px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,.18);
+            border-radius: 8px;
+            background: rgba(255,255,255,.1);
+        }
+
+        .billing-status span {
+            display: block;
+            color: rgba(255,255,255,.72);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .billing-status strong {
+            display: block;
+            margin-top: 6px;
+            color: #8df0c7;
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .billing-alert {
+            margin-top: 16px;
+            padding: 13px 15px;
+            border-radius: 8px;
+            border: 1px solid #d9e7ff;
+            color: #184070;
+            background: #f4f8ff;
+            font-weight: 800;
+        }
+
+        .billing-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 20px;
+        }
+
+        .billing-plan {
+            display: flex;
+            flex-direction: column;
+            min-height: 430px;
+            padding: 18px;
+            border: 1px solid #e8edf5;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(20, 32, 51, .06);
+        }
+
+        .billing-plan.featured {
+            border-color: #8df0c7;
+            box-shadow: 0 18px 42px rgba(17, 153, 122, .16);
+        }
+
+        .billing-plan-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .billing-plan h2 {
+            margin: 0;
+            color: #101827;
+            font-size: 19px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .billing-plan-code {
+            display: inline-flex;
+            align-items: center;
+            min-height: 26px;
+            padding: 0 9px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: #e9fbf6;
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .billing-plan-desc {
+            min-height: 58px;
+            margin: 10px 0 0;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .billing-price {
+            margin-top: 16px;
+            color: #101827;
+            font-size: 30px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .billing-price small {
+            color: #667085;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .billing-features {
+            display: grid;
+            gap: 9px;
+            margin: 18px 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .billing-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .billing-features i {
+            margin-top: 2px;
+            color: #10a37f;
+        }
+
+        .billing-action {
+            margin-top: auto;
+        }
+
+        .billing-button {
+            width: 100%;
+            min-height: 44px;
+            border: 0;
+            border-radius: 8px;
+            color: #0b1220;
+            background: #8df0c7;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .billing-button.secondary {
+            color: #172033;
+            background: #eef4f8;
+        }
+
+        .billing-button:disabled {
+            color: #98a2b3;
+            background: #eef2f6;
+            cursor: not-allowed;
+        }
+
+        .billing-section {
+            margin-top: 24px;
+        }
+
+        .billing-section h2 {
+            margin: 0 0 12px;
+            color: #101827;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .billing-table-wrap {
+            overflow-x: auto;
+            border: 1px solid #e8edf5;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(20, 32, 51, .06);
+        }
+
+        .billing-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 760px;
+        }
+
+        .billing-table th,
+        .billing-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #eef2f6;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .billing-table th {
+            color: #667085;
+            background: #f8fafc;
+            font-weight: 900;
+        }
+
+        .billing-empty {
+            padding: 18px;
+            border: 1px dashed #d0d5dd;
+            border-radius: 8px;
+            color: #667085;
+            background: #fff;
+            font-weight: 800;
+        }
+
+        @@media (max-width: 1180px) {
+            .billing-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @@media (max-width: 760px) {
+            .billing-hero,
+            .billing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .billing-status {
+                min-width: 0;
+            }
+        }
+    </style>
+}
+
+<div class="billing-page">
+    <section class="billing-hero">
+        <div>
+            <span class="billing-kicker"><i class="feather icon-zap"></i> Survey by Aslana Teknoloji</span>
+            <h1 class="billing-title">Küçük başlayın, büyüdüğünüz yerde yükseltin.</h1>
+            <p class="billing-subtitle">
+                Ücretsiz plan gerçek anket ihtiyacını çözer. Daha fazla ekip, daha fazla yanıt, gelişmiş rapor ve marka kontrolü gerektiğinde ücretli paketlere geçebilirsiniz.
+            </p>
+        </div>
+        <div class="billing-status">
+            <span>Aktif paket</span>
+            <strong>@(Model.Abonelik?.PaketAdi ?? "Henüz yok")</strong>
+            <span>@(Model.Abonelik?.BitisTarihi.HasValue == true ? Model.Abonelik.BitisTarihi.Value.ToString("dd.MM.yyyy") + " tarihine kadar" : "Ücretsiz başlangıç bekliyor")</span>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Mesaj))
+    {
+        <div class="billing-alert">@Model.Mesaj</div>
+    }
+
+    @if (!Model.TamiHazir)
+    {
+        <div class="billing-alert">Tami ödeme ayarları henüz tamamlanmamış. Ücretsiz plan çalışır; ücretli paketler için Tami bilgileri appsettings üzerinden girilmeli.</div>
+    }
+
+    @if (!Model.Paketler.Any())
+    {
+        <div class="billing-section">
+            <div class="billing-empty">Paket tabloları henüz hazır değil. `DatabaseScripts/20260607_OdemePaketleriVeTami.sql` scriptini çalıştırın.</div>
+        </div>
+    }
+    else
+    {
+        <section class="billing-grid">
+            @foreach (var paket in Model.Paketler)
+            {
+                var aktif = Model.Abonelik?.OdemePaketiId == paket.OdemePaketiId;
+                var ucretsiz = paket.Tutar <= 0;
+                <article class="billing-plan @(paket.PaketKodu == "PROFESYONEL" ? "featured" : "")">
+                    <div class="billing-plan-head">
+                        <h2>@paket.PaketAdi</h2>
+                        <span class="billing-plan-code">@paket.PaketKodu</span>
+                    </div>
+                    <p class="billing-plan-desc">@paket.Aciklama</p>
+                    <div class="billing-price">
+                        @(paket.Tutar <= 0 ? "Ücretsiz" : paket.Tutar.ToString("N0") + " " + paket.ParaBirimi)
+                        <small>/ @(paket.SureGun >= 365 ? "yıl" : "ay")</small>
+                    </div>
+                    <ul class="billing-features">
+                        <li><i class="feather icon-check"></i><span>@paket.KullaniciLimiti panel kullanıcısı</span></li>
+                        <li><i class="feather icon-check"></i><span>@paket.AktifAnketLimiti aktif anket/sınav</span></li>
+                        <li><i class="feather icon-check"></i><span>Aylık @paket.AylikYanitLimiti yanıt</span></li>
+                        <li><i class="feather icon-check"></i><span>@(paket.PdfRaporAktif ? "PDF rapor var" : "Temel raporlar")</span></li>
+                        <li><i class="feather icon-check"></i><span>@(paket.GelismisRaporAktif ? "Gelişmiş raporlar açık" : "Gelişmiş raporlar kapalı")</span></li>
+                        <li><i class="feather icon-check"></i><span>@(paket.DisaAktarmaAktif ? "Excel/CSV dışa aktarma" : "Dışa aktarma yok")</span></li>
+                        <li><i class="feather icon-check"></i><span>@(paket.MarkaIziGoster ? "Survey by Aslana Teknoloji marka izi" : "Marka izi kaldırılır")</span></li>
+                    </ul>
+                    <div class="billing-action">
+                        @if (aktif)
+                        {
+                            <button class="billing-button secondary" type="button" disabled>Aktif paket</button>
+                        }
+                        else if (ucretsiz)
+                        {
+                            <form method="post" action="@Url.Action("UcretsizBaslat", "Odeme")">
+                                @Html.AntiForgeryToken()
+                                <button class="billing-button secondary" type="submit">Ücretsiz başlat</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form method="post" action="@Url.Action("PaketSec", "Odeme", new { id = paket.OdemePaketiId })">
+                                @Html.AntiForgeryToken()
+                                <button class="billing-button" type="submit" @(Model.TamiHazir ? "" : "disabled")>Tami ile ödeme yap</button>
+                            </form>
+                        }
+                    </div>
+                </article>
+            }
+        </section>
+    }
+
+    <section class="billing-section">
+        <h2>Son ödemeler</h2>
+        @if (!Model.SonOdemeler.Any())
+        {
+            <div class="billing-empty">Henüz ödeme işlemi yok.</div>
+        }
+        else
+        {
+            <div class="billing-table-wrap">
+                <table class="billing-table">
+                    <thead>
+                        <tr>
+                            <th>Sipariş</th>
+                            <th>Paket</th>
+                            <th>Tutar</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var odeme in Model.SonOdemeler)
+                        {
+                            <tr>
+                                <td>@odeme.SiparisNo</td>
+                                <td>@odeme.PaketAdi</td>
+                                <td>@odeme.Tutar.ToString("N2") @odeme.ParaBirimi</td>
+                                <td>@odeme.OdemeDurumu</td>
+                                <td>@odeme.KayitTarihi.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>
+                                    @if (!string.Equals(odeme.OdemeDurumu, "Odendi", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <form method="post" action="@Url.Action("OdemeSorgula", "Odeme", new { id = odeme.OdemeIslemiId })">
+                                            @Html.AntiForgeryToken()
+                                            <button class="billing-button secondary" type="submit">Sorgula</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
