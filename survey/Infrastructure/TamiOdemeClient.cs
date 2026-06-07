@@ -135,6 +135,7 @@ public sealed class TamiOdemeClient
         var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         http.DefaultRequestHeaders.Add("correlationId", Guid.NewGuid().ToString("N"));
         http.DefaultRequestHeaders.Add("PG-Auth-Token", PgAuthTokenOlustur());
+        http.DefaultRequestHeaders.Add("PG-Api-Version", "v2");
         http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return http;
     }
