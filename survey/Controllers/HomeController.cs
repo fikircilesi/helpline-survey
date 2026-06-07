@@ -2,10 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Mail;
+using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -116,6 +119,401 @@ namespace survey.Controllers
             public string AdSoyad { get; set; }
             public string Eposta { get; set; }
             public string Telefon { get; set; }
+        }
+
+        private class IletisimKonusma
+        {
+            public string KonusmaId { get; set; }
+            public string AdSoyad { get; set; }
+            public string Email { get; set; }
+            public DateTime OlusturmaTarihi { get; set; }
+            public DateTime SonHareketTarihi { get; set; }
+            public DateTime SonMailKontrolTarihi { get; set; }
+            public string SonMailKontrolOzeti { get; set; }
+            public int SonMesajId { get; set; }
+            public List<IletisimMesaj> Mesajlar { get; set; } = new List<IletisimMesaj>();
+            public HashSet<string> IslenenMailAnahtarlari { get; set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private class IletisimKonusmaOzet
+        {
+            public string KonusmaId { get; set; }
+            public string AdSoyad { get; set; }
+            public string Email { get; set; }
+            public string SonMesaj { get; set; }
+            public string SonKimden { get; set; }
+            public DateTime SonHareketTarihi { get; set; }
+            public string MailDurumu { get; set; }
+        }
+
+        private class IletisimMesaj
+        {
+            public int MesajId { get; set; }
+            public string Kimden { get; set; }
+            public string Mesaj { get; set; }
+            public DateTime Tarih { get; set; }
+        }
+
+        private static readonly object IletisimKilit = new object();
+        private static readonly List<IletisimKonusma> IletisimKonusmalari = new List<IletisimKonusma>();
+        private static readonly object IletisimTabloKilit = new object();
+        private static bool IletisimTablolariHazirlandi;
+
+        private static IletisimMesaj IletisimMesajiEkle(IletisimKonusma konusma, string kimden, string mesaj)
+        {
+            var yeniMesaj = new IletisimMesaj
+            {
+                MesajId = ++konusma.SonMesajId,
+                Kimden = kimden,
+                Mesaj = mesaj,
+                Tarih = DateTime.Now
+            };
+
+            konusma.Mesajlar.Add(yeniMesaj);
+            konusma.SonHareketTarihi = yeniMesaj.Tarih;
+            return yeniMesaj;
+        }
+
+        private static void IletisimEskiKonusmalariTemizle()
+        {
+            var sinir = DateTime.Now.AddHours(-12);
+            IletisimKonusmalari.RemoveAll(x => x.SonHareketTarihi < sinir);
+
+            if (IletisimKonusmalari.Count <= 100)
+            {
+                return;
+            }
+
+            var silinecekler = IletisimKonusmalari
+                .OrderBy(x => x.SonHareketTarihi)
+                .Take(IletisimKonusmalari.Count - 100)
+                .ToList();
+
+            foreach (var konusma in silinecekler)
+            {
+                IletisimKonusmalari.Remove(konusma);
+            }
+        }
+
+        private static object IletisimMesajJson(IletisimMesaj mesaj)
+        {
+            return new
+            {
+                id = mesaj.MesajId,
+                kimden = mesaj.Kimden,
+                mesaj = mesaj.Mesaj,
+                tarih = mesaj.Tarih.ToString("HH:mm")
+            };
+        }
+
+        private static bool IletisimMesajiGosterilebilirMi(IletisimMesaj mesaj)
+        {
+            var metin = mesaj?.Mesaj ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(metin))
+            {
+                return false;
+            }
+
+            if (metin.Contains("OK Fetch completed", StringComparison.OrdinalIgnoreCase)
+                || metin.Contains("Content-Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var sadeceBase64Karakterleri = Regex.Replace(metin, @"[A-Za-z0-9+/=\s]", string.Empty).Length == 0;
+            return !(sadeceBase64Karakterleri && metin.Length > 180);
+        }
+
+        private static object IletisimKonusmaOzetiJson(IletisimKonusma konusma)
+        {
+            var sonMesaj = konusma.Mesajlar.LastOrDefault(IletisimMesajiGosterilebilirMi);
+            return new
+            {
+                id = konusma.KonusmaId,
+                adSoyad = string.IsNullOrWhiteSpace(konusma.AdSoyad) ? "Ziyaretçi" : konusma.AdSoyad,
+                email = konusma.Email,
+                sonMesaj = sonMesaj?.Mesaj ?? "",
+                sonKimden = sonMesaj?.Kimden ?? "",
+                sonHareket = konusma.SonHareketTarihi.ToString("HH:mm"),
+                mailDurumu = konusma.SonMailKontrolOzeti ?? ""
+            };
+        }
+
+        private static object IletisimKonusmaOzetiJson(IletisimKonusmaOzet konusma)
+        {
+            return new
+            {
+                id = konusma.KonusmaId,
+                adSoyad = string.IsNullOrWhiteSpace(konusma.AdSoyad) ? "Ziyaretçi" : konusma.AdSoyad,
+                email = konusma.Email,
+                sonMesaj = konusma.SonMesaj ?? "",
+                sonKimden = konusma.SonKimden ?? "",
+                sonHareket = konusma.SonHareketTarihi.ToString("HH:mm"),
+                mailDurumu = konusma.MailDurumu ?? ""
+            };
+        }
+
+        private void IletisimMailDurumuYaz(string konusmaId, string ozet)
+        {
+            if (string.IsNullOrWhiteSpace(konusmaId))
+            {
+                return;
+            }
+
+            var durum = (DateTime.Now.ToString("HH:mm:ss") + " - " + (ozet ?? string.Empty)).Trim();
+            try
+            {
+                IletisimTablolariniHazirla();
+                db.Database.ExecuteSqlCommand(
+                    @"UPDATE dbo.IletisimKonusma
+                      SET SonMailKontrolOzeti = @p1,
+                          SonMailKontrolTarihi = GETDATE()
+                      WHERE KonusmaKodu = @p0",
+                    konusmaId,
+                    durum);
+            }
+            catch
+            {
+            }
+
+            lock (IletisimKilit)
+            {
+                var konusma = IletisimKonusmalari.FirstOrDefault(x => x.KonusmaId == konusmaId);
+                if (konusma != null)
+                {
+                    konusma.SonMailKontrolOzeti = durum;
+                }
+            }
+        }
+
+        private class IletisimMailYaniti
+        {
+            public string Anahtar { get; set; }
+            public string Mesaj { get; set; }
+        }
+
+        private void IletisimTablolariniHazirla()
+        {
+            if (IletisimTablolariHazirlandi)
+            {
+                return;
+            }
+
+            lock (IletisimTabloKilit)
+            {
+                if (IletisimTablolariHazirlandi)
+                {
+                    return;
+                }
+
+                db.Database.ExecuteSqlCommand(
+                    @"
+IF OBJECT_ID(N'dbo.IletisimKonusma', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.IletisimKonusma
+    (
+        IletisimKonusmaId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_IletisimKonusma PRIMARY KEY,
+        KonusmaKodu NVARCHAR(40) NOT NULL,
+        AdSoyad NVARCHAR(120) NULL,
+        Eposta NVARCHAR(160) NOT NULL,
+        OlusturmaTarihi DATETIME NOT NULL CONSTRAINT DF_IletisimKonusma_OlusturmaTarihi DEFAULT (GETDATE()),
+        SonHareketTarihi DATETIME NOT NULL CONSTRAINT DF_IletisimKonusma_SonHareketTarihi DEFAULT (GETDATE()),
+        SonMailKontrolTarihi DATETIME NULL,
+        SonMailKontrolOzeti NVARCHAR(500) NULL,
+        Pasif BIT NOT NULL CONSTRAINT DF_IletisimKonusma_Pasif DEFAULT (0)
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_IletisimKonusma_KonusmaKodu' AND object_id = OBJECT_ID(N'dbo.IletisimKonusma'))
+    CREATE UNIQUE INDEX UX_IletisimKonusma_KonusmaKodu ON dbo.IletisimKonusma(KonusmaKodu);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_IletisimKonusma_SonHareketTarihi' AND object_id = OBJECT_ID(N'dbo.IletisimKonusma'))
+    CREATE INDEX IX_IletisimKonusma_SonHareketTarihi ON dbo.IletisimKonusma(Pasif, SonHareketTarihi DESC);
+
+IF OBJECT_ID(N'dbo.IletisimMesaj', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.IletisimMesaj
+    (
+        IletisimMesajId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_IletisimMesaj PRIMARY KEY,
+        IletisimKonusmaId INT NOT NULL,
+        MesajSira INT NOT NULL,
+        Kimden NVARCHAR(20) NOT NULL,
+        MesajMetni NVARCHAR(MAX) NOT NULL,
+        KayitTarihi DATETIME NOT NULL CONSTRAINT DF_IletisimMesaj_KayitTarihi DEFAULT (GETDATE()),
+        MailAnahtari NVARCHAR(300) NULL,
+        CONSTRAINT FK_IletisimMesaj_IletisimKonusma FOREIGN KEY (IletisimKonusmaId) REFERENCES dbo.IletisimKonusma(IletisimKonusmaId)
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_IletisimMesaj_KonusmaSira' AND object_id = OBJECT_ID(N'dbo.IletisimMesaj'))
+    CREATE UNIQUE INDEX UX_IletisimMesaj_KonusmaSira ON dbo.IletisimMesaj(IletisimKonusmaId, MesajSira);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_IletisimMesaj_MailAnahtari' AND object_id = OBJECT_ID(N'dbo.IletisimMesaj'))
+    CREATE INDEX IX_IletisimMesaj_MailAnahtari ON dbo.IletisimMesaj(IletisimKonusmaId, MailAnahtari);
+");
+
+                IletisimTablolariHazirlandi = true;
+            }
+        }
+
+        private IletisimKonusma IletisimKonusmaGetir(string konusmaId)
+        {
+            IletisimTablolariniHazirla();
+            var konusma = db.Database.SqlQuery<IletisimKonusma>(
+                @"SELECT TOP 1
+                         KonusmaKodu AS KonusmaId,
+                         AdSoyad,
+                         Eposta AS Email,
+                         OlusturmaTarihi,
+                         SonHareketTarihi,
+                         ISNULL(SonMailKontrolTarihi, CONVERT(datetime, '19000101', 112)) AS SonMailKontrolTarihi,
+                         SonMailKontrolOzeti,
+                         ISNULL((SELECT MAX(MesajSira) FROM dbo.IletisimMesaj m WHERE m.IletisimKonusmaId = k.IletisimKonusmaId), 0) AS SonMesajId
+                  FROM dbo.IletisimKonusma k
+                  WHERE KonusmaKodu = @p0 AND Pasif = 0",
+                konusmaId).FirstOrDefault();
+
+            if (konusma == null)
+            {
+                return null;
+            }
+
+            konusma.Mesajlar = db.Database.SqlQuery<IletisimMesaj>(
+                @"SELECT m.MesajSira AS MesajId,
+                         m.Kimden,
+                         m.MesajMetni AS Mesaj,
+                         m.KayitTarihi AS Tarih
+                  FROM dbo.IletisimMesaj m
+                  INNER JOIN dbo.IletisimKonusma k ON k.IletisimKonusmaId = m.IletisimKonusmaId
+                  WHERE k.KonusmaKodu = @p0
+                  ORDER BY m.MesajSira",
+                konusmaId).ToList();
+
+            return konusma;
+        }
+
+        private IletisimKonusma IletisimKonusmaKaydet(string konusmaId, string adSoyad, string email)
+        {
+            IletisimTablolariniHazirla();
+            konusmaId = string.IsNullOrWhiteSpace(konusmaId) ? Guid.NewGuid().ToString("N") : konusmaId.Trim();
+
+            db.Database.ExecuteSqlCommand(
+                @"IF EXISTS (SELECT 1 FROM dbo.IletisimKonusma WHERE KonusmaKodu = @p0 AND Pasif = 0)
+                  BEGIN
+                      UPDATE dbo.IletisimKonusma
+                      SET AdSoyad = @p1,
+                          Eposta = @p2,
+                          SonHareketTarihi = GETDATE()
+                      WHERE KonusmaKodu = @p0 AND Pasif = 0;
+                  END
+                  ELSE
+                  BEGIN
+                      INSERT INTO dbo.IletisimKonusma (KonusmaKodu, AdSoyad, Eposta, OlusturmaTarihi, SonHareketTarihi, Pasif)
+                      VALUES (@p0, @p1, @p2, GETDATE(), GETDATE(), 0);
+                  END",
+                konusmaId,
+                string.IsNullOrWhiteSpace(adSoyad) ? (object)DBNull.Value : adSoyad,
+                email);
+
+            return IletisimKonusmaGetir(konusmaId);
+        }
+
+        private IletisimMesaj IletisimMesajiSqlEkle(string konusmaId, string kimden, string mesaj, string mailAnahtari = null)
+        {
+            IletisimTablolariniHazirla();
+            return db.Database.SqlQuery<IletisimMesaj>(
+                @"DECLARE @IletisimKonusmaId INT;
+                  DECLARE @MailAnahtari NVARCHAR(300) = NULLIF(@p3, N'');
+                  DECLARE @MesajSira INT;
+
+                  SELECT @IletisimKonusmaId = IletisimKonusmaId
+                  FROM dbo.IletisimKonusma WITH (UPDLOCK, HOLDLOCK)
+                  WHERE KonusmaKodu = @p0 AND Pasif = 0;
+
+                  IF @IletisimKonusmaId IS NULL
+                  BEGIN
+                      SELECT CAST(0 AS INT) AS MesajId,
+                             @p1 AS Kimden,
+                             @p2 AS Mesaj,
+                             GETDATE() AS Tarih;
+                      RETURN;
+                  END;
+
+                  IF @MailAnahtari IS NOT NULL
+                  BEGIN
+                      SELECT TOP 1 @MesajSira = MesajSira
+                      FROM dbo.IletisimMesaj
+                      WHERE IletisimKonusmaId = @IletisimKonusmaId AND MailAnahtari = @MailAnahtari;
+                  END;
+
+                  IF @MesajSira IS NULL
+                  BEGIN
+                      SELECT @MesajSira = ISNULL(MAX(MesajSira), 0) + 1
+                      FROM dbo.IletisimMesaj WITH (UPDLOCK, HOLDLOCK)
+                      WHERE IletisimKonusmaId = @IletisimKonusmaId;
+
+                      INSERT INTO dbo.IletisimMesaj (IletisimKonusmaId, MesajSira, Kimden, MesajMetni, KayitTarihi, MailAnahtari)
+                      VALUES (@IletisimKonusmaId, @MesajSira, @p1, @p2, GETDATE(), @MailAnahtari);
+
+                      UPDATE dbo.IletisimKonusma
+                      SET SonHareketTarihi = GETDATE()
+                      WHERE IletisimKonusmaId = @IletisimKonusmaId;
+                  END;
+
+                  SELECT TOP 1
+                         MesajSira AS MesajId,
+                         Kimden,
+                         MesajMetni AS Mesaj,
+                         KayitTarihi AS Tarih
+                  FROM dbo.IletisimMesaj
+                  WHERE IletisimKonusmaId = @IletisimKonusmaId AND MesajSira = @MesajSira;",
+                konusmaId,
+                kimden,
+                mesaj,
+                string.IsNullOrWhiteSpace(mailAnahtari) ? (object)DBNull.Value : mailAnahtari).FirstOrDefault();
+        }
+
+        private void IletisimMailKontrolTarihiGuncelle(string konusmaId)
+        {
+            IletisimTablolariniHazirla();
+            db.Database.ExecuteSqlCommand(
+                @"UPDATE dbo.IletisimKonusma
+                  SET SonMailKontrolTarihi = GETDATE()
+                  WHERE KonusmaKodu = @p0 AND Pasif = 0",
+                konusmaId);
+        }
+
+        private void IletisimEskiKonusmalariSqlTemizle()
+        {
+            IletisimTablolariniHazirla();
+            db.Database.ExecuteSqlCommand(
+                @"UPDATE dbo.IletisimKonusma
+                  SET Pasif = 1
+                  WHERE Pasif = 0 AND SonHareketTarihi < DATEADD(HOUR, -12, GETDATE())");
+        }
+
+        private List<IletisimKonusmaOzet> IletisimKonusmaOzetleriGetir()
+        {
+            IletisimTablolariniHazirla();
+            return db.Database.SqlQuery<IletisimKonusmaOzet>(
+                @"SELECT TOP 50
+                         k.KonusmaKodu AS KonusmaId,
+                         k.AdSoyad,
+                         k.Eposta AS Email,
+                         ISNULL(m.MesajMetni, N'') AS SonMesaj,
+                         ISNULL(m.Kimden, N'') AS SonKimden,
+                         k.SonHareketTarihi,
+                         ISNULL(k.SonMailKontrolOzeti, N'') AS MailDurumu
+                  FROM dbo.IletisimKonusma k
+                  OUTER APPLY
+                  (
+                      SELECT TOP 1 MesajMetni, Kimden
+                      FROM dbo.IletisimMesaj m
+                      WHERE m.IletisimKonusmaId = k.IletisimKonusmaId
+                      ORDER BY m.MesajSira DESC
+                  ) m
+                  WHERE k.Pasif = 0
+                  ORDER BY k.SonHareketTarihi DESC").ToList();
         }
 
         private void CaptchaYenile()
@@ -303,6 +701,47 @@ namespace survey.Controllers
             }
 
             return kaynak.Length > 40 ? kaynak.Substring(0, 40) : kaynak;
+        }
+
+        private static bool SifreKuraliGecerliMi(string sifre, string kullaniciAdi, string email, out string mesaj)
+        {
+            sifre = sifre ?? string.Empty;
+            kullaniciAdi = (kullaniciAdi ?? string.Empty).Trim();
+            email = (email ?? string.Empty).Trim();
+
+            if (sifre.Length < 6)
+            {
+                mesaj = "Şifre en az 6 karakter olmalı.";
+                return false;
+            }
+
+            if (sifre.Length > 50)
+            {
+                mesaj = "Şifre en fazla 50 karakter olmalı.";
+                return false;
+            }
+
+            if (sifre.Any(char.IsWhiteSpace))
+            {
+                mesaj = "Şifre boşluk içermemeli.";
+                return false;
+            }
+
+            if (!sifre.Any(char.IsLetter) || !sifre.Any(char.IsDigit))
+            {
+                mesaj = "Şifrede en az bir harf ve bir rakam olmalı.";
+                return false;
+            }
+
+            if (string.Equals(sifre, kullaniciAdi, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(sifre, email, StringComparison.OrdinalIgnoreCase))
+            {
+                mesaj = "Şifre kullanıcı adı veya e-posta adresiyle aynı olmamalı.";
+                return false;
+            }
+
+            mesaj = null;
+            return true;
         }
 
         private PersonelGuvenlikBilgisi GuvenlikBilgisiGetir(int personelId)
@@ -846,6 +1285,948 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
             }
         }
 
+        public ActionResult Kurumsal()
+        {
+            ViewBag.YasalSayfa = "kurumsal";
+            ViewBag.YasalBaslik = "Kurumsal Bilgi";
+            ViewBag.YasalOzet = "Survey by Aslana Teknoloji'nin şirket, iletişim ve güven merkezi bilgileri.";
+            return View("YasalBilgi");
+        }
+
+        public ActionResult GizlilikPolitikasi()
+        {
+            ViewBag.YasalSayfa = "gizlilik";
+            ViewBag.YasalBaslik = "Gizlilik ve KVKK";
+            ViewBag.YasalOzet = "Katılımcı, yönetici ve çalışma alanı verilerinin nasıl korunduğuna dair ana ilkeler.";
+            return View("YasalBilgi");
+        }
+
+        public ActionResult IadePolitikasi()
+        {
+            ViewBag.YasalSayfa = "iade";
+            ViewBag.YasalBaslik = "İade ve Satış Koşulları";
+            ViewBag.YasalOzet = "Paket satın alma, güvenli ödeme ve iade süreçleri için bilgilendirme.";
+            return View("YasalBilgi");
+        }
+
+        private bool IletisimMailGonder(string aliciEmail, string konu, string htmlGovde, MailAddress yanitAdresi, out string hataMesaji)
+        {
+            hataMesaji = string.Empty;
+            var smtpAyar = db.smtpayar.OrderByDescending(x => x.MailId).FirstOrDefault();
+            if (smtpAyar == null || string.IsNullOrWhiteSpace(smtpAyar.Gonderen))
+            {
+                hataMesaji = "SMTP ayarı bulunamadı.";
+                return false;
+            }
+
+            try
+            {
+                using var msg = new MailMessage();
+                msg.From = new MailAddress(smtpAyar.Gonderen);
+                msg.To.Add(aliciEmail);
+                if (yanitAdresi != null)
+                {
+                    msg.ReplyToList.Add(yanitAdresi);
+                }
+
+                msg.Subject = konu;
+                msg.SubjectEncoding = Encoding.UTF8;
+                msg.BodyEncoding = Encoding.UTF8;
+                msg.IsBodyHtml = true;
+                msg.Body = htmlGovde;
+
+                using var smtp = new SmtpClient
+                {
+                    Host = smtpAyar.Sunucu,
+                    Port = smtpAyar.Portu,
+                    UseDefaultCredentials = false,
+                    Credentials = new NetworkCredential(smtpAyar.UserName, smtpAyar.Password),
+                    EnableSsl = smtpAyar.Ssli,
+                    Timeout = 15000,
+                    DeliveryMethod = SmtpDeliveryMethod.Network
+                };
+
+                smtp.Send(msg);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                hataMesaji = ex.Message;
+                return false;
+            }
+        }
+
+        private static string ImapSunucusuBul(smtpayar ayar)
+        {
+            var sunucu = (ayar?.Sunucu ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(sunucu))
+            {
+                return sunucu;
+            }
+
+            if (IPAddress.TryParse(sunucu, out var ipAdres))
+            {
+                return ipAdres.ToString();
+            }
+
+            if (sunucu.Equals("mail.nitelix.net", StringComparison.OrdinalIgnoreCase))
+            {
+                return "mail.nitelix.net";
+            }
+
+            if (sunucu.Equals("smtp.gmail.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return "imap.gmail.com";
+            }
+
+            if (sunucu.Equals("smtp.office365.com", StringComparison.OrdinalIgnoreCase)
+                || sunucu.Equals("smtp-mail.outlook.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return "outlook.office365.com";
+            }
+
+            if (sunucu.StartsWith("smtp.", StringComparison.OrdinalIgnoreCase))
+            {
+                return "imap." + sunucu.Substring(5);
+            }
+
+            return sunucu;
+        }
+
+        private static int ImapPortuBul(smtpayar ayar)
+        {
+            if (ayar != null && (ayar.Portu == 143 || ayar.Portu == 993))
+            {
+                return ayar.Portu;
+            }
+
+            var imapSunucu = ImapSunucusuBul(ayar);
+            if (imapSunucu.Equals("mail.nitelix.net", StringComparison.OrdinalIgnoreCase)
+                || imapSunucu.Equals("imap.gmail.com", StringComparison.OrdinalIgnoreCase)
+                || imapSunucu.Equals("outlook.office365.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return 993;
+            }
+
+            if (IPAddress.TryParse(imapSunucu, out _))
+            {
+                return ayar?.Ssli == true ? 993 : 143;
+            }
+
+            return ayar?.Ssli == true ? 993 : 143;
+        }
+
+        private static string ImapMetin(string deger)
+        {
+            return "\"" + (deger ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        }
+
+        private static string ImapKomut(StreamReader reader, StreamWriter writer, string etiket, string komut)
+        {
+            writer.WriteLine(etiket + " " + komut);
+            writer.Flush();
+
+            var cevap = new StringBuilder();
+            string satir;
+            while ((satir = reader.ReadLine()) != null)
+            {
+                cevap.AppendLine(satir);
+                if (satir.StartsWith(etiket + " ", StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+            }
+
+            return cevap.ToString();
+        }
+
+        private static bool ImapTamam(string cevap, string etiket)
+        {
+            return Regex.IsMatch(cevap ?? string.Empty, "^" + Regex.Escape(etiket) + @"\s+OK\b", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+        }
+
+        private static string ImapKlasorAdiniCoz(string satir)
+        {
+            var eslesmeler = Regex.Matches(satir ?? string.Empty, "\"((?:\\\\.|[^\"])*)\"");
+            if (eslesmeler.Count > 0)
+            {
+                var deger = eslesmeler[eslesmeler.Count - 1].Groups[1].Value;
+                return deger.Replace("\\\"", "\"").Replace("\\\\", "\\").Trim();
+            }
+
+            var parcalar = (satir ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            return parcalar.Length == 0 ? string.Empty : parcalar[parcalar.Length - 1].Trim();
+        }
+
+        private static List<string> ImapKlasorleriniListele(StreamReader reader, StreamWriter writer)
+        {
+            var cevap = ImapKomut(reader, writer, "L1", "LIST \"\" \"*\"");
+            if (!ImapTamam(cevap, "L1"))
+            {
+                return new List<string>();
+            }
+
+            return cevap.Replace("\r\n", "\n")
+                .Split('\n')
+                .Where(x => x.StartsWith("* LIST", StringComparison.OrdinalIgnoreCase))
+                .Select(ImapKlasorAdiniCoz)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
+        }
+
+        private static List<string> ImapAranacakKlasorler(StreamReader reader, StreamWriter writer)
+        {
+            var sabitKlasorler = new[]
+            {
+                "Sent",
+                "Sent Items",
+                "Sent Mail",
+                "Sent Messages",
+                "[Gmail]/Sent Mail",
+                "[Gmail]/All Mail",
+                "[Gmail]/Gönderilmiş Postalar",
+                "[Gmail]/Gönderilmiş Öğeler",
+                "Gönderilmiş Postalar",
+                "Gönderilmiş Öğeler",
+                "Gonderilmis Postalar",
+                "Gonderilmis Ogeler",
+                "INBOX.Sent",
+                "INBOX.Sent Items",
+                "INBOX/Sent",
+                "INBOX.Gonderilmis",
+                "INBOX"
+            };
+
+            var bulunanKlasorler = ImapKlasorleriniListele(reader, writer);
+            var oncelikliKlasorler = bulunanKlasorler.Where(x =>
+                Regex.IsMatch(x, @"sent|all mail|g[oö]nder|g&|inbox", RegexOptions.IgnoreCase));
+
+            return sabitKlasorler
+                .Concat(oncelikliKlasorler)
+                .Concat(bulunanKlasorler)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> ImapAramaUidleri(string cevap)
+        {
+            var match = Regex.Match(cevap ?? string.Empty, @"\* SEARCH\s+(?<ids>[0-9 ]+)", RegexOptions.IgnoreCase);
+            if (!match.Success)
+            {
+                return new List<string>();
+            }
+
+            return match.Groups["ids"].Value
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Distinct()
+                .ToList();
+        }
+
+        private static string ImapAramaTarihi(DateTime tarih)
+        {
+            return tarih.ToString("d-MMM-yyyy", CultureInfo.InvariantCulture);
+        }
+
+        private static string MailBaslikDegeri(string raw, string baslik)
+        {
+            var match = Regex.Match(
+                raw ?? string.Empty,
+                @"(?im)^" + Regex.Escape(baslik) + @":\s*(?<deger>.+(?:\r?\n[ \t].+)*)");
+
+            if (!match.Success)
+            {
+                return string.Empty;
+            }
+
+            return Regex.Replace(match.Groups["deger"].Value, @"\r?\n[ \t]+", " ").Trim();
+        }
+
+        private static DateTime? MailTarihiOku(string raw)
+        {
+            var tarih = MailBaslikDegeri(raw, "Date");
+            if (DateTimeOffset.TryParse(tarih, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var sonuc))
+            {
+                return sonuc.LocalDateTime;
+            }
+
+            if (DateTime.TryParse(tarih, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var basitSonuc))
+            {
+                return basitSonuc;
+            }
+
+            return null;
+        }
+
+        private static bool MailAliciIceriyorMu(string raw, string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return false;
+            }
+
+            var basliklar = string.Join(" ",
+                MailBaslikDegeri(raw, "To"),
+                MailBaslikDegeri(raw, "Cc"),
+                MailBaslikDegeri(raw, "Bcc"));
+
+            return basliklar.IndexOf(email, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static string QuotedPrintableCoz(string metin)
+        {
+            if (string.IsNullOrEmpty(metin))
+            {
+                return string.Empty;
+            }
+
+            metin = Regex.Replace(metin, @"=\r?\n", string.Empty);
+            using var ms = new MemoryStream();
+            for (var i = 0; i < metin.Length; i++)
+            {
+                if (metin[i] == '=' && i + 2 < metin.Length
+                    && Uri.IsHexDigit(metin[i + 1])
+                    && Uri.IsHexDigit(metin[i + 2]))
+                {
+                    var hex = metin.Substring(i + 1, 2);
+                    ms.WriteByte(Convert.ToByte(hex, 16));
+                    i += 2;
+                    continue;
+                }
+
+                var bytes = Encoding.UTF8.GetBytes(new[] { metin[i] });
+                ms.Write(bytes, 0, bytes.Length);
+            }
+
+            return Encoding.UTF8.GetString(ms.ToArray());
+        }
+
+        private static string Base64Coz(string metin)
+        {
+            if (string.IsNullOrWhiteSpace(metin))
+            {
+                return string.Empty;
+            }
+
+            var temiz = string.Concat(
+                metin.Replace("\r\n", "\n")
+                    .Split('\n')
+                    .Select(x => x.Trim())
+                    .Where(x =>
+                        !string.IsNullOrWhiteSpace(x)
+                        && !x.StartsWith("*")
+                        && !x.StartsWith(")")
+                        && !Regex.IsMatch(x, @"^[A-Z]\d+\s+OK\b", RegexOptions.IgnoreCase)
+                        && Regex.IsMatch(x, @"^[A-Za-z0-9+/=\s]+$")));
+
+            temiz = Regex.Replace(temiz, @"\s+", string.Empty);
+            if (temiz.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var kalan = temiz.Length % 4;
+            if (kalan > 0)
+            {
+                temiz = temiz.PadRight(temiz.Length + (4 - kalan), '=');
+            }
+
+            try
+            {
+                return Encoding.UTF8.GetString(Convert.FromBase64String(temiz));
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string ImapProtokolSatirlariniTemizle(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return string.Empty;
+            }
+
+            var metin = raw.Replace("\r\n", "\n");
+            metin = Regex.Replace(metin, @"(?m)^\* \d+ FETCH.*$", string.Empty);
+            metin = Regex.Replace(metin, @"(?m)^[A-Z]\d+ OK.*$", string.Empty);
+            metin = Regex.Replace(metin, @"(?m)^\)\s*$", string.Empty);
+            return metin;
+        }
+
+        private static string MailParcaGovdesiCoz(string parca)
+        {
+            if (string.IsNullOrWhiteSpace(parca))
+            {
+                return string.Empty;
+            }
+
+            var normalized = ImapProtokolSatirlariniTemizle(parca);
+            var bosSatir = normalized.IndexOf("\n\n", StringComparison.Ordinal);
+            var body = bosSatir >= 0 ? normalized.Substring(bosSatir + 2) : normalized;
+
+            if (Regex.IsMatch(normalized, @"Content-Transfer-Encoding:\s*base64", RegexOptions.IgnoreCase))
+            {
+                return Base64Coz(body);
+            }
+
+            if (Regex.IsMatch(normalized, @"Content-Transfer-Encoding:\s*quoted-printable", RegexOptions.IgnoreCase))
+            {
+                return QuotedPrintableCoz(body);
+            }
+
+            return body;
+        }
+
+        private static string MailGovdesiCoz(string raw)
+        {
+            var normalized = ImapProtokolSatirlariniTemizle(raw);
+            var parcalar = Regex.Split(normalized, @"(?m)^--[^\n]+")
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
+
+            var duzMetin = parcalar
+                .Where(x => Regex.IsMatch(x, @"Content-Type:\s*text/plain", RegexOptions.IgnoreCase))
+                .Select(MailParcaGovdesiCoz)
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+
+            if (!string.IsNullOrWhiteSpace(duzMetin))
+            {
+                return duzMetin;
+            }
+
+            var htmlMetin = parcalar
+                .Where(x => Regex.IsMatch(x, @"Content-Type:\s*text/html", RegexOptions.IgnoreCase))
+                .Select(MailParcaGovdesiCoz)
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+
+            if (!string.IsNullOrWhiteSpace(htmlMetin))
+            {
+                return htmlMetin;
+            }
+
+            return MailParcaGovdesiCoz(normalized);
+        }
+
+        private static string MailYanitiTemizle(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return string.Empty;
+            }
+
+            var body = MailGovdesiCoz(raw);
+
+            body = WebUtility.HtmlDecode(body);
+            body = Regex.Replace(body, @"<br\s*/?>", "\n", RegexOptions.IgnoreCase);
+            body = Regex.Replace(body, @"</p\s*>", "\n", RegexOptions.IgnoreCase);
+            body = Regex.Replace(body, @"<[^>]+>", " ");
+
+            var satirlar = body
+                .Replace("\r\n", "\n")
+                .Split('\n')
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
+
+            var temiz = new List<string>();
+            foreach (var satir in satirlar)
+            {
+                if (satir.StartsWith(">"))
+                {
+                    continue;
+                }
+
+                if (Regex.IsMatch(satir, @"^(From|Kimden|Gönderen|Sent|To|Kime|Subject|Konu)\s*:", RegexOptions.IgnoreCase)
+                    || satir.StartsWith("-----Original Message-----", StringComparison.OrdinalIgnoreCase)
+                    || Regex.IsMatch(satir, @"^On .+ wrote:$", RegexOptions.IgnoreCase)
+                    || Regex.IsMatch(satir, @"^.+ tarihinde .+ yazdı:$", RegexOptions.IgnoreCase))
+                {
+                    break;
+                }
+
+                if (satir.StartsWith("--"))
+                {
+                    continue;
+                }
+
+                temiz.Add(satir);
+            }
+
+            var sonuc = string.Join("\n", temiz).Trim();
+            var alintiBaslangici = new[]
+            {
+                sonuc.IndexOf("Survey sayfasından yeni mesaj", StringComparison.OrdinalIgnoreCase),
+                sonuc.IndexOf("Yönetici cevap ekranını aç", StringComparison.OrdinalIgnoreCase),
+                sonuc.IndexOf("Info mailinden normal yanıt", StringComparison.OrdinalIgnoreCase),
+                sonuc.IndexOf("Bu ekrandan yazdığınız yanıt", StringComparison.OrdinalIgnoreCase)
+            }
+            .Where(x => x >= 0)
+            .DefaultIfEmpty(-1)
+            .Min();
+
+            if (alintiBaslangici >= 0)
+            {
+                sonuc = sonuc.Substring(0, alintiBaslangici).Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(sonuc))
+            {
+                return string.Empty;
+            }
+
+            return sonuc.Length > 1500 ? sonuc.Substring(0, 1500) : sonuc;
+        }
+
+        private List<IletisimMailYaniti> ImapYanitiOku(smtpayar ayar, IletisimKonusma konusma)
+        {
+            var yanitlar = new List<IletisimMailYaniti>();
+            var sunucu = ImapSunucusuBul(ayar);
+            var port = ImapPortuBul(ayar);
+            if (string.IsNullOrWhiteSpace(sunucu) || ayar == null || konusma == null)
+            {
+                IletisimMailDurumuYaz(konusma?.KonusmaId, "IMAP ayarı bulunamadı.");
+                return yanitlar;
+            }
+
+            IletisimMailDurumuYaz(konusma.KonusmaId, "IMAP kontrolü başladı: " + sunucu + ":" + port);
+
+            using var tcp = new TcpClient();
+            tcp.ReceiveTimeout = 12000;
+            tcp.SendTimeout = 12000;
+            tcp.Connect(sunucu, port);
+
+            Stream stream = tcp.GetStream();
+            SslStream ssl = null;
+            if (ayar.Ssli || port == 993)
+            {
+                ssl = new SslStream(stream, false);
+                ssl.AuthenticateAsClient(sunucu);
+                stream = ssl;
+            }
+
+            using (ssl)
+            using (stream)
+            using (var reader = new StreamReader(stream, Encoding.UTF8, false, 4096, leaveOpen: false))
+            using (var writer = new StreamWriter(stream, new UTF8Encoding(false), 4096, leaveOpen: false) { NewLine = "\r\n", AutoFlush = true })
+            {
+                reader.ReadLine();
+
+                var login = ImapKomut(reader, writer, "A1", "LOGIN " + ImapMetin(ayar.UserName) + " " + ImapMetin(ayar.Password));
+                if (!ImapTamam(login, "A1"))
+                {
+                    IletisimMailDurumuYaz(konusma.KonusmaId, "IMAP login başarısız: " + sunucu + ":" + port);
+                    return yanitlar;
+                }
+
+                var klasorler = ImapAranacakKlasorler(reader, writer);
+                IletisimMailDurumuYaz(konusma.KonusmaId, "IMAP login başarılı; " + klasorler.Count + " klasör taranacak.");
+
+                var arama = "SVY-" + konusma.KonusmaId;
+                var aliciAramasi = (konusma.Email ?? string.Empty).Trim();
+                var tarihAramasi = ImapAramaTarihi(konusma.OlusturmaTarihi.Date.AddDays(-1));
+                var gorulenAnahtarlar = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var secilenKlasorSayisi = 0;
+                var kodluAdaySayisi = 0;
+                var aliciAdaySayisi = 0;
+                var fetchSayisi = 0;
+
+                for (var klasorIndex = 0; klasorIndex < klasorler.Count; klasorIndex++)
+                {
+                    var etiket = "S" + klasorIndex;
+                    var select = ImapKomut(reader, writer, etiket, "SELECT " + ImapMetin(klasorler[klasorIndex]));
+                    if (!ImapTamam(select, etiket))
+                    {
+                        continue;
+                    }
+
+                    secilenKlasorSayisi++;
+                    var searchTag = "F" + klasorIndex;
+                    var search = ImapKomut(reader, writer, searchTag, "UID SEARCH SUBJECT " + ImapMetin(arama));
+                    var uidler = ImapAramaUidleri(search);
+                    if (!uidler.Any())
+                    {
+                        var textSearchTag = "T" + klasorIndex;
+                        var textSearch = ImapKomut(reader, writer, textSearchTag, "UID SEARCH TEXT " + ImapMetin(arama));
+                        uidler = ImapAramaUidleri(textSearch);
+                    }
+
+                    kodluAdaySayisi += uidler.Count;
+                    var uidKaynaklari = uidler.ToDictionary(x => x, _ => true, StringComparer.OrdinalIgnoreCase);
+                    if (!string.IsNullOrWhiteSpace(aliciAramasi))
+                    {
+                        var aliciSearchTag = "R" + klasorIndex;
+                        var aliciSearch = ImapKomut(reader, writer, aliciSearchTag, "UID SEARCH SINCE " + tarihAramasi + " TO " + ImapMetin(aliciAramasi));
+                        var aliciUidleri = ImapAramaUidleri(aliciSearch).TakeLast(8).ToList();
+                        aliciAdaySayisi += aliciUidleri.Count;
+                        foreach (var uid in aliciUidleri)
+                        {
+                            if (!uidKaynaklari.ContainsKey(uid))
+                            {
+                                uidKaynaklari.Add(uid, false);
+                            }
+                        }
+                    }
+
+                    foreach (var uid in uidKaynaklari.Keys.TakeLast(10).ToList())
+                    {
+                        var anahtar = klasorler[klasorIndex] + ":" + uid;
+                        if (!gorulenAnahtarlar.Add(anahtar))
+                        {
+                            continue;
+                        }
+
+                        var fetchTag = "B" + klasorIndex + "_" + uid;
+                        var fetch = ImapKomut(reader, writer, fetchTag, "UID FETCH " + uid + " BODY.PEEK[]");
+                        fetchSayisi++;
+                        var kodlaBulundu = uidKaynaklari.TryGetValue(uid, out var kodlu) && kodlu;
+                        if (!kodlaBulundu)
+                        {
+                            var mailTarihi = MailTarihiOku(fetch);
+                            if (mailTarihi.HasValue && mailTarihi.Value < konusma.OlusturmaTarihi.AddMinutes(-2))
+                            {
+                                continue;
+                            }
+
+                            if (!MailAliciIceriyorMu(fetch, aliciAramasi))
+                            {
+                                continue;
+                            }
+                        }
+
+                        var mesaj = MailYanitiTemizle(fetch);
+                        if (string.IsNullOrWhiteSpace(mesaj))
+                        {
+                            continue;
+                        }
+
+                        var messageId = Regex.Match(fetch, @"(?im)^Message-ID:\s*(?<id>.+)$").Groups["id"].Value.Trim();
+                        yanitlar.Add(new IletisimMailYaniti
+                        {
+                            Anahtar = string.IsNullOrWhiteSpace(messageId) ? anahtar : messageId,
+                            Mesaj = mesaj
+                        });
+                    }
+                }
+
+                ImapKomut(reader, writer, "ZZ", "LOGOUT");
+                IletisimMailDurumuYaz(
+                    konusma.KonusmaId,
+                    "IMAP OK; seçilen klasör: " + secilenKlasorSayisi
+                    + ", kodlu aday: " + kodluAdaySayisi
+                    + ", alıcı adayı: " + aliciAdaySayisi
+                    + ", okunan: " + fetchSayisi
+                    + ", yanıt: " + yanitlar.Count);
+            }
+
+            return yanitlar;
+        }
+
+        private void IletisimInfoMailYanitlariniKontrolEt(string konusmaId)
+        {
+            try
+            {
+                var ayar = db.smtpayar.OrderByDescending(x => x.MailId).FirstOrDefault();
+                var aramaKonusmasi = IletisimKonusmaGetir(konusmaId);
+                if (aramaKonusmasi == null)
+                {
+                    return;
+                }
+
+                var yanitlar = ImapYanitiOku(ayar, aramaKonusmasi);
+                if (!yanitlar.Any())
+                {
+                    return;
+                }
+
+                foreach (var yanit in yanitlar)
+                {
+                    if (string.IsNullOrWhiteSpace(yanit.Mesaj))
+                    {
+                        continue;
+                    }
+
+                    IletisimMesajiSqlEkle(konusmaId, "yonetici", yanit.Mesaj, yanit.Anahtar);
+                }
+            }
+            catch (Exception ex)
+            {
+                IletisimMailDurumuYaz(konusmaId, "IMAP hata: " + ex.GetType().Name + " - " + ex.Message);
+            }
+        }
+
+        [ValidateAntiForgeryToken(), HttpPost]
+        public ActionResult IletisimMesajiGonder(string adSoyad, string email, string mesaj, string konusmaId)
+        {
+            adSoyad = (adSoyad ?? string.Empty).Trim();
+            email = (email ?? string.Empty).Trim();
+            mesaj = (mesaj ?? string.Empty).Trim();
+            konusmaId = (konusmaId ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(mesaj))
+            {
+                return Json(new { success = false, message = "Size dönüş yapabilmemiz için e-posta adresinizi ve mesajınızı rica ediyoruz." });
+            }
+
+            if (adSoyad.Length > 80 || email.Length > 120 || mesaj.Length > 1500)
+            {
+                return Json(new { success = false, message = "Mesaj alanlarını biraz kısaltıp tekrar deneyin." });
+            }
+
+            MailAddress yanitAdresi;
+            try
+            {
+                yanitAdresi = new MailAddress(email, string.IsNullOrWhiteSpace(adSoyad) ? email : adSoyad);
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Size dönüş yapabilmemiz için geçerli bir e-posta adresi yazın." });
+            }
+
+            IletisimKonusma konusma;
+            IletisimMesaj yeniMesaj;
+            try
+            {
+                IletisimEskiKonusmalariSqlTemizle();
+                if (!string.IsNullOrWhiteSpace(konusmaId) && IletisimKonusmaGetir(konusmaId) == null)
+                {
+                    konusmaId = string.Empty;
+                }
+
+                konusma = IletisimKonusmaKaydet(konusmaId, adSoyad, email);
+                yeniMesaj = IletisimMesajiSqlEkle(konusma.KonusmaId, "ziyaretci", mesaj);
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Mesajınız alınamadı. Lütfen info@aslana.com.tr adresine doğrudan yazın." });
+            }
+
+            var guvenliAd = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(adSoyad) ? "Ziyaretçi" : adSoyad);
+            var guvenliEmail = WebUtility.HtmlEncode(email);
+            var guvenliMesaj = WebUtility.HtmlEncode(mesaj).Replace("\r\n", "\n").Replace("\n", "<br>");
+            var yanitEkrani = Url.Action("IletisimKutusu", "Home", new { id = konusma.KonusmaId }, Request.Scheme);
+            var guvenliYanitEkrani = WebUtility.HtmlEncode(yanitEkrani);
+            var konuKodu = "[SVY-" + konusma.KonusmaId + "]";
+            var mailGovde =
+                "<h2>Survey sayfasından yeni mesaj</h2>" +
+                $"<p><strong>Ad soyad:</strong> {guvenliAd}</p>" +
+                $"<p><strong>E-posta:</strong> {guvenliEmail}</p>" +
+                $"<p><strong>Mesaj:</strong><br>{guvenliMesaj}</p>" +
+                $"<p><a href=\"{guvenliYanitEkrani}\">Yönetici cevap ekranını aç</a></p>" +
+                "<p>Info mailinden normal yanıt verirseniz konu satırındaki " + konuKodu + " kodu kaldığı sürece yanıt ziyaretçinin açık ekranına da düşer.</p>" +
+                "<p>Bu ekrandan yazdığınız yanıt ziyaretçi sayfayı kapatmadıysa ekranda görünür; ayrıca ziyaretçinin e-posta adresine de gönderilir.</p>";
+
+            var mailGitti = IletisimMailGonder("info@aslana.com.tr", "Survey web iletişim mesajı " + konuKodu, mailGovde, yanitAdresi, out _);
+            var cevapMesaji = mailGitti
+                ? "Mesajınız Aslana ekibine iletildi. Sayfayı açık bırakırsanız yanıtı burada görebilirsiniz; yanıt e-postanıza da gelir."
+                : "Mesajınız bu ekranda beklemeye alındı. Mail sunucusu şu anda kabul etmediği için info@aslana.com.tr adresine de yazabilirsiniz.";
+
+            return Json(new
+            {
+                success = true,
+                mailSent = mailGitti,
+                conversationId = konusma.KonusmaId,
+                messageId = yeniMesaj.MesajId,
+                message = cevapMesaji
+            });
+        }
+
+        public ActionResult IletisimMesajlariniGetir(string konusmaId, int sonMesajId = 0)
+        {
+            konusmaId = (konusmaId ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(konusmaId))
+            {
+                return Json(new { success = false, message = "Konuşma bulunamadı." });
+            }
+
+            var mailKontrolEt = false;
+            IletisimKonusma konusma;
+            try
+            {
+                konusma = IletisimKonusmaGetir(konusmaId);
+                if (konusma == null)
+                {
+                    return Json(new { success = false, message = "Konuşma süresi dolmuş olabilir." });
+                }
+
+                if ((DateTime.Now - konusma.SonMailKontrolTarihi).TotalSeconds >= 20)
+                {
+                    IletisimMailKontrolTarihiGuncelle(konusmaId);
+                    mailKontrolEt = true;
+                }
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Konuşma şu anda okunamadı." });
+            }
+
+            if (mailKontrolEt)
+            {
+                IletisimInfoMailYanitlariniKontrolEt(konusmaId);
+            }
+
+            try
+            {
+                konusma = IletisimKonusmaGetir(konusmaId);
+                if (konusma == null)
+                {
+                    return Json(new { success = false, message = "Konuşma süresi dolmuş olabilir." });
+                }
+
+                var mesajlar = konusma.Mesajlar
+                    .Where(x => x.MesajId > sonMesajId)
+                    .Where(IletisimMesajiGosterilebilirMi)
+                    .Select(IletisimMesajJson)
+                    .ToList();
+
+                return Json(new { success = true, messages = mesajlar });
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Konuşma şu anda okunamadı." });
+            }
+        }
+
+        public ActionResult IletisimKutusu(string id = null)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return RedirectToAction("Giris", "Home");
+            }
+
+            ViewBag.KonusmaId = id ?? string.Empty;
+            return View();
+        }
+
+        public ActionResult IletisimKonusmaListesi()
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return Json(new { success = false, message = "Oturum süreniz doldu. Lütfen tekrar giriş yapın." });
+            }
+
+            try
+            {
+                IletisimEskiKonusmalariSqlTemizle();
+                var konusmalar = IletisimKonusmaOzetleriGetir()
+                    .Select(IletisimKonusmaOzetiJson)
+                    .ToList();
+
+                return Json(new { success = true, conversations = konusmalar });
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Konuşmalar şu anda alınamadı." });
+            }
+        }
+
+        public ActionResult IletisimKonusmaDetay(string id)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return Json(new { success = false, message = "Oturum süreniz doldu. Lütfen tekrar giriş yapın." });
+            }
+
+            id = (id ?? string.Empty).Trim();
+            try
+            {
+                var konusma = IletisimKonusmaGetir(id);
+                if (konusma == null)
+                {
+                    return Json(new { success = false, message = "Konuşma bulunamadı." });
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    conversation = new
+                    {
+                        id = konusma.KonusmaId,
+                        adSoyad = string.IsNullOrWhiteSpace(konusma.AdSoyad) ? "Ziyaretçi" : konusma.AdSoyad,
+                        email = konusma.Email,
+                        olusturma = konusma.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm"),
+                        sonHareket = konusma.SonHareketTarihi.ToString("HH:mm"),
+                        mailDurumu = konusma.SonMailKontrolOzeti ?? "",
+                        messages = konusma.Mesajlar
+                            .Where(IletisimMesajiGosterilebilirMi)
+                            .Select(IletisimMesajJson)
+                            .ToList()
+                    }
+                });
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Konuşma şu anda alınamadı." });
+            }
+        }
+
+        [ValidateAntiForgeryToken(), HttpPost]
+        public ActionResult IletisimYanitGonder(string konusmaId, string mesaj)
+        {
+            if (Session["id"] == null || Session["admin"] == null)
+            {
+                return Json(new { success = false, message = "Oturum süreniz doldu. Lütfen tekrar giriş yapın." });
+            }
+
+            konusmaId = (konusmaId ?? string.Empty).Trim();
+            mesaj = (mesaj ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(konusmaId) || string.IsNullOrWhiteSpace(mesaj))
+            {
+                return Json(new { success = false, message = "Yanıt yazmak için konuşma ve mesaj gerekli." });
+            }
+
+            if (mesaj.Length > 1500)
+            {
+                return Json(new { success = false, message = "Yanıtı biraz kısaltıp tekrar deneyin." });
+            }
+
+            IletisimKonusma konusma;
+            IletisimMesaj yeniMesaj;
+            try
+            {
+                konusma = IletisimKonusmaGetir(konusmaId);
+                if (konusma == null)
+                {
+                    return Json(new { success = false, message = "Konuşma bulunamadı." });
+                }
+
+                yeniMesaj = IletisimMesajiSqlEkle(konusmaId, "yonetici", mesaj);
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Yanıt şu anda kaydedilemedi." });
+            }
+
+            var guvenliAd = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(konusma.AdSoyad) ? "Merhaba" : konusma.AdSoyad);
+            var guvenliMesaj = WebUtility.HtmlEncode(mesaj).Replace("\r\n", "\n").Replace("\n", "<br>");
+            var mailGovde =
+                $"<h2>{guvenliAd}, Aslana ekibinden yanıtınız var</h2>" +
+                $"<p>{guvenliMesaj}</p>" +
+                "<p>Sayfa hâlâ açıksa bu yanıtı konuşma kutusunda da görebilirsiniz.</p>";
+
+            MailAddress yanitAdresi = null;
+            try
+            {
+                yanitAdresi = new MailAddress("info@aslana.com.tr", "Aslana Teknoloji");
+            }
+            catch
+            {
+            }
+
+            var mailGitti = IletisimMailGonder(konusma.Email, "Aslana Teknoloji yanıtınız", mailGovde, yanitAdresi, out _);
+            return Json(new
+            {
+                success = true,
+                mailSent = mailGitti,
+                messageId = yeniMesaj.MesajId,
+                message = mailGitti
+                    ? "Yanıt ekrana düştü ve ziyaretçinin e-postasına gönderildi."
+                    : "Yanıt ekrana düştü; e-posta gönderimi şu anda başarısız oldu."
+            });
+        }
+
         public ActionResult Giris(string panel = null)
         {
             Session.Clear();
@@ -859,6 +2240,9 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
         [ValidateAntiForgeryToken(), HttpPost]
         public async System.Threading.Tasks.Task<ActionResult> Giris(string objUser, string objUser1, string guvenlikCevabi)
         {
+            var girisKimligi = (objUser ?? string.Empty).Trim();
+            var sifre = objUser1 ?? string.Empty;
+
             if (GoogleRecaptchaAktifMi())
             {
                 var recaptcha = await GoogleRecaptchaDogrula();
@@ -876,9 +2260,18 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 return View();
             }
 
-            var obj = db.Personel.Where(a => a.KullaniciAdi.Equals(objUser) && a.Sifre.Equals(objUser1)).FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(girisKimligi) || string.IsNullOrWhiteSpace(sifre))
+            {
+                ViewBag.Uyari = "Kullanıcı adı, e-posta veya şifrenizi yazın.";
+                CaptchaYenile();
+                return View();
+            }
 
-            if (obj != null && obj.KullaniciAdi == objUser && obj.Sifre == objUser1 && obj.Pasif != true)
+            var obj = db.Personel
+                .Where(a => (a.KullaniciAdi == girisKimligi || a.Mail == girisKimligi) && a.Sifre == sifre)
+                .FirstOrDefault();
+
+            if (obj != null && obj.Pasif != true)
             {
                 var guvenlik = GuvenlikBilgisiGetir(obj.PersonelId);
                 if (guvenlik?.MailOnaylandi == false)
@@ -896,7 +2289,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             else
             {
-                ViewBag.Uyari = "KullanÄ±cÄ± AdÄ± veya Åifreyi Kontrol Ediniz";
+                ViewBag.Uyari = "Kullanıcı adı, e-posta veya şifreyi kontrol edin.";
             }
             CaptchaYenile();
             return View();
@@ -963,6 +2356,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
 
             username = username.Trim();
             email = email.Trim();
+
+            if (!SifreKuraliGecerliMi(password, username, email, out var sifreKuralMesaji))
+            {
+                ViewBag.RegisterError = sifreKuralMesaji;
+                ViewBag.ActiveAuthPanel = "register";
+                CaptchaYenile();
+                return View("Giris");
+            }
 
             var kullaniciVar = db.Personel.Any(x => x.KullaniciAdi == username || x.Mail == email);
             if (kullaniciVar)

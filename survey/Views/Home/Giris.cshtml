@@ -566,63 +566,109 @@
             font-size: 11px;
             font-weight: 900;
             white-space: nowrap;
+            text-decoration: none;
         }
 
         .legal-chip i {
             color: var(--teal);
         }
 
+        .legal-chip:hover {
+            color: #0f172a;
+            border-color: rgba(66, 87, 232, .34);
+            background: rgba(255, 255, 255, .94);
+            box-shadow: 0 12px 28px rgba(49, 73, 118, .12);
+        }
+
         .app-showcase {
             position: relative;
             max-width: 760px;
             margin-top: 18px;
-            min-height: 258px;
-            padding: 14px 14px 14px 142px;
+            min-height: 374px;
+            padding: 16px;
             border: 1px solid rgba(132, 151, 176, .26);
             border-radius: 8px;
             background:
-                linear-gradient(135deg, rgba(255, 255, 255, .84), rgba(255, 255, 255, .58)),
-                linear-gradient(90deg, rgba(21, 184, 166, .14), rgba(66, 87, 232, .10), rgba(255, 184, 77, .16));
+                linear-gradient(135deg, rgba(255, 255, 255, .90), rgba(255, 255, 255, .62)),
+                linear-gradient(118deg, rgba(21, 184, 166, .18), rgba(66, 87, 232, .11) 38%, rgba(255, 107, 93, .12) 66%, rgba(255, 184, 77, .18)),
+                repeating-linear-gradient(90deg, rgba(66, 87, 232, .055) 0 1px, transparent 1px 48px);
             box-shadow: 0 20px 54px rgba(49, 73, 118, .12);
             overflow: hidden;
-        }
-
-        .human-guide {
-            position: absolute;
-            left: 12px;
-            bottom: -8px;
-            z-index: 2;
-            width: 150px;
-            pointer-events: none;
-        }
-
-        .human-guide::after {
-            position: absolute;
-            right: 24px;
-            bottom: 9px;
-            left: 24px;
-            height: 18px;
-            border-radius: 999px;
-            background: rgba(23, 32, 51, .12);
-            filter: blur(8px);
-            content: "";
-        }
-
-        .human-guide img {
-            position: relative;
-            z-index: 1;
-            display: block;
-            width: 100%;
-            height: auto;
-            filter: drop-shadow(0 20px 28px rgba(23, 32, 51, .18));
         }
 
         .showcase-track {
             display: flex;
             gap: 12px;
             width: max-content;
-            animation: showcaseGlide 24s ease-in-out infinite;
+            animation: showcaseGlide 44s cubic-bezier(.77, 0, .18, 1) infinite;
             will-change: transform;
+        }
+
+        .showcase-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .showcase-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 26px;
+            padding: 0 10px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: rgba(21, 184, 166, .12);
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .showcase-head strong {
+            display: block;
+            margin-top: 6px;
+            color: #142033;
+            font-size: 22px;
+            line-height: 1.1;
+            font-weight: 900;
+        }
+
+        .showcase-head span:not(.showcase-kicker) {
+            display: block;
+            margin-top: 5px;
+            color: #607088;
+            font-size: 12px;
+            line-height: 1.45;
+            font-weight: 750;
+        }
+
+        .showcase-count {
+            display: grid;
+            place-items: center;
+            flex: 0 0 82px;
+            min-height: 66px;
+            border: 1px solid rgba(66, 87, 232, .22);
+            border-radius: 8px;
+            color: #4338ca;
+            background: rgba(66, 87, 232, .08);
+            text-align: center;
+        }
+
+        .showcase-count strong {
+            margin: 0;
+            color: #172033;
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .showcase-count span {
+            margin: 4px 0 0;
+            color: #64748b;
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
         }
 
         .app-showcase:hover .showcase-track {
@@ -631,28 +677,27 @@
 
         .report-shot {
             position: relative;
-            flex: 0 0 266px;
-            min-height: 228px;
+            flex: 0 0 254px;
+            min-height: 260px;
             border: 1px solid rgba(132, 151, 176, .30);
             border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 12px 30px rgba(49, 73, 118, .10);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(247, 251, 255, .98));
+            box-shadow: 0 16px 34px rgba(49, 73, 118, .12);
             overflow: hidden;
+            transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
         }
 
-        .report-shot img {
-            display: block;
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            object-position: top left;
-            background: #f6f9ff;
+        .report-shot:hover {
+            border-color: rgba(66, 87, 232, .42);
+            box-shadow: 0 20px 48px rgba(49, 73, 118, .18);
+            transform: translateY(-3px);
         }
 
         .report-badge {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 12px;
+            left: 12px;
             z-index: 1;
             min-height: 24px;
             padding: 0 9px;
@@ -665,11 +710,32 @@
             line-height: 24px;
         }
 
+        .report-visual {
+            position: relative;
+            min-height: 158px;
+            padding: 42px 13px 13px;
+            background:
+                linear-gradient(135deg, rgba(240, 253, 250, .86), rgba(239, 246, 255, .78)),
+                linear-gradient(120deg, rgba(21, 184, 166, .18), rgba(66, 87, 232, .12), rgba(255, 184, 77, .16));
+            overflow: hidden;
+        }
+
+        .report-visual::after {
+            position: absolute;
+            right: -28px;
+            bottom: -38px;
+            width: 122px;
+            height: 122px;
+            border: 18px solid rgba(255, 255, 255, .46);
+            border-radius: 50%;
+            content: "";
+        }
+
         .report-shot figcaption {
             display: grid;
             gap: 4px;
-            min-height: 78px;
-            padding: 11px 12px 12px;
+            min-height: 102px;
+            padding: 13px 14px 14px;
             border-top: 1px solid rgba(132, 151, 176, .22);
             background:
                 linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(246, 249, 255, .98));
@@ -678,8 +744,9 @@
         .report-shot figcaption strong {
             display: block;
             color: #172033;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 900;
+            line-height: 1.16;
         }
 
         .report-shot figcaption span {
@@ -689,17 +756,284 @@
             line-height: 1.35;
         }
 
+        .chart-shell {
+            position: relative;
+            z-index: 1;
+            min-height: 102px;
+            border: 1px solid rgba(132, 151, 176, .22);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .80);
+            box-shadow: 0 14px 30px rgba(49, 73, 118, .12);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            padding: 10px;
+        }
+
+        .metric-grid span,
+        .mini-metric {
+            min-height: 42px;
+            padding: 7px;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: inset 0 0 0 1px rgba(132, 151, 176, .18);
+        }
+
+        .metric-grid b,
+        .mini-metric b {
+            display: block;
+            color: #172033;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .metric-grid em,
+        .mini-metric em {
+            display: block;
+            margin-top: 4px;
+            color: #667085;
+            font-size: 8px;
+            font-style: normal;
+            font-weight: 850;
+        }
+
+        .bar-chart,
+        .rank-chart,
+        .question-chart {
+            display: grid;
+            gap: 7px;
+            padding: 11px;
+        }
+
+        .bar-chart span,
+        .rank-chart span,
+        .question-chart span {
+            display: block;
+            width: var(--w, 70%);
+            height: 9px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--c1, var(--teal)), var(--c2, var(--indigo)));
+            box-shadow: 0 6px 12px rgba(49, 73, 118, .10);
+        }
+
+        .rank-chart {
+            padding-top: 14px;
+        }
+
+        .rank-chart span {
+            height: 12px;
+        }
+
+        .stack-chart {
+            display: grid;
+            gap: 8px;
+            padding: 12px;
+        }
+
+        .stack-row {
+            display: grid;
+            grid-template-columns: 42px 1fr 24px;
+            align-items: center;
+            gap: 7px;
+            color: #344054;
+            font-size: 8px;
+            font-weight: 900;
+        }
+
+        .stack-row i {
+            display: block;
+            height: 8px;
+            border-radius: 999px;
+            background: #e8eef8;
+            overflow: hidden;
+        }
+
+        .stack-row i::before {
+            display: block;
+            width: var(--w, 70%);
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--c1, var(--teal)), var(--c2, var(--amber)));
+            content: "";
+        }
+
+        .donut-chart {
+            display: grid;
+            grid-template-columns: 88px 1fr;
+            gap: 10px;
+            align-items: center;
+            padding: 11px;
+        }
+
+        .donut-ring {
+            display: grid;
+            place-items: center;
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle, #fff 0 45%, transparent 46%),
+                conic-gradient(var(--teal) 0 42%, var(--indigo) 42% 69%, var(--coral) 69% 86%, var(--amber) 86% 100%);
+            box-shadow: 0 12px 22px rgba(49, 73, 118, .12);
+        }
+
+        .donut-ring strong {
+            color: #172033;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .legend-list {
+            display: grid;
+            gap: 6px;
+        }
+
+        .legend-list span {
+            display: grid;
+            grid-template-columns: 9px 1fr;
+            gap: 6px;
+            align-items: center;
+            color: #475569;
+            font-size: 9px;
+            font-weight: 850;
+        }
+
+        .legend-list span::before {
+            width: 9px;
+            height: 9px;
+            border-radius: 3px;
+            background: var(--dot, var(--teal));
+            content: "";
+        }
+
+        .line-chart {
+            position: relative;
+            min-height: 100px;
+            margin: 10px;
+            background:
+                repeating-linear-gradient(0deg, transparent 0 23px, rgba(132, 151, 176, .16) 23px 24px),
+                repeating-linear-gradient(90deg, transparent 0 43px, rgba(132, 151, 176, .12) 43px 44px);
+        }
+
+        .line-chart svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .bubble-chart {
+            position: relative;
+            min-height: 102px;
+        }
+
+        .bubble-chart span {
+            position: absolute;
+            left: var(--x, 20%);
+            top: var(--y, 20%);
+            display: grid;
+            place-items: center;
+            width: var(--s, 34px);
+            height: var(--s, 34px);
+            border-radius: 50%;
+            color: #fff;
+            background: linear-gradient(135deg, var(--c1, var(--teal)), var(--c2, var(--indigo)));
+            font-size: 9px;
+            font-weight: 900;
+            box-shadow: 0 12px 24px rgba(49, 73, 118, .18);
+        }
+
+        .map-chart {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 11px;
+        }
+
+        .map-tile {
+            min-height: 38px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--c1, rgba(21, 184, 166, .18)), var(--c2, rgba(66, 87, 232, .15)));
+            box-shadow: inset 0 0 0 1px rgba(132, 151, 176, .18);
+        }
+
+        .heat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            padding: 12px;
+        }
+
+        .heat-grid span {
+            min-height: 28px;
+            border-radius: 7px;
+            background: color-mix(in srgb, var(--heat, #15b8a6) var(--mix, 50%), white);
+            box-shadow: inset 0 0 0 1px rgba(132, 151, 176, .12);
+        }
+
+        .flow-chart {
+            display: grid;
+            grid-template-columns: 1fr 26px 1fr 26px 1fr;
+            align-items: center;
+            gap: 5px;
+            padding: 14px 10px;
+        }
+
+        .flow-box {
+            min-height: 68px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(239, 246, 255, .90));
+            box-shadow: inset 0 0 0 1px rgba(132, 151, 176, .18);
+            padding: 8px;
+            color: #172033;
+            font-size: 9px;
+            font-weight: 900;
+        }
+
+        .flow-arrow {
+            height: 3px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--teal), var(--indigo));
+        }
+
         @@keyframes showcaseGlide {
-            0%, 12% {
+            0%, 7% {
                 transform: translateX(0);
             }
 
-            38%, 50% {
-                transform: translateX(-302px);
+            11%, 18% {
+                transform: translateX(-266px);
             }
 
-            74%, 86% {
-                transform: translateX(-604px);
+            22%, 29% {
+                transform: translateX(-532px);
+            }
+
+            33%, 40% {
+                transform: translateX(-798px);
+            }
+
+            44%, 51% {
+                transform: translateX(-1064px);
+            }
+
+            55%, 62% {
+                transform: translateX(-1330px);
+            }
+
+            66%, 73% {
+                transform: translateX(-1596px);
+            }
+
+            77%, 84% {
+                transform: translateX(-1862px);
+            }
+
+            88%, 95% {
+                transform: translateX(-2128px);
             }
 
             100% {
@@ -993,7 +1327,8 @@
         }
 
         .product-board {
-            max-width: 650px;
+            width: min(1180px, calc(100vw - 36px));
+            max-width: min(1180px, calc(100vw - 36px));
             margin-top: 16px;
             padding: 18px;
             border: 1px solid rgba(132, 151, 176, .28);
@@ -1021,7 +1356,7 @@
         }
 
         .product-board-head p {
-            max-width: 380px;
+            max-width: 560px;
             margin: 7px 0 0;
             color: #5f6f86;
             font-size: 13px;
@@ -1070,7 +1405,7 @@
 
         .product-feature-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 10px;
         }
 
@@ -1105,7 +1440,7 @@
         }
 
         .feature-visual {
-            min-height: 132px;
+            min-height: 150px;
             padding: 14px;
             background:
                 linear-gradient(135deg, rgba(240, 253, 250, .74), rgba(239, 246, 255, .70)),
@@ -1132,79 +1467,206 @@
         }
 
         .visual-ai-box,
-        .visual-publish-box,
-        .visual-certificate {
+        .visual-publish-box {
+            min-height: 136px;
+            padding: 10px;
             border: 1px solid rgba(132, 151, 176, .28);
             border-radius: 8px;
-            background: rgba(255, 255, 255, .88);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(247, 251, 255, .94));
             box-shadow: 0 14px 34px rgba(49, 73, 118, .12);
+            overflow: hidden;
         }
 
         .visual-ai-box {
             display: grid;
+            gap: 7px;
+        }
+
+        .visual-panel-top,
+        .publish-topline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 8px;
-            padding: 10px;
+            min-height: 26px;
+            padding: 0 8px;
+            border-radius: 8px;
+            color: #172033;
+            background: linear-gradient(90deg, rgba(21, 184, 166, .12), rgba(66, 87, 232, .10));
+            font-size: 9px;
+            font-weight: 900;
         }
 
-        .visual-prompt {
+        .visual-panel-top i,
+        .publish-topline i {
+            color: var(--teal);
+            font-size: 12px;
+        }
+
+        .visual-ai-prompt {
             display: grid;
-            gap: 5px;
+            gap: 4px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #f5f8ff;
         }
 
-        .visual-prompt span,
-        .visual-question {
+        .visual-ai-prompt span {
             display: block;
-            height: 8px;
+            height: 7px;
             border-radius: 999px;
             background: linear-gradient(90deg, rgba(66, 87, 232, .22), rgba(21, 184, 166, .22));
         }
 
-        .visual-prompt span:nth-child(2) {
-            width: 76%;
+        .visual-ai-prompt span:nth-child(2) {
+            width: 68%;
         }
 
-        .visual-question {
-            height: 28px;
-            padding: 0 10px;
+        .ai-question-card {
+            padding: 7px 8px;
+            border: 1px solid rgba(132, 151, 176, .22);
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .ai-question-card strong {
+            display: block;
             color: #1c2840;
-            background: #f5f8ff;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 900;
-            line-height: 28px;
+        }
+
+        .ai-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-top: 6px;
+        }
+
+        .ai-options span {
+            height: 14px;
+            border-radius: 999px;
+            background: #eef4ff;
+        }
+
+        .ai-options span.is-correct {
+            background: linear-gradient(90deg, rgba(21, 184, 166, .78), rgba(73, 210, 176, .70));
+        }
+
+        .visual-ai-status,
+        .publish-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #0f766e;
+            font-size: 9px;
+            font-weight: 900;
         }
 
         .visual-publish-box {
-            padding: 10px;
+            display: grid;
+            gap: 8px;
         }
 
-        .visual-link {
+        .publish-url {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 8px;
-            min-height: 34px;
-            padding: 0 10px;
+            min-height: 30px;
+            padding: 0 8px;
             border-radius: 8px;
             color: #172033;
             background: #f8fbff;
-            font-size: 10px;
+            box-shadow: inset 0 0 0 1px rgba(132, 151, 176, .18);
+            font-size: 9px;
             font-weight: 900;
         }
 
-        .visual-link i {
-            color: var(--teal);
+        .publish-url code {
+            color: #4338ca;
+            font-family: inherit;
+            font-size: 9px;
         }
 
-        .visual-audience {
+        .publish-segments {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .publish-segments span {
+            min-height: 22px;
+            padding: 0 8px;
+            border-radius: 999px;
+            color: #314057;
+            background: rgba(21, 184, 166, .11);
+            font-size: 8px;
+            font-weight: 900;
+            line-height: 22px;
+        }
+
+        .publish-flow {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 7px;
-            margin-top: 9px;
+            grid-template-columns: 1fr 54px;
+            gap: 8px;
+            align-items: stretch;
         }
 
-        .visual-audience span {
-            min-height: 40px;
+        .publish-checks {
+            display: grid;
+            gap: 5px;
+        }
+
+        .publish-checks span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-height: 22px;
+            color: #42526a;
+            font-size: 8px;
+            font-weight: 900;
+        }
+
+        .publish-checks span::before {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--teal), var(--cyan));
+            content: "";
+        }
+
+        .publish-code-card {
+            display: grid;
+            gap: 4px;
+            place-items: center;
+            padding: 6px 5px;
             border-radius: 8px;
-            background: linear-gradient(135deg, rgba(21, 184, 166, .16), rgba(66, 87, 232, .13));
+            color: #172033;
+            background: linear-gradient(180deg, #ffffff, #eef7ff);
+            box-shadow: inset 0 0 0 1px rgba(132, 151, 176, .20);
+            text-align: center;
+        }
+
+        .publish-code-card strong {
+            display: block;
+            color: #4338ca;
+            font-size: 15px;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .publish-code-card span {
+            display: block;
+            color: #64748b;
+            font-size: 8px;
+            font-weight: 900;
+        }
+
+        .publish-code-card i {
+            color: var(--teal);
+            font-size: 16px;
         }
 
         .visual-certificate {
@@ -1265,6 +1727,182 @@
             object-fit: cover;
             object-position: top left;
             box-shadow: 0 16px 34px rgba(49, 73, 118, .14);
+        }
+
+        .certificate-mockup,
+        .report-mockup {
+            min-height: 136px;
+            border: 1px solid rgba(132, 151, 176, .28);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 16px 34px rgba(49, 73, 118, .14);
+            overflow: hidden;
+        }
+
+        .certificate-mockup {
+            padding: 10px;
+            background:
+                linear-gradient(135deg, #fffdf8, #f8fbff);
+        }
+
+        .certificate-border {
+            position: relative;
+            min-height: 116px;
+            padding: 16px 18px 13px;
+            border: 2px solid rgba(21, 184, 166, .64);
+            background:
+                linear-gradient(90deg, rgba(21, 184, 166, .18) 0 7px, transparent 7px calc(100% - 7px), rgba(21, 184, 166, .18) calc(100% - 7px)),
+                linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(255, 251, 241, .88));
+            text-align: center;
+        }
+
+        .certificate-ribbon {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            min-height: 20px;
+            padding: 0 10px;
+            border-radius: 999px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--navy), var(--indigo));
+            font-size: 9px;
+            font-weight: 900;
+            line-height: 20px;
+            letter-spacing: 0;
+        }
+
+        .certificate-border strong {
+            display: block;
+            color: #172033;
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 1.1;
+        }
+
+        .certificate-border small {
+            display: block;
+            margin-top: 4px;
+            color: #667085;
+            font-size: 9px;
+            font-weight: 850;
+        }
+
+        .certificate-name {
+            display: inline-flex;
+            justify-content: center;
+            min-width: 142px;
+            margin-top: 12px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(23, 32, 51, .26);
+            color: #172033;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .certificate-lines {
+            display: grid;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 10px;
+        }
+
+        .certificate-lines span {
+            display: block;
+            width: 190px;
+            height: 5px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(66, 87, 232, .20), rgba(21, 184, 166, .22));
+        }
+
+        .certificate-lines span:nth-child(2) {
+            width: 132px;
+            justify-self: center;
+        }
+
+        .report-mockup {
+            padding: 12px;
+            background: linear-gradient(180deg, #ffffff, #f7fbff);
+        }
+
+        .report-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .report-toolbar strong {
+            color: #172033;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .report-toolbar span {
+            min-height: 20px;
+            padding: 0 8px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: rgba(21, 184, 166, .12);
+            font-size: 9px;
+            font-weight: 900;
+            line-height: 20px;
+        }
+
+        .report-kpis {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 7px;
+        }
+
+        .report-kpis div {
+            min-height: 44px;
+            padding: 8px;
+            border: 1px solid rgba(132, 151, 176, .24);
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .report-kpis strong,
+        .report-kpis span {
+            display: block;
+        }
+
+        .report-kpis strong {
+            color: #172033;
+            font-size: 16px;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .report-kpis span {
+            margin-top: 4px;
+            color: #667085;
+            font-size: 8px;
+            font-weight: 850;
+        }
+
+        .report-chart {
+            display: grid;
+            gap: 7px;
+            margin-top: 12px;
+        }
+
+        .report-chart span {
+            display: block;
+            height: 8px;
+            width: var(--w, 70%);
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--teal), var(--indigo), var(--amber));
+        }
+
+        .report-chart span:nth-child(2) {
+            background: linear-gradient(90deg, var(--indigo), var(--violet), var(--rose));
+        }
+
+        .report-chart span:nth-child(3) {
+            background: linear-gradient(90deg, var(--coral), var(--amber), var(--teal));
         }
 
         .side-column {
@@ -1336,13 +1974,13 @@
             position: absolute;
             display: block;
             width: 78%;
-            height: 112px;
+            height: 118px;
+            padding: 10px;
             border: 1px solid rgba(132, 151, 176, .30);
             border-radius: 8px;
-            object-fit: cover;
-            object-position: top left;
-            background: #fff;
+            background: linear-gradient(180deg, #ffffff, #f7fbff);
             box-shadow: 0 18px 42px rgba(49, 73, 118, .18);
+            overflow: hidden;
         }
 
         .side-shot:nth-child(1) {
@@ -1361,6 +1999,47 @@
             top: 82px;
             left: 34px;
             transform: rotate(-1deg);
+        }
+
+        .side-shot-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #172033;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .side-shot-title i {
+            color: var(--teal);
+        }
+
+        .side-shot-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .side-shot-grid span {
+            height: 28px;
+            border-radius: 7px;
+            background: linear-gradient(135deg, rgba(21, 184, 166, .16), rgba(66, 87, 232, .12));
+        }
+
+        .side-shot-bars {
+            display: grid;
+            gap: 5px;
+        }
+
+        .side-shot-bars span {
+            display: block;
+            width: var(--w, 74%);
+            height: 6px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--teal), var(--indigo), var(--amber));
         }
 
         .tour-step-list {
@@ -1587,6 +2266,15 @@
 
         .form-field input::placeholder {
             color: #9aa8ba;
+        }
+
+        .field-hint {
+            display: block;
+            margin-top: 6px;
+            color: #667085;
+            font-size: 11px;
+            line-height: 1.38;
+            font-weight: 750;
         }
 
         .password-field {
@@ -1911,6 +2599,15 @@
             padding: 0 14px 14px;
         }
 
+        .assistant-thread {
+            display: grid;
+            gap: 8px;
+            max-height: 166px;
+            margin-bottom: 10px;
+            padding-right: 2px;
+            overflow-y: auto;
+        }
+
         .assistant-message {
             margin: 0;
             padding: 11px 12px;
@@ -1922,29 +2619,99 @@
             line-height: 1.45;
         }
 
-        .assistant-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 10px;
+        .assistant-message.is-user {
+            margin-left: 28px;
+            color: #fff;
+            border-color: transparent;
+            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
         }
 
-        .assistant-actions button {
+        .assistant-message.is-system {
+            border-color: rgba(66, 87, 232, .20);
+            background: rgba(239, 246, 255, .88);
+        }
+
+        .assistant-message.is-admin {
+            margin-right: 28px;
+            border-color: rgba(21, 184, 166, .26);
+            background: linear-gradient(135deg, rgba(240, 253, 250, .96), rgba(239, 246, 255, .92));
+        }
+
+        .assistant-contact-form {
+            display: grid;
+            gap: 9px;
+        }
+
+        .assistant-field {
+            display: grid;
+            gap: 5px;
+        }
+
+        .assistant-field label {
+            color: #344054;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .assistant-contact-form input,
+        .assistant-contact-form textarea {
+            width: 100%;
             min-height: 38px;
-            border: 1px solid #dbe6f4;
+            padding: 0 10px;
+            border: 1px solid #d7e2f0;
             border-radius: 8px;
             color: #142033;
             background: #fff;
+            font-size: 12px;
+            outline: 0;
+            transition: border-color .18s ease, box-shadow .18s ease;
+        }
+
+        .assistant-contact-form textarea {
+            min-height: 78px;
+            padding-top: 10px;
+            resize: vertical;
+        }
+
+        .assistant-contact-form input:focus,
+        .assistant-contact-form textarea:focus {
+            border-color: rgba(66, 87, 232, .55);
+            box-shadow: 0 0 0 3px rgba(66, 87, 232, .10);
+        }
+
+        .assistant-submit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 40px;
+            border: 0;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
+            box-shadow: 0 14px 28px rgba(66, 87, 232, .20);
             font-size: 12px;
             font-weight: 900;
             cursor: pointer;
         }
 
-        .assistant-actions button:first-child {
-            grid-column: 1 / -1;
-            color: #fff;
-            border-color: transparent;
-            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
+        .assistant-submit:disabled {
+            cursor: wait;
+            opacity: .74;
+        }
+
+        .assistant-note {
+            margin: 0;
+            color: #667085;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        .assistant-status {
+            min-height: 0;
+            color: #667085;
+            font-size: 11px;
+            font-weight: 850;
         }
 
         .assistant-launcher {
@@ -1991,6 +2758,15 @@
 
             .access-panel {
                 width: 100%;
+            }
+
+            .product-board {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .product-feature-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
@@ -2105,28 +2881,33 @@
 
             .app-showcase {
                 padding: 10px;
-                min-height: 238px;
+                min-height: auto;
             }
 
-            .human-guide {
-                right: 8px;
-                bottom: 0;
-                left: auto;
-                width: 104px;
-                opacity: .88;
+            .showcase-head {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .showcase-count {
+                place-items: start;
+                min-height: auto;
+                padding: 10px;
+                text-align: left;
             }
 
             .showcase-track {
-                padding-right: 96px;
+                padding-right: 0;
             }
 
             .report-shot {
                 flex-basis: 224px;
-                min-height: 216px;
+                min-height: 250px;
             }
 
-            .report-shot img {
-                height: 128px;
+            .report-visual {
+                min-height: 144px;
+                padding: 40px 10px 10px;
             }
 
             .assistant-widget {
@@ -2176,16 +2957,27 @@
                 font-size: 14px;
             }
 
-            .human-guide {
-                display: none;
-            }
-
             .showcase-track {
+                width: 100%;
                 padding-right: 0;
+                padding-bottom: 7px;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                animation: none;
             }
 
             .report-shot {
-                flex-basis: 226px;
+                flex-basis: 230px;
+                scroll-snap-align: start;
+            }
+
+            .donut-chart {
+                grid-template-columns: 1fr;
+            }
+
+            .donut-ring {
+                width: 72px;
+                height: 72px;
             }
         }
     </style>
@@ -2227,10 +3019,10 @@
                     </span>
                 </a>
                 <div class="nav-actions">
-                    <button type="button" class="nav-link-btn" data-open-panel="participant">
+                    <a class="nav-link-btn" href="@Url.Action("AnketGiris", "Home")">
                         <i class="ti-user"></i>
                         Katılımcı Girişi
-                    </button>
+                    </a>
                     <button type="button" class="nav-link-btn" data-open-panel="participant">
                         <i class="ti-search"></i>
                         Katılım Kodum Var
@@ -2285,9 +3077,9 @@
                             <strong>Survey, Aslana Teknoloji ve E-Ticaret Ltd. Şti. tarafından geliştirilen yerli yazılım altyapısıdır.</strong>
                             <p>İstanbul merkezli şirket yapısı, resmi kayıt bilgileri, KEP adresi, ETBİS kaydı ve KVKK/GDPR odaklı gizlilik yaklaşımı açık şekilde sunulur.</p>
                             <div class="company-proof-links" aria-label="Kurumsal bağlantılar">
-                                <a href="https://helpline.zone/Home/Kurumsal" target="_blank" rel="noopener"><i class="ti-building"></i> Kurumsal bilgi</a>
-                                <a href="https://helpline.zone/Home/Gizlilikpolitikasi" target="_blank" rel="noopener"><i class="ti-lock"></i> Gizlilik</a>
-                                <a href="https://helpline.zone/Home/Iadepolitikasi" target="_blank" rel="noopener"><i class="ti-receipt"></i> İade politikası</a>
+                                <a href="@Url.Action("Kurumsal", "Home")"><i class="ti-building"></i> Kurumsal bilgi</a>
+                                <a href="@Url.Action("GizlilikPolitikasi", "Home")"><i class="ti-lock"></i> Gizlilik</a>
+                                <a href="@Url.Action("IadePolitikasi", "Home")"><i class="ti-receipt"></i> İade politikası</a>
                             </div>
                         </div>
                         <div class="company-proof-details">
@@ -2319,64 +3111,181 @@
                     </section>
 
                     <div class="legal-dock" aria-label="Yasal ve güvenlik başlıkları">
-                        <span class="legal-chip"><i class="ti-check-box"></i> KVKK Aydınlatma</span>
-                        <span class="legal-chip"><i class="ti-lock"></i> Gizlilik Politikası</span>
-                        <span class="legal-chip"><i class="ti-files"></i> Kullanım Koşulları</span>
-                        <span class="legal-chip"><i class="ti-receipt"></i> Mesafeli Satış</span>
-                        <span class="legal-chip"><i class="ti-shield"></i> Güvenli Ödeme</span>
+                        <a class="legal-chip" href="@Url.Action("GizlilikPolitikasi", "Home")#kvkk"><i class="ti-check-box"></i> KVKK Aydınlatma</a>
+                        <a class="legal-chip" href="@Url.Action("GizlilikPolitikasi", "Home")"><i class="ti-lock"></i> Gizlilik Politikası</a>
+                        <a class="legal-chip" href="@Url.Action("IadePolitikasi", "Home")#mesafeli-satis"><i class="ti-files"></i> Kullanım Koşulları</a>
+                        <a class="legal-chip" href="@Url.Action("IadePolitikasi", "Home")#mesafeli-satis"><i class="ti-receipt"></i> Mesafeli Satış</a>
+                        <a class="legal-chip" href="@Url.Action("IadePolitikasi", "Home")"><i class="ti-shield"></i> Güvenli Ödeme</a>
                     </div>
 
-                    <div class="app-showcase" aria-label="Survey 2026 anket raporu görsel önizlemeleri">
-                        <div class="human-guide" aria-hidden="true">
-                            <img src="@Url.Content("~/Content/img/landing/landing-human-guide.webp")" alt="">
+                    <div class="app-showcase" aria-label="Survey rapor ve grafik çeşitleri">
+                        <div class="showcase-head">
+                            <div>
+                                <span class="showcase-kicker"><i class="ti-bar-chart"></i> Rapor çeşitleri</span>
+                                <strong>Yönetici raporları sadece tablo değil; okunabilir grafik setidir.</strong>
+                                <span>Katılım, başarı, soru, grup, departman, eğitim, yaş, şehir ve süreç akışı ayrı ayrı görünür.</span>
+                            </div>
+                            <div class="showcase-count">
+                                <strong>10</strong>
+                                <span>grafik tipi</span>
+                            </div>
                         </div>
                         <div class="showcase-track">
                             <figure class="report-shot">
-                                <span class="report-badge">2026 anketi</span>
-                                <img src="@Url.Content("~/Content/img/landing/landing-2026-cover.webp")" alt="Kalite Sağlama Tazeleme Eğitimi 2026 detaylı analiz kapağı">
-                                <figcaption>
-                                    <strong>Detaylı analiz raporu</strong>
-                                    <span>Katılım, başarı ve soru sonuçları tek raporda toplanır.</span>
-                                </figcaption>
-                            </figure>
-                            <figure class="report-shot">
                                 <span class="report-badge">Canlı özet</span>
-                                <img src="@Url.Content("~/Content/img/landing/landing-2026-overview.webp")" alt="Kalite Sağlama Tazeleme Eğitimi 2026 genel analiz ekranı">
+                                <div class="report-visual">
+                                    <div class="chart-shell metric-grid" aria-hidden="true">
+                                        <span><b>93</b><em>katılım</em></span>
+                                        <span><b>82</b><em>başarı</em></span>
+                                        <span><b>16</b><em>soru</em></span>
+                                        <span><b>7</b><em>departman</em></span>
+                                        <span><b>4</b><em>şube</em></span>
+                                        <span><b>12</b><em>sertifika</em></span>
+                                    </div>
+                                </div>
                                 <figcaption>
-                                    <strong>Genel başarı görünümü</strong>
-                                    <span>Yönetici ilk bakışta katılım ve performansı okuyabilir.</span>
+                                    <strong>Genel başarı paneli</strong>
+                                    <span>Üst yönetim katılım, başarı, soru ve sertifika durumunu tek bakışta okur.</span>
                                 </figcaption>
                             </figure>
                             <figure class="report-shot">
-                                <span class="report-badge">Departman</span>
-                                <img src="@Url.Content("~/Content/img/landing/landing-2026-departments.webp")" alt="2026 anketi departman bazlı analiz grafiği">
+                                <span class="report-badge">Trend</span>
+                                <div class="report-visual">
+                                    <div class="chart-shell line-chart" aria-hidden="true">
+                                        <svg viewBox="0 0 220 100" preserveAspectRatio="none">
+                                            <polyline points="0,78 34,70 68,76 102,48 136,54 172,30 220,22" fill="none" stroke="#15b8a6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+                                            <polyline points="0,88 34,82 68,64 102,60 136,42 172,48 220,34" fill="none" stroke="#4257e8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </div>
+                                </div>
                                 <figcaption>
-                                    <strong>Ekip bazlı karşılaştırma</strong>
-                                    <span>Departman kırılımı ile güçlü ve zayıf alanlar ayrışır.</span>
-                                </figcaption>
-                            </figure>
-                            <figure class="report-shot">
-                                <span class="report-badge">Eğitim</span>
-                                <img src="@Url.Content("~/Content/img/landing/landing-2026-education.webp")" alt="2026 anketi eğitim düzeyi bazlı analiz grafiği">
-                                <figcaption>
-                                    <strong>Hedef kitle içgörüsü</strong>
-                                    <span>Segmentlere göre sonuç dağılımı anlaşılır hale gelir.</span>
+                                    <strong>Zamana göre katılım</strong>
+                                    <span>Gün gün tamamlanma, başarı ve geri dönüş hızı grafik üzerinde izlenir.</span>
                                 </figcaption>
                             </figure>
                             <figure class="report-shot">
                                 <span class="report-badge">Sorular</span>
-                                <img src="@Url.Content("~/Content/img/landing/landing-2026-questions.webp")" alt="2026 anketi soru bazlı tam liste analizi">
+                                <div class="report-visual">
+                                    <div class="chart-shell question-chart" aria-hidden="true">
+                                        <span style="--w:92%; --c1:#15b8a6; --c2:#49d2b0"></span>
+                                        <span style="--w:77%; --c1:#4257e8; --c2:#7c3aed"></span>
+                                        <span style="--w:61%; --c1:#ff8a5b; --c2:#ffbf4d"></span>
+                                        <span style="--w:88%; --c1:#24bdd6; --c2:#15b8a6"></span>
+                                        <span style="--w:44%; --c1:#fb7185; --c2:#ff8a5b"></span>
+                                    </div>
+                                </div>
                                 <figcaption>
-                                    <strong>Soru bazlı sonuçlar</strong>
-                                    <span>Her soru için doğru, yanlış ve başarı oranı izlenir.</span>
+                                    <strong>Soru bazlı doğruluk</strong>
+                                    <span>Her sorunun doğru, yanlış, boş ve başarı oranı ayrı ayrı anlaşılır.</span>
                                 </figcaption>
                             </figure>
                             <figure class="report-shot">
-                                <span class="report-badge">Gruplar</span>
-                                <img src="@Url.Content("~/Content/img/landing/landing-2026-groups.webp")" alt="2026 anketi soru grubu bazlı analiz grafiği">
+                                <span class="report-badge">Departman</span>
+                                <div class="report-visual">
+                                    <div class="chart-shell rank-chart" aria-hidden="true">
+                                        <span style="--w:91%; --c1:#4257e8; --c2:#24bdd6"></span>
+                                        <span style="--w:84%; --c1:#15b8a6; --c2:#49d2b0"></span>
+                                        <span style="--w:73%; --c1:#ffbf4d; --c2:#ff8a5b"></span>
+                                        <span style="--w:66%; --c1:#7c3aed; --c2:#4257e8"></span>
+                                        <span style="--w:52%; --c1:#fb7185; --c2:#ff8a5b"></span>
+                                    </div>
+                                </div>
                                 <figcaption>
-                                    <strong>Konu grubu analizi</strong>
-                                    <span>Başlık bazlı ölçümle eğitim ihtiyacı netleşir.</span>
+                                    <strong>Ekip karşılaştırması</strong>
+                                    <span>Departman, ekip, şube ve grup kırılımlarında güçlü alanlar ayrışır.</span>
+                                </figcaption>
+                            </figure>
+                            <figure class="report-shot">
+                                <span class="report-badge">Konu grubu</span>
+                                <div class="report-visual">
+                                    <div class="chart-shell donut-chart" aria-hidden="true">
+                                        <div class="donut-ring"><strong>74</strong></div>
+                                        <div class="legend-list">
+                                            <span style="--dot:#15b8a6">Hijyen</span>
+                                            <span style="--dot:#4257e8">Kalite</span>
+                                            <span style="--dot:#ff8a5b">İSG</span>
+                                            <span style="--dot:#ffbf4d">Proses</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <figcaption>
+                                    <strong>Kategori bazlı ölçüm</strong>
+                                    <span>Soru grupları, konu başlıkları ve eğitim ihtiyacı net oranlarla görünür.</span>
+                                </figcaption>
+                            </figure>
+                            <figure class="report-shot">
+                                <span class="report-badge">Eğitim</span>
+                                <div class="report-visual">
+                                    <div class="chart-shell stack-chart" aria-hidden="true">
+                                        <div class="stack-row"><span>Lise</span><i style="--w:58%; --c1:#15b8a6; --c2:#24bdd6"></i><b>58</b></div>
+                                        <div class="stack-row"><span>Ön lisans</span><i style="--w:72%; --c1:#4257e8; --c2:#7c3aed"></i><b>72</b></div>
+                                        <div class="stack-row"><span>Lisans</span><i style="--w:86%; --c1:#ff8a5b; --c2:#ffbf4d"></i><b>86</b></div>
+                                        <div class="stack-row"><span>Y. lisans</span><i style="--w:64%; --c1:#fb7185; --c2:#ff8a5b"></i><b>64</b></div>
+                                    </div>
+                                </div>
+                                <figcaption>
+                                    <strong>Demografik kırılımlar</strong>
+                                    <span>Eğitim, ünvan, yaka, cinsiyet ve benzeri alanlar performansla eşleşir.</span>
+                                </figcaption>
+                            </figure>
+                            <figure class="report-shot">
+                                <span class="report-badge">Yaş / deneyim</span>
+                                <div class="report-visual">
+                                    <div class="chart-shell bubble-chart" aria-hidden="true">
+                                        <span style="--x:8%; --y:48%; --s:34px; --c1:#15b8a6; --c2:#24bdd6">18-25</span>
+                                        <span style="--x:36%; --y:20%; --s:50px; --c1:#4257e8; --c2:#7c3aed">26-35</span>
+                                        <span style="--x:62%; --y:40%; --s:44px; --c1:#ff8a5b; --c2:#ffbf4d">36-45</span>
+                                        <span style="--x:72%; --y:12%; --s:30px; --c1:#fb7185; --c2:#ff8a5b">45+</span>
+                                    </div>
+                                </div>
+                                <figcaption>
+                                    <strong>Segment büyüklüğü</strong>
+                                    <span>Yaş, deneyim ve hedef kitle kümeleri karşılaştırmalı balon grafiklerle okunur.</span>
+                                </figcaption>
+                            </figure>
+                            <figure class="report-shot">
+                                <span class="report-badge">Şehir / şube</span>
+                                <div class="report-visual">
+                                    <div class="chart-shell map-chart" aria-hidden="true">
+                                        <div class="map-tile" style="--c1:rgba(21,184,166,.40); --c2:rgba(36,189,214,.30)"></div>
+                                        <div class="map-tile" style="--c1:rgba(66,87,232,.36); --c2:rgba(124,58,237,.26)"></div>
+                                        <div class="map-tile" style="--c1:rgba(255,138,91,.36); --c2:rgba(255,191,77,.26)"></div>
+                                        <div class="map-tile" style="--c1:rgba(251,113,133,.30); --c2:rgba(66,87,232,.20)"></div>
+                                    </div>
+                                </div>
+                                <figcaption>
+                                    <strong>Konum dağılımı</strong>
+                                    <span>İl, ilçe, mağaza, fabrika ya da şube bazında katılım yoğunluğu izlenir.</span>
+                                </figcaption>
+                            </figure>
+                            <figure class="report-shot">
+                                <span class="report-badge">Isı haritası</span>
+                                <div class="report-visual">
+                                    <div class="chart-shell heat-grid" aria-hidden="true">
+                                        <span style="--mix:82%"></span><span style="--mix:42%"></span><span style="--mix:68%"></span><span style="--mix:28%"></span><span style="--mix:74%"></span>
+                                        <span style="--mix:58%; --heat:#4257e8"></span><span style="--mix:88%; --heat:#4257e8"></span><span style="--mix:34%; --heat:#4257e8"></span><span style="--mix:64%; --heat:#4257e8"></span><span style="--mix:48%; --heat:#4257e8"></span>
+                                        <span style="--mix:72%; --heat:#ff8a5b"></span><span style="--mix:54%; --heat:#ff8a5b"></span><span style="--mix:90%; --heat:#ff8a5b"></span><span style="--mix:40%; --heat:#ff8a5b"></span><span style="--mix:62%; --heat:#ff8a5b"></span>
+                                    </div>
+                                </div>
+                                <figcaption>
+                                    <strong>Zayıf alan keşfi</strong>
+                                    <span>Soru, grup, departman ve kişi matrisi ısı haritasıyla hızlıca taranır.</span>
+                                </figcaption>
+                            </figure>
+                            <figure class="report-shot">
+                                <span class="report-badge">Akış</span>
+                                <div class="report-visual">
+                                    <div class="chart-shell flow-chart" aria-hidden="true">
+                                        <div class="flow-box">Soru<br>havuzu</div>
+                                        <div class="flow-arrow"></div>
+                                        <div class="flow-box">Katılım<br>linki</div>
+                                        <div class="flow-arrow"></div>
+                                        <div class="flow-box">Rapor<br>sertifika</div>
+                                    </div>
+                                </div>
+                                <figcaption>
+                                    <strong>Uçtan uca süreç</strong>
+                                    <span>Soru hazırlama, yayın, katılım, rapor ve sertifika aynı akışta ilerler.</span>
                                 </figcaption>
                             </figure>
                         </div>
@@ -2508,12 +3417,30 @@
                             <article class="product-feature">
                                 <div class="feature-visual">
                                     <div class="visual-ai-box" aria-hidden="true">
-                                        <div class="visual-prompt">
+                                        <div class="visual-panel-top">
+                                            <span><i class="ti-wand"></i> AI soru stüdyosu</span>
+                                            <span class="visual-ai-status"><i class="ti-check"></i> 12 soru</span>
+                                        </div>
+                                        <div class="visual-ai-prompt">
                                             <span></span>
                                             <span></span>
                                         </div>
-                                        <span class="visual-question">AI ile soru üret</span>
-                                        <span class="visual-question">Doğru cevapları eşleştir</span>
+                                        <div class="ai-question-card">
+                                            <strong>Kritik kontrol noktası nedir?</strong>
+                                            <div class="ai-options">
+                                                <span></span>
+                                                <span class="is-correct"></span>
+                                                <span></span>
+                                            </div>
+                                        </div>
+                                        <div class="ai-question-card">
+                                            <strong>Doğru cevap ve puan eşleşti</strong>
+                                            <div class="ai-options">
+                                                <span class="is-correct"></span>
+                                                <span></span>
+                                                <span></span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="product-feature-body">
@@ -2524,11 +3451,30 @@
                             <article class="product-feature">
                                 <div class="feature-visual">
                                     <div class="visual-publish-box" aria-hidden="true">
-                                        <div class="visual-link"><i class="ti-link"></i> Katılım linki hazır</div>
-                                        <div class="visual-audience">
-                                            <span></span>
-                                            <span></span>
-                                            <span></span>
+                                        <div class="publish-topline">
+                                            <span><i class="ti-world"></i> Yayın kontrolü</span>
+                                            <span class="publish-status"><i class="ti-timer"></i> 7 gün</span>
+                                        </div>
+                                        <div class="publish-url">
+                                            <span>Katılım linki</span>
+                                            <code>SVY-2026</code>
+                                        </div>
+                                        <div class="publish-segments">
+                                            <span>Departman</span>
+                                            <span>Şube</span>
+                                            <span>Aday listesi</span>
+                                        </div>
+                                        <div class="publish-flow">
+                                            <div class="publish-checks">
+                                                <span>Kodlu giriş açık</span>
+                                                <span>Tekrar katılım kapalı</span>
+                                                <span>Rapor yetkisi hazır</span>
+                                            </div>
+                                            <div class="publish-code-card">
+                                                <i class="ti-id-badge"></i>
+                                                <strong>278</strong>
+                                                <span>kişi hazır</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2539,7 +3485,18 @@
                             </article>
                             <article class="product-feature">
                                 <div class="feature-visual">
-                                    <img class="visual-certificate-img" src="@Url.Content("~/Content/img/landing/landing-certificate-sample.webp")" alt="Özelleştirilebilir katılım sertifikası örneği">
+                                    <div class="certificate-mockup" aria-label="Özelleştirilebilir katılım sertifikası örneği">
+                                        <div class="certificate-border">
+                                            <span class="certificate-ribbon">ASLANA</span>
+                                            <strong>Katılım Sertifikası</strong>
+                                            <small>Kalite Sağlama Tazeleme Eğitimi 2026</small>
+                                            <span class="certificate-name">Sn. Aydın Aslan</span>
+                                            <div class="certificate-lines">
+                                                <span></span>
+                                                <span></span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="product-feature-body">
                                     <strong>Özelleştirilebilir sertifika</strong>
@@ -2548,7 +3505,22 @@
                             </article>
                             <article class="product-feature">
                                 <div class="feature-visual">
-                                    <img class="visual-report-img" src="@Url.Content("~/Content/img/landing/landing-2026-overview.webp")" alt="2026 anketi detaylı rapor görünümü">
+                                    <div class="report-mockup" aria-label="2026 anketi detaylı rapor görünümü">
+                                        <div class="report-toolbar">
+                                            <strong>Rapor özeti</strong>
+                                            <span>PDF / Excel</span>
+                                        </div>
+                                        <div class="report-kpis">
+                                            <div><strong>93</strong><span>katılım</span></div>
+                                            <div><strong>82</strong><span>başarı</span></div>
+                                            <div><strong>16</strong><span>soru</span></div>
+                                        </div>
+                                        <div class="report-chart">
+                                            <span style="--w:88%"></span>
+                                            <span style="--w:72%"></span>
+                                            <span style="--w:54%"></span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="product-feature-body">
                                     <strong>PDF, Excel ve yönetici raporları</strong>
@@ -2602,8 +3574,8 @@
                         <div class="or-line"><span>veya</span></div>
 
                         <div class="form-field">
-                            <label for="objUser">Kullanıcı adı</label>
-                            <input id="objUser" name="objUser" type="text" required maxlength="50" placeholder="ornek.kullanici">
+                            <label for="objUser">Kullanıcı adı veya e-posta</label>
+                            <input id="objUser" name="objUser" type="text" required maxlength="80" placeholder="ornek.kullanici veya mail@firma.com">
                         </div>
                         <div class="form-field password-field">
                             <label for="objUser1">Şifre</label>
@@ -2681,14 +3653,15 @@
                         <div class="field-grid">
                             <div class="form-field password-field">
                                 <label for="password">Şifre</label>
-                                <input id="password" name="password" type="password" required maxlength="50" placeholder="En az 6 karakter">
+                                <input id="password" name="password" type="password" required minlength="6" maxlength="50" placeholder="En az 6 karakter">
                                 <button type="button" class="password-toggle" data-toggle-password="password" aria-label="Şifreyi göster" title="Şifreyi göster">
                                     <i class="ti-eye"></i>
                                 </button>
+                                <span class="field-hint">En az 6 karakter, bir harf ve bir rakam. Boşluk kullanmayın.</span>
                             </div>
                             <div class="form-field password-field">
                                 <label for="passwordConfirm">Şifre tekrar</label>
-                                <input id="passwordConfirm" name="passwordConfirm" type="password" required maxlength="50" placeholder="Tekrar yazın">
+                                <input id="passwordConfirm" name="passwordConfirm" type="password" required minlength="6" maxlength="50" placeholder="Tekrar yazın">
                                 <button type="button" class="password-toggle" data-toggle-password="passwordConfirm" aria-label="Şifreyi göster" title="Şifreyi göster">
                                     <i class="ti-eye"></i>
                                 </button>
@@ -2801,9 +3774,21 @@
                             <i class="ti-stats-up"></i>
                         </div>
                         <div class="side-shot-stack" aria-label="Survey rapor ekranları">
-                            <img class="side-shot" src="@Url.Content("~/Content/img/landing/landing-2026-departments.webp")" alt="Departman bazlı analiz ekranı">
-                            <img class="side-shot" src="@Url.Content("~/Content/img/landing/landing-2026-questions.webp")" alt="Soru bazlı analiz ekranı">
-                            <img class="side-shot" src="@Url.Content("~/Content/img/landing/landing-2026-groups.webp")" alt="Soru grubu bazlı analiz ekranı">
+                            <div class="side-shot">
+                                <div class="side-shot-title"><span>Departman analizi</span><i class="ti-bar-chart"></i></div>
+                                <div class="side-shot-grid"><span></span><span></span><span></span></div>
+                                <div class="side-shot-bars"><span style="--w:86%"></span><span style="--w:62%"></span></div>
+                            </div>
+                            <div class="side-shot">
+                                <div class="side-shot-title"><span>Soru bazlı sonuç</span><i class="ti-check-box"></i></div>
+                                <div class="side-shot-grid"><span></span><span></span><span></span></div>
+                                <div class="side-shot-bars"><span style="--w:74%"></span><span style="--w:91%"></span></div>
+                            </div>
+                            <div class="side-shot">
+                                <div class="side-shot-title"><span>Konu grubu başarısı</span><i class="ti-layers"></i></div>
+                                <div class="side-shot-grid"><span></span><span></span><span></span></div>
+                                <div class="side-shot-bars"><span style="--w:69%"></span><span style="--w:82%"></span></div>
+                            </div>
                         </div>
                         <div class="tour-step-list">
                             <div class="tour-step">
@@ -2833,28 +3818,47 @@
         <div class="assistant-card">
             <div class="assistant-head">
                 <span class="assistant-avatar"><i class="ti-headphone-alt"></i></span>
-                <span class="assistant-title">
-                    <strong>Merhaba, ben Survey Asistan</strong>
-                    <span>Sınav, anket, sertifika ve paket seçimi için hızlıca yönlendirebilirim.</span>
-                </span>
-                <button type="button" class="assistant-close" data-assistant-close aria-label="Asistanı küçült" title="Asistanı küçült">
+                        <span class="assistant-title">
+                            <strong>Aslana ekibine yazın</strong>
+                    <span>Mesajınız info@aslana.com.tr adresine iletilir; yanıt için e-posta adresinizi rica ederiz.</span>
+                        </span>
+                <button type="button" class="assistant-close" data-assistant-close aria-label="Mesaj kutusunu küçült" title="Mesaj kutusunu küçült">
                     <i class="ti-close"></i>
                 </button>
             </div>
             <div class="assistant-body">
-                <p class="assistant-message">
-                    Çalışma alanı açabilir, katılım kodunuzu sorgulayabilir veya güvenli ödeme adımlarını inceleyebilirsiniz.
-                </p>
-                <div class="assistant-actions">
-                    <button type="button" data-assistant-panel="register">Ücretsiz çalışma alanı aç</button>
-                    <button type="button" data-assistant-panel="participant">Katılım kodum var</button>
-                    <button type="button" data-assistant-panel="login">Panele giriş</button>
-                </div>
+                <form class="assistant-contact-form" data-contact-form action="@Url.Action("IletisimMesajiGonder", "Home")" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="konusmaId" data-contact-conversation value="">
+                    <div class="assistant-thread" data-contact-thread>
+                        <p class="assistant-message">
+                            Buraya yazdığınız mesaj doğrudan Aslana ekibine düşer. O anda yazışamazsak yanıtımız size e-posta ile ulaşsın diye adresinizi rica ediyoruz.
+                        </p>
+                    </div>
+                    <div class="assistant-field">
+                        <label for="contactName">Ad soyad</label>
+                        <input id="contactName" name="adSoyad" type="text" maxlength="80" autocomplete="name" placeholder="Adınız">
+                    </div>
+                    <div class="assistant-field">
+                        <label for="contactEmail">E-posta (yanıt için gerekli)</label>
+                        <input id="contactEmail" name="email" type="email" required maxlength="120" autocomplete="email" placeholder="Size dönüş yapacağımız e-posta">
+                    </div>
+                    <div class="assistant-field">
+                        <label for="contactMessage">Mesajınız</label>
+                        <textarea id="contactMessage" name="mesaj" required maxlength="1500" placeholder="Nasıl yardımcı olalım?"></textarea>
+                    </div>
+                    <button type="submit" class="assistant-submit">
+                        <i class="ti-email"></i>
+                        Mesajı Gönder
+                    </button>
+                    <p class="assistant-note">Canlı yanıt veremezsek dönüş bu e-posta adresine gelir.</p>
+                    <div class="assistant-status" data-contact-status aria-live="polite"></div>
+                </form>
             </div>
         </div>
-        <button type="button" class="assistant-launcher" data-assistant-open aria-label="Survey Asistanı aç">
+        <button type="button" class="assistant-launcher" data-assistant-open aria-label="Aslana ekibine mesaj yaz">
             <i class="ti-headphone-alt"></i>
-            Merhaba, ben Survey Asistan
+            Aslana ekibine yazın
         </button>
     </div>
 
@@ -2951,6 +3955,182 @@
             if (assistant && assistantClose && assistantOpen) {
                 assistantClose.addEventListener('click', () => assistant.classList.add('is-collapsed'));
                 assistantOpen.addEventListener('click', () => assistant.classList.remove('is-collapsed'));
+            }
+
+            const contactForm = document.querySelector('[data-contact-form]');
+            const contactThread = document.querySelector('[data-contact-thread]');
+            const contactStatus = document.querySelector('[data-contact-status]');
+            const contactConversationInput = document.querySelector('[data-contact-conversation]');
+            const contactPollUrl = '@Url.Action("IletisimMesajlariniGetir", "Home")';
+            const contactStorageKey = 'survey.aslana.contactConversation';
+            let contactConversationId = '';
+            let lastContactMessageId = 0;
+            let contactPollTimer = null;
+            let contactPollErrorShown = false;
+
+            function addContactBubble(message, type) {
+                if (!contactThread || !message) return;
+
+                const bubble = document.createElement('p');
+                bubble.className = 'assistant-message' + (type ? ' ' + type : '');
+                bubble.textContent = message;
+                contactThread.appendChild(bubble);
+                contactThread.scrollTop = contactThread.scrollHeight;
+            }
+
+            function saveContactState() {
+                if (!contactConversationId) return;
+
+                try {
+                    const emailInput = contactForm ? contactForm.querySelector('[name="email"]') : null;
+                    const nameInput = contactForm ? contactForm.querySelector('[name="adSoyad"]') : null;
+                    window.localStorage.setItem(contactStorageKey, JSON.stringify({
+                        conversationId: contactConversationId,
+                        email: emailInput ? emailInput.value.trim() : '',
+                        name: nameInput ? nameInput.value.trim() : '',
+                        savedAt: Date.now()
+                    }));
+                } catch (error) {
+                }
+            }
+
+            function restoreContactState() {
+                try {
+                    const raw = window.localStorage.getItem(contactStorageKey);
+                    if (!raw) return;
+
+                    const saved = JSON.parse(raw);
+                    if (!saved || !saved.conversationId) return;
+
+                    contactConversationId = saved.conversationId;
+                    lastContactMessageId = 0;
+                    if (contactConversationInput) contactConversationInput.value = contactConversationId;
+
+                    const emailInput = contactForm ? contactForm.querySelector('[name="email"]') : null;
+                    const nameInput = contactForm ? contactForm.querySelector('[name="adSoyad"]') : null;
+                    if (emailInput && saved.email && !emailInput.value) emailInput.value = saved.email;
+                    if (nameInput && saved.name && !nameInput.value) nameInput.value = saved.name;
+                } catch (error) {
+                }
+            }
+
+            function startContactPolling() {
+                if (!contactConversationId || contactPollTimer) return;
+
+                contactPollTimer = window.setInterval(loadContactReplies, 3500);
+                loadContactReplies();
+            }
+
+            async function loadContactReplies() {
+                if (!contactConversationId) return;
+
+                try {
+                    const url = `${contactPollUrl}?konusmaId=${encodeURIComponent(contactConversationId)}&sonMesajId=${lastContactMessageId}`;
+                    const response = await fetch(url, {
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const result = await response.json();
+                    if (!result.success || !Array.isArray(result.messages)) {
+                        if (!contactPollErrorShown && result.message) {
+                            contactPollErrorShown = true;
+                            addContactBubble(result.message, 'is-system');
+                        }
+                        return;
+                    }
+
+                    contactPollErrorShown = false;
+                    result.messages.forEach(item => {
+                        lastContactMessageId = Math.max(lastContactMessageId, item.id || 0);
+                        if (item.kimden === 'yonetici') {
+                            addContactBubble('Aslana ekibi: ' + item.mesaj, 'is-admin');
+                        } else if (item.kimden === 'ziyaretci') {
+                            addContactBubble(item.mesaj, 'is-user');
+                        }
+                    });
+                    saveContactState();
+                } catch (error) {
+                }
+            }
+
+            if (contactForm) {
+                const contactEmailInput = contactForm.querySelector('[name="email"]');
+                const contactNameInput = contactForm.querySelector('[name="adSoyad"]');
+                restoreContactState();
+                if (contactConversationId) {
+                    startContactPolling();
+                }
+
+                if (contactEmailInput) {
+                    contactEmailInput.addEventListener('invalid', () => {
+                        contactEmailInput.setCustomValidity('Size dönüş yapabilmemiz için e-posta adresinizi rica ediyoruz.');
+                        addContactBubble('Size dönüş yapabilmemiz için e-posta adresinizi rica ediyoruz.', 'is-system');
+                    });
+                    contactEmailInput.addEventListener('input', () => {
+                        contactEmailInput.setCustomValidity('');
+                        saveContactState();
+                    });
+                }
+
+                if (contactNameInput) {
+                    contactNameInput.addEventListener('input', saveContactState);
+                }
+
+                contactForm.addEventListener('submit', async event => {
+                    event.preventDefault();
+
+                    const submitButton = contactForm.querySelector('.assistant-submit');
+                    const emailInput = contactForm.querySelector('[name="email"]');
+                    const messageInput = contactForm.querySelector('[name="mesaj"]');
+                    const email = emailInput ? emailInput.value.trim() : '';
+                    const message = messageInput ? messageInput.value.trim() : '';
+
+                    if (!email) {
+                        addContactBubble('Size dönüş yapabilmemiz için e-posta adresinizi rica ediyoruz.', 'is-system');
+                        if (emailInput) emailInput.focus();
+                        return;
+                    }
+
+                    if (!message) {
+                        addContactBubble('Lütfen kısa da olsa mesajınızı yazın.', 'is-system');
+                        return;
+                    }
+
+                    addContactBubble(message, 'is-user');
+                    if (contactStatus) contactStatus.textContent = 'Mesaj gönderiliyor...';
+                    if (submitButton) submitButton.disabled = true;
+
+                    try {
+                        const response = await fetch(contactForm.action, {
+                            method: 'POST',
+                            body: new FormData(contactForm),
+                            credentials: 'same-origin',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        const result = await response.json();
+                        addContactBubble(result.message || 'Mesaj durumunu alamadık.', result.success ? 'is-system' : 'is-system');
+                        if (result.conversationId) {
+                            contactConversationId = result.conversationId;
+                            if (contactConversationInput) contactConversationInput.value = result.conversationId;
+                            saveContactState();
+                        }
+                        if (result.messageId) {
+                            lastContactMessageId = Math.max(lastContactMessageId, result.messageId);
+                        }
+                        if (result.success) {
+                            startContactPolling();
+                        }
+                        if (result.success && messageInput) {
+                            messageInput.value = '';
+                        }
+                    } catch (error) {
+                        addContactBubble('Mesaj şu anda gönderilemedi. info@aslana.com.tr adresine doğrudan yazabilirsiniz.', 'is-system');
+                    } finally {
+                        if (contactStatus) contactStatus.textContent = '';
+                        if (submitButton) submitButton.disabled = false;
+                    }
+                });
             }
 
             const loginForm = document.querySelector('[data-panel="login"]');

@@ -1,0 +1,549 @@
+@{
+    Layout = null;
+    var baslangicKonusmaId = Convert.ToString(ViewBag.KonusmaId ?? "");
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Survey İletişim Kutusu</title>
+    <style>
+        :root {
+            --navy: #24285f;
+            --indigo: #4257e8;
+            --teal: #15b8a6;
+            --cyan: #24bdd6;
+            --line: #dbe6f4;
+            --text: #142033;
+            --muted: #667085;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                linear-gradient(135deg, rgba(21, 184, 166, .10), transparent 30%),
+                linear-gradient(115deg, transparent 0 48%, rgba(66, 87, 232, .10) 48% 72%, rgba(255, 184, 77, .12) 72%),
+                repeating-linear-gradient(0deg, rgba(66, 87, 232, .055) 0 1px, transparent 1px 42px),
+                #f7fbff;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .page {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.15;
+            font-weight: 900;
+        }
+
+        .topbar p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .top-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .top-actions a,
+        .top-actions button,
+        .reply-form button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            color: var(--text);
+            background: #fff;
+            font-size: 13px;
+            font-weight: 900;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .top-actions button,
+        .reply-form button {
+            color: #fff;
+            border-color: transparent;
+            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 340px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .panel {
+            min-height: 620px;
+            border: 1px solid rgba(132, 151, 176, .30);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .92);
+            box-shadow: 0 24px 70px rgba(49, 73, 118, .14);
+            overflow: hidden;
+        }
+
+        .panel-head {
+            padding: 15px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(90deg, rgba(21, 184, 166, .10), rgba(66, 87, 232, .08));
+        }
+
+        .panel-head strong {
+            display: block;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .panel-head span {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .conversation-list {
+            display: grid;
+            gap: 8px;
+            max-height: 560px;
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        .conversation-button {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .conversation-button.is-active {
+            border-color: rgba(66, 87, 232, .48);
+            background: linear-gradient(135deg, rgba(239, 246, 255, .95), rgba(240, 253, 250, .88));
+        }
+
+        .conversation-button strong,
+        .conversation-button span,
+        .conversation-button small {
+            display: block;
+        }
+
+        .conversation-button strong {
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .conversation-button span {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 11px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .conversation-button small {
+            margin-top: 7px;
+            color: #0f766e;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .chat-shell {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+        }
+
+        .chat-person {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 15px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .chat-person strong,
+        .chat-person span {
+            display: block;
+        }
+
+        .chat-person strong {
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .chat-person span {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .mail-pill {
+            min-height: 30px;
+            padding: 0 10px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: rgba(21, 184, 166, .12);
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 30px;
+            white-space: nowrap;
+        }
+
+        .mail-debug {
+            display: block;
+            margin-top: 6px;
+            color: #475467;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .message-list {
+            display: grid;
+            align-content: start;
+            gap: 10px;
+            min-height: 0;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .message {
+            max-width: 72%;
+            padding: 11px 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff;
+            font-size: 13px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+
+        .message.is-visitor {
+            justify-self: start;
+        }
+
+        .message.is-admin {
+            justify-self: end;
+            color: #fff;
+            border-color: transparent;
+            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
+        }
+
+        .message small {
+            display: block;
+            margin-top: 7px;
+            color: inherit;
+            font-size: 10px;
+            font-weight: 900;
+            opacity: .74;
+        }
+
+        .reply-form {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            border-top: 1px solid var(--line);
+            background: #fff;
+        }
+
+        .reply-form textarea {
+            width: 100%;
+            min-height: 96px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            resize: vertical;
+            outline: 0;
+        }
+
+        .reply-form textarea:focus {
+            border-color: rgba(66, 87, 232, .55);
+            box-shadow: 0 0 0 3px rgba(66, 87, 232, .10);
+        }
+
+        .status {
+            min-height: 18px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .empty {
+            padding: 16px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        @@media (max-width: 860px) {
+            .topbar,
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                display: grid;
+            }
+
+            .panel {
+                min-height: auto;
+            }
+
+            .message {
+                max-width: 92%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <div class="topbar">
+            <div>
+                <h1>Survey İletişim Kutusu</h1>
+                <p>Ziyaretçi sayfayı açık bıraktıysa yanıtınız ekranda görünür; aynı yanıt e-posta olarak da gönderilir.</p>
+            </div>
+            <div class="top-actions">
+                <a href="@Url.Action("Indexgosterge", "Home")">Panele dön</a>
+                <button type="button" data-refresh>Yenile</button>
+            </div>
+        </div>
+
+        <section class="workspace">
+            <aside class="panel">
+                <div class="panel-head">
+                    <strong>Gelen konuşmalar</strong>
+                    <span>Son 12 saatlik açık konuşmalar burada görünür.</span>
+                </div>
+                <div class="conversation-list" data-conversation-list>
+                    <div class="empty">Henüz mesaj yok.</div>
+                </div>
+            </aside>
+
+            <section class="panel chat-shell">
+                <div class="chat-person">
+                    <div>
+                        <strong data-person-name>Konuşma seçin</strong>
+                        <span data-person-email>Yanıt yazmak için soldan bir mesaj seçin.</span>
+                        <span class="mail-debug" data-mail-status></span>
+                    </div>
+                    <span class="mail-pill" data-person-time>Bekliyor</span>
+                </div>
+                <div class="message-list" data-message-list>
+                    <div class="empty">Seçili konuşma yok.</div>
+                </div>
+                <form class="reply-form" data-reply-form action="@Url.Action("IletisimYanitGonder", "Home")" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="konusmaId" data-reply-conversation value="">
+                    <textarea name="mesaj" maxlength="1500" placeholder="Ziyaretçiye yazacağınız yanıt"></textarea>
+                    <button type="submit">Yanıtı Gönder</button>
+                    <div class="status" data-status></div>
+                </form>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const endpoints = {
+                list: '@Url.Action("IletisimKonusmaListesi", "Home")',
+                detail: '@Url.Action("IletisimKonusmaDetay", "Home")',
+                reply: '@Url.Action("IletisimYanitGonder", "Home")'
+            };
+
+            let selectedId = '@baslangicKonusmaId';
+            const listEl = document.querySelector('[data-conversation-list]');
+            const messageList = document.querySelector('[data-message-list]');
+            const personName = document.querySelector('[data-person-name]');
+            const personEmail = document.querySelector('[data-person-email]');
+            const personTime = document.querySelector('[data-person-time]');
+            const mailStatus = document.querySelector('[data-mail-status]');
+            const replyForm = document.querySelector('[data-reply-form]');
+            const replyConversation = document.querySelector('[data-reply-conversation]');
+            const statusEl = document.querySelector('[data-status]');
+
+            function setStatus(message) {
+                if (statusEl) statusEl.textContent = message || '';
+            }
+
+            function emptyNode(text) {
+                const div = document.createElement('div');
+                div.className = 'empty';
+                div.textContent = text;
+                return div;
+            }
+
+            function renderConversationList(items) {
+                listEl.innerHTML = '';
+                if (!items.length) {
+                    listEl.appendChild(emptyNode('Henüz mesaj yok.'));
+                    return;
+                }
+
+                if (!selectedId || !items.some(item => item.id === selectedId)) {
+                    selectedId = items[0].id;
+                }
+
+                items.forEach(item => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'conversation-button' + (item.id === selectedId ? ' is-active' : '');
+                    button.dataset.id = item.id;
+
+                    const name = document.createElement('strong');
+                    name.textContent = item.adSoyad || 'Ziyaretçi';
+                    const preview = document.createElement('span');
+                    preview.textContent = item.sonMesaj || '';
+                    const meta = document.createElement('small');
+                    meta.textContent = `${item.email || ''} · ${item.sonHareket || ''}`;
+
+                    button.appendChild(name);
+                    button.appendChild(preview);
+                    button.appendChild(meta);
+                    button.addEventListener('click', () => {
+                        selectedId = item.id;
+                        loadConversations();
+                        loadDetail();
+                    });
+                    listEl.appendChild(button);
+                });
+            }
+
+            async function loadConversations() {
+                try {
+                    const response = await fetch(endpoints.list, { credentials: 'same-origin' });
+                    const result = await response.json();
+                    if (!result.success) {
+                        listEl.innerHTML = '';
+                        listEl.appendChild(emptyNode(result.message || 'Konuşmalar alınamadı.'));
+                        return;
+                    }
+                    renderConversationList(result.conversations || []);
+                } catch (error) {
+                    listEl.innerHTML = '';
+                    listEl.appendChild(emptyNode('Konuşmalar şu anda alınamadı.'));
+                }
+            }
+
+            function renderMessages(conversation) {
+                personName.textContent = conversation.adSoyad || 'Ziyaretçi';
+                personEmail.textContent = conversation.email || '';
+                personTime.textContent = conversation.sonHareket || '';
+                if (mailStatus) mailStatus.textContent = conversation.mailDurumu || 'Mail kontrolü henüz çalışmadı.';
+                if (replyConversation) replyConversation.value = conversation.id || '';
+
+                messageList.innerHTML = '';
+                (conversation.messages || []).forEach(item => {
+                    const bubble = document.createElement('div');
+                    bubble.className = 'message ' + (item.kimden === 'yonetici' ? 'is-admin' : 'is-visitor');
+                    const body = document.createElement('span');
+                    body.textContent = item.mesaj || '';
+                    const time = document.createElement('small');
+                    time.textContent = (item.kimden === 'yonetici' ? 'Siz' : 'Ziyaretçi') + ' · ' + (item.tarih || '');
+                    bubble.appendChild(body);
+                    bubble.appendChild(time);
+                    messageList.appendChild(bubble);
+                });
+
+                if (!(conversation.messages || []).length) {
+                    messageList.appendChild(emptyNode('Bu konuşmada mesaj yok.'));
+                }
+
+                messageList.scrollTop = messageList.scrollHeight;
+            }
+
+            async function loadDetail() {
+                if (!selectedId) return;
+
+                try {
+                    const response = await fetch(`${endpoints.detail}?id=${encodeURIComponent(selectedId)}`, { credentials: 'same-origin' });
+                    const result = await response.json();
+                    if (!result.success) {
+                        setStatus(result.message || 'Konuşma alınamadı.');
+                        return;
+                    }
+                    renderMessages(result.conversation);
+                    setStatus('');
+                } catch (error) {
+                    setStatus('Konuşma şu anda alınamadı.');
+                }
+            }
+
+            if (replyForm) {
+                replyForm.addEventListener('submit', async event => {
+                    event.preventDefault();
+                    if (!selectedId) {
+                        setStatus('Önce bir konuşma seçin.');
+                        return;
+                    }
+
+                    const textarea = replyForm.querySelector('textarea[name="mesaj"]');
+                    const message = textarea ? textarea.value.trim() : '';
+                    if (!message) {
+                        setStatus('Yanıt mesajını yazın.');
+                        return;
+                    }
+
+                    const formData = new FormData(replyForm);
+                    formData.set('konusmaId', selectedId);
+                    setStatus('Yanıt gönderiliyor...');
+
+                    try {
+                        const response = await fetch(endpoints.reply, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            body: formData,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        const result = await response.json();
+                        setStatus(result.message || 'Yanıt durumu alınamadı.');
+                        if (result.success && textarea) textarea.value = '';
+                        await loadConversations();
+                        await loadDetail();
+                    } catch (error) {
+                        setStatus('Yanıt şu anda gönderilemedi.');
+                    }
+                });
+            }
+
+            document.querySelector('[data-refresh]').addEventListener('click', async () => {
+                await loadConversations();
+                await loadDetail();
+            });
+
+            loadConversations().then(loadDetail);
+            window.setInterval(loadConversations, 4000);
+            window.setInterval(loadDetail, 3000);
+        })();
+    </script>
+</body>
+</html>
