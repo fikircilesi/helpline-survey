@@ -2845,11 +2845,11 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 case KatilimYontemiKayitli:
                 case KatilimYontemiKisiyeOzel:
-                    return "Bu baÄŸlantÄ± kayÄ±tlÄ± katÄ±lÄ±mcÄ±lara Ã¶zeldir. GiriÅŸ yapan uygun kiÅŸilerin sonuÃ§larÄ± kendi profiline iÅŸlenir.";
+                    return "Bu bağlantı kayıtlı katılımcılara özeldir. Giriş yapan uygun kişilerin sonuçları kendi profiline işlenir.";
                 case KatilimYontemiBilgiFormu:
-                    return "Bu baÄŸlantÄ± bilgi formu ile aÃ§Ä±lÄ±r; katÄ±lÄ±mcÄ±dan ad soyad ve TC / numara veya e-posta alÄ±nÄ±r.";
+                    return "Bu bağlantı bilgi formu ile açılır; katılımcıdan ad soyad ve TC / numara veya e-posta alınır.";
                 default:
-                    return "Bu baÄŸlantÄ± herkese aÃ§Ä±ktÄ±r; giriÅŸ yapan kayÄ±tlÄ± kiÅŸiler kendi profiliyle, diÄŸerleri katÄ±lÄ±m koduyla izlenir.";
+                    return "Bu bağlantı herkese açıktır; giriş yapan kayıtlı kişiler kendi profiliyle, diğerleri katılım koduyla izlenir.";
             }
         }
 
@@ -9084,7 +9084,7 @@ Yalnizca su JSON semasinda cevap ver:
                 YayinAyarlariniKaydet(anket.AnketId, YayinBaslangicTarihi, YayinBitisTarihi);
                 KatilimYonteminiKaydet(anket.AnketId, katilimYontemi);
 
-                TempData["AyarKayitMesaji"] = "Ã‡alÄ±ÅŸma ayarlarÄ± kaydedildi.";
+                TempData["AyarKayitMesaji"] = "Çalışma ayarları kaydedildi.";
                 return RedirectToAction("AnketAdEdit", new { id = anket.AnketId, paylas = 1, returnUrl = donusAdresi });
             }
             catch
@@ -11553,7 +11553,7 @@ Yalnizca su JSON semasinda cevap ver:
             var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
             if (anket == null || anket.Pasif == true)
             {
-                TempData["Mesaj"] = "Bu Ã§alÄ±ÅŸma yayÄ±nda deÄŸil.";
+                TempData["Mesaj"] = "Bu çalışma yayında değil.";
                 return RedirectToAction("Giris", "Home");
             }
 
@@ -11884,14 +11884,14 @@ Yalnizca su JSON semasinda cevap ver:
             var anketId = AnketIdFromKatilimToken(token);
             if (!anketId.HasValue)
             {
-                TempData["Mesaj"] = "KatÄ±lÄ±m baÄŸlantÄ±sÄ± geÃ§ersiz ya da yenilenmiÅŸ.";
+                TempData["Mesaj"] = "Katılım bağlantısı geçersiz ya da yenilenmiş.";
                 return RedirectToAction("Giris", "Home");
             }
 
             var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
             if (anket == null || anket.Pasif == true)
             {
-                TempData["Mesaj"] = "Bu Ã§alÄ±ÅŸma yayÄ±nda deÄŸil.";
+                TempData["Mesaj"] = "Bu çalışma yayında değil.";
                 return RedirectToAction("Giris", "Home");
             }
 
@@ -11913,14 +11913,14 @@ Yalnizca su JSON semasinda cevap ver:
             var anketId = AnketIdFromKatilimToken(form.Token);
             if (!anketId.HasValue)
             {
-                TempData["Mesaj"] = "KatÄ±lÄ±m baÄŸlantÄ±sÄ± geÃ§ersiz ya da yenilenmiÅŸ.";
+                TempData["Mesaj"] = "Katılım bağlantısı geçersiz ya da yenilenmiş.";
                 return RedirectToAction("Giris", "Home");
             }
 
             var anket = db.Anket.FirstOrDefault(x => x.AnketId == anketId.Value);
             if (anket == null || anket.Pasif == true)
             {
-                TempData["Mesaj"] = "Bu Ã§alÄ±ÅŸma yayÄ±nda deÄŸil.";
+                TempData["Mesaj"] = "Bu çalışma yayında değil.";
                 return RedirectToAction("Giris", "Home");
             }
 
@@ -11949,7 +11949,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (bilgiFormu && string.IsNullOrWhiteSpace(tcKimlikNo) && string.IsNullOrWhiteSpace(eposta))
             {
-                return KatilimciDogrulamaView(anket, form.Token, form, "KatÄ±lÄ±mÄ± takip edebilmek iÃ§in TC / katÄ±lÄ±mcÄ± numarasÄ± veya e-posta alanlarÄ±ndan en az birini yazÄ±n.");
+                return KatilimciDogrulamaView(anket, form.Token, form, "Katılımı takip edebilmek için TC / katılımcı numarası veya e-posta alanlarından en az birini yazın.");
             }
 
             User user = null;
@@ -12196,7 +12196,7 @@ Yalnizca su JSON semasinda cevap ver:
                 return "Anket";
             }
 
-            return string.IsNullOrWhiteSpace(anket?.Link) ? "SÄ±nav" : "EÄŸitim";
+            return string.IsNullOrWhiteSpace(anket?.Link) ? "Sınav" : "Eğitim";
         }
 
         private static double AnketCevapPuaniAl(Havuz cevap)
@@ -12295,7 +12295,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 Kod = kod,
                 User = portalUserId,
-                KatilimciAdi = Session["adi"]?.ToString() ?? (kod.HasValue ? $"KatÄ±lÄ±mcÄ± #{kod}" : "KatÄ±lÄ±mcÄ±")
+                KatilimciAdi = Session["adi"]?.ToString() ?? (kod.HasValue ? $"Katılımcı #{kod}" : "Katılımcı")
             };
 
             foreach (var anket in anketler)
@@ -12330,7 +12330,7 @@ Yalnizca su JSON semasinda cevap ver:
                 {
                     if (!sertifikaPuanYeterli)
                     {
-                        sertifikaDurumMesaji = $"Sertifika iÃ§in puan yetersiz. Gerekli: {gecmeNotu:n0}, mevcut: {puan:n2}.";
+                        sertifikaDurumMesaji = $"Sertifika için puan yetersiz. Gerekli: {gecmeNotu:n0}, mevcut: {puan:n2}.";
                     }
                     else if (!sertifikaZamaniGeldi)
                     {
@@ -12338,11 +12338,11 @@ Yalnizca su JSON semasinda cevap ver:
                     }
                     else if (!katilimciSertifikaAlabilir)
                     {
-                        sertifikaDurumMesaji = "Sertifika yÃ¶netici tarafÄ±ndan paylaÅŸÄ±lacak.";
+                        sertifikaDurumMesaji = "Sertifika yönetici tarafından paylaşılacak.";
                     }
                     else
                     {
-                        sertifikaDurumMesaji = "Sertifika hazÄ±r.";
+                        sertifikaDurumMesaji = "Sertifika hazır.";
                     }
                 }
 
@@ -12370,7 +12370,7 @@ Yalnizca su JSON semasinda cevap ver:
                         ? yayinMesaji
                         : (sureDevamEdiyor
                             ? "Devam ediyor"
-                            : (suresiDoldu ? "SÃ¼re doldu" : (tamamlandi ? "TamamlandÄ±" : "BaÅŸlandÄ±")))
+                            : (suresiDoldu ? "Süre doldu" : (tamamlandi ? "Tamamlandı" : "Başlandı")))
                 });
             }
 
@@ -12383,7 +12383,7 @@ Yalnizca su JSON semasinda cevap ver:
         {
             if (!KatilimKoduVarMi(kod) && !SessionUserId().HasValue)
             {
-                return Json(new { success = false, message = "KatÄ±lÄ±m bilgisi bulunamadÄ±." });
+                return Json(new { success = false, message = "Katılım bilgisi bulunamadı." });
             }
 
             var effectiveUseId = KatilimKimligiCoz(user, kod);
@@ -12490,18 +12490,18 @@ Yalnizca su JSON semasinda cevap ver:
             if (!sertifikaAktif)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Bu Ã§alÄ±ÅŸma iÃ§in sertifika yayÄ±nÄ± kapalÄ±.";
+                ViewBag.mesaj = "Bu çalışma için sertifika yayını kapalı.";
                 ViewBag.hideScore = true;
             }
             else if (izll == null)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Bu eÄŸitimi bitirmediÄŸiniz iÃ§in sertifika alamazsÄ±nÄ±z.";
+                ViewBag.mesaj = "Bu eğitimi bitirmediğiniz için sertifika alamazsınız.";
             }
             else if (!tumSorularTamamlandi)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Sertifika iÃ§in tÃ¼m sorularÄ±n tamamlanmasÄ± gerekiyor.";
+                ViewBag.mesaj = "Sertifika için tüm soruların tamamlanması gerekiyor.";
                 ViewBag.hideScore = true;
             }
             else if (!sertifikaZamaniGeldi)
@@ -12513,13 +12513,13 @@ Yalnizca su JSON semasinda cevap ver:
             else if (p1 < puani)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Notunuz yeterli deÄŸil. Sertifika alamazsÄ±nÄ±z.";
+                ViewBag.mesaj = "Notunuz yeterli değil. Sertifika alamazsınız.";
                 ViewBag.hideScore = false;
             }
             else if (!katilimciSertifikaAlabilir && Session["admin"] == null)
             {
                 ViewBag.puan = false;
-                ViewBag.mesaj = "Sertifika hazÄ±r; ancak katÄ±lÄ±mcÄ± indirme yetkisi kapalÄ±. Sertifika yÃ¶netici tarafÄ±ndan paylaÅŸÄ±lacak.";
+                ViewBag.mesaj = "Sertifika hazır; ancak katılımcı indirme yetkisi kapalı. Sertifika yönetici tarafından paylaşılacak.";
                 ViewBag.hideScore = false;
             }
             else
@@ -12583,10 +12583,10 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.KalanSure = mevcutIzleme.BitisZaman - DateTime.Now;
             ViewBag.sureSinirsiz = ank.Zaman == null || ank.Zaman <= 0;
 
-            // SÃ¼resi bitmiÅŸ mi?
+            // Süresi bitmiş mi?
             if (mevcutIzleme.BitisZaman.HasValue && mevcutIzleme.BitisZaman.Value <= DateTime.Now)
             {
-                TempData["Mesaj"] = "SÃ¼reniz dolmuÅŸtur. Bu ankete tekrar giriÅŸ yapamazsÄ±nÄ±z.";
+                TempData["Mesaj"] = "Süreniz dolmuştur. Bu ankete tekrar giriş yapamazsınız.";
                 return RedirectToAction("AnketGirisIndex", "Home", new {id = user});
             }
 
@@ -12617,7 +12617,7 @@ Yalnizca su JSON semasinda cevap ver:
         public ActionResult AnketGirisCreate(Havuz hav)
         {
             if (Session["id"] == null && (hav.Isimsiz == null || hav.Isimsiz == 0))
-                return Json(new { success = false, message = "Oturum bulunamadÄ±" });
+                return Json(new { success = false, message = "Oturum bulunamadı" });
 
             if (!TryApplyTrustedAnswerValues(hav, out var answerError))
             {
@@ -12768,10 +12768,10 @@ Yalnizca su JSON semasinda cevap ver:
             ViewBag.KalanSure = mevcutIzleme.BitisZaman - DateTime.Now;
             ViewBag.sureSinirsiz = ank.Zaman == null || ank.Zaman <= 0;
 
-            // SÃ¼resi bitmiÅŸ mi?
+            // Süresi bitmiş mi?
             if (mevcutIzleme.BitisZaman.HasValue && mevcutIzleme.BitisZaman.Value <= DateTime.Now)
             {
-                TempData["Mesaj"] = "SÃ¼reniz dolmuÅŸtur. Bu Ã§alÄ±ÅŸmaya tekrar giriÅŸ yapamazsÄ±nÄ±z.";
+                TempData["Mesaj"] = "Süreniz dolmuştur. Bu çalışmaya tekrar giriş yapamazsınız.";
                 return RedirectToAction("KatilimPortal", "Home", new { kod, user = effectiveUseId });
             }
 
@@ -12791,12 +12791,12 @@ Yalnizca su JSON semasinda cevap ver:
         [ValidateAntiForgeryToken]
         public ActionResult AnketGirisCreate2(Havuz hav, int? user)
         {
-            // 1) KullanÄ±cÄ± doÄŸrulama
+            // 1) Kullanıcı doğrulama
             var publicKod = hav.Isimsiz.HasValue && hav.Isimsiz.Value > 0;
             if (!publicKod && !SessionUserId().HasValue)
-                return Json(new { success = false, message = "Oturum bulunamadÄ±" });
+                return Json(new { success = false, message = "Oturum bulunamadı" });
 
-            // 2) Ä°zleme kontrolÃ¼
+            // 2) İzleme kontrolü
             if (!TryApplyTrustedAnswerValues(hav, out var answerError))
             {
                 return Json(new { success = false, message = answerError });
@@ -12811,18 +12811,18 @@ Yalnizca su JSON semasinda cevap ver:
             var izl = db.Izledim.FirstOrDefault(x => x.AnketId == hav.AnketId && x.UseId == effectiveUseId);
             if (izl == null)
             {
-                return Json(new { success = false, message = "SÄ±nav oturumu bulunamadÄ±. LÃ¼tfen katÄ±lÄ±m alanÄ±nÄ±zdan tekrar deneyin." });
+                return Json(new { success = false, message = "Sınav oturumu bulunamadı. Lütfen katılım alanınızdan tekrar deneyin." });
             }
 
             if (izl.BitisZaman.HasValue && izl.BitisZaman.Value <= DateTime.Now)
             {
-                return Json(new { success = false, expired = true, message = "SÃ¼reniz dolmuÅŸtur. Bu sÄ±nava cevap gÃ¶nderemezsiniz." });
+                return Json(new { success = false, expired = true, message = "Süreniz dolmuştur. Bu sınava cevap gönderemezsiniz." });
             }
 
             if (izl != null)
             {
                 if (izl.Izledi != true)
-                    return Json(new { success = false, message = "Ä°zleme tamamlanmamÄ±ÅŸ" });
+                    return Json(new { success = false, message = "İzleme tamamlanmamış" });
             }
 
             // 3) UserId belirle
@@ -12837,7 +12837,7 @@ Yalnizca su JSON semasinda cevap ver:
                 currentUserId = user;
             }
 
-            // 4) AynÄ± soruya verilmiÅŸ cevabÄ± ara
+            // 4) Aynı soruya verilmiş cevabı ara
             var mevcut = db.Havuz.FirstOrDefault(x =>
                 x.AnketId == hav.AnketId &&
                 x.SoruID == hav.SoruID &&
@@ -12925,7 +12925,7 @@ Yalnizca su JSON semasinda cevap ver:
 
             if (mevcutIzleme?.BitisZaman != null && mevcutIzleme.BitisZaman.Value <= DateTime.Now)
             {
-                TempData["Mesaj"] = "SÃ¼reniz dolmuÅŸtur. Bu Ã§alÄ±ÅŸmaya tekrar giriÅŸ yapamazsÄ±nÄ±z.";
+                TempData["Mesaj"] = "Süreniz dolmuştur. Bu çalışmaya tekrar giriş yapamazsınız.";
                 return RedirectToAction("KatilimPortal", "Home", new { kod, user = effectiveUseId });
             }
 
@@ -13027,7 +13027,7 @@ Yalnizca su JSON semasinda cevap ver:
             {
                 if (mevcut.BitisZaman.HasValue && mevcut.BitisZaman.Value <= DateTime.Now)
                 {
-                    TempData["Mesaj"] = "SÃ¼reniz dolmuÅŸtur. Bu sÄ±nava tekrar giriÅŸ yapamazsÄ±nÄ±z.";
+                    TempData["Mesaj"] = "Süreniz dolmuştur. Bu sınava tekrar giriş yapamazsınız.";
                     return RedirectToAction("KatilimPortal", "Home", new { kod, user = effectiveUserId });
                 }
 

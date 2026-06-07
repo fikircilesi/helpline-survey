@@ -367,7 +367,7 @@
                 var devamAksiyon = item.VideoGerekli ? "AnketGirisCreate1" : "AnketGirisCreate2";
                 var devamText = item.SuresiDoldu
                     ? "Süre doldu"
-                    : (item.Tamamlandi ? "Çalışma tamamlandı" : (item.YayinAcik ? "Devam et" : "Katilim kapali"));
+                    : (item.Tamamlandi ? "Çalışma tamamlandı" : (item.YayinAcik ? "Devam et" : "Katılım kapalı"));
                 var sertifikaEtiket = !string.IsNullOrWhiteSpace(item.SertifikaDurumMesaji)
                     && item.SertifikaDurumMesaji.IndexOf("puan yetersiz", StringComparison.OrdinalIgnoreCase) >= 0
                         ? "Sertifika yok: puan yetersiz"
