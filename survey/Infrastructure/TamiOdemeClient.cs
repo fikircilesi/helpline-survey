@@ -33,7 +33,7 @@ public sealed class TamiOdemeClient
             ["orderId"] = istek.SiparisNo,
             ["successCallbackUrl"] = istek.BasariliDonusUrl,
             ["failCallbackUrl"] = istek.BasarisizDonusUrl,
-            ["mobilePhoneNumber"] = _ayarlar.MusteriTelefonu,
+            ["mobilePhoneNumber"] = TamiTelefonFormati(_ayarlar.MusteriTelefonu),
             ["data"] = new Dictionary<string, string>
             {
                 ["calismaAlaniId"] = istek.CalismaAlaniId.ToString(CultureInfo.InvariantCulture),
@@ -41,9 +41,9 @@ public sealed class TamiOdemeClient
             }
         };
 
-        using var http = YeniHttpClient();
+        using var http = YeniHttpClient(apiVersionBasligi: false);
         using var response = await http.PostAsync(
-            $"{_ayarlar.ApiUrlKoku}/api/v0/hosted/create-one-time-hosted-token",
+            $"{_ayarlar.ApiUrlKoku}/hosted/create-one-time-hosted-token",
             JsonIcerik(payload));
 
         var raw = await response.Content.ReadAsStringAsync();
@@ -86,7 +86,7 @@ public sealed class TamiOdemeClient
         };
         payload["securityHash"] = SecurityHashOlustur(payload);
 
-        using var http = YeniHttpClient();
+        using var http = YeniHttpClient(apiVersionBasligi: true);
         using var response = await http.PostAsync(
             $"{_ayarlar.ApiUrlKoku}/api/v0/payment/query",
             JsonIcerik(payload));
@@ -130,12 +130,16 @@ public sealed class TamiOdemeClient
         }
     }
 
-    private HttpClient YeniHttpClient()
+    private HttpClient YeniHttpClient(bool apiVersionBasligi)
     {
         var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         http.DefaultRequestHeaders.Add("correlationId", Guid.NewGuid().ToString("N"));
         http.DefaultRequestHeaders.Add("PG-Auth-Token", PgAuthTokenOlustur());
-        http.DefaultRequestHeaders.Add("PG-Api-Version", "v2");
+        if (apiVersionBasligi)
+        {
+            http.DefaultRequestHeaders.Add("PG-Api-Version", "v2");
+        }
+
         http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return http;
     }
@@ -170,6 +174,27 @@ public sealed class TamiOdemeClient
 
     private string HostedOdemeSayfasi(string token)
         => $"{_ayarlar.PortalUrlKoku}/hostedPaymentPage?token={token}";
+
+    private static string TamiTelefonFormati(string telefon)
+    {
+        var rakamlar = new string((telefon ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (rakamlar.StartsWith("90", StringComparison.Ordinal) && rakamlar.Length == 12)
+        {
+            return rakamlar;
+        }
+
+        if (rakamlar.StartsWith("0", StringComparison.Ordinal) && rakamlar.Length == 11)
+        {
+            return "9" + rakamlar;
+        }
+
+        if (rakamlar.StartsWith("5", StringComparison.Ordinal) && rakamlar.Length == 10)
+        {
+            return "90" + rakamlar;
+        }
+
+        return string.IsNullOrWhiteSpace(rakamlar) ? telefon : rakamlar;
+    }
 
     private static StringContent JsonIcerik(object payload)
         => new(JsonSerializer.Serialize(payload, JsonAyar), Encoding.UTF8, "application/json");
