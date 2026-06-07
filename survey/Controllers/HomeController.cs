@@ -1509,6 +1509,11 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 .ToList();
         }
 
+        private static bool ImapGonderilmisKlasoruMu(string klasor)
+        {
+            return Regex.IsMatch(klasor ?? string.Empty, @"sent|g[oö]nder|g&", RegexOptions.IgnoreCase);
+        }
+
         private static List<string> ImapAramaUidleri(string cevap)
         {
             var match = Regex.Match(cevap ?? string.Empty, @"\* SEARCH\s+(?<ids>[0-9 ]+)", RegexOptions.IgnoreCase);
@@ -1831,7 +1836,9 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                 var secilenKlasorSayisi = 0;
                 var kodluAdaySayisi = 0;
                 var aliciAdaySayisi = 0;
+                var sonGonderilenAdaySayisi = 0;
                 var fetchSayisi = 0;
+                var secilenKlasorAdlari = new List<string>();
 
                 for (var klasorIndex = 0; klasorIndex < klasorler.Count; klasorIndex++)
                 {
@@ -1843,6 +1850,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                     }
 
                     secilenKlasorSayisi++;
+                    secilenKlasorAdlari.Add(klasorler[klasorIndex]);
                     var searchTag = "F" + klasorIndex;
                     var search = ImapKomut(reader, writer, searchTag, "UID SEARCH SUBJECT " + ImapMetin(arama));
                     var uidler = ImapAramaUidleri(search);
@@ -1870,6 +1878,21 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                         }
                     }
 
+                    if (ImapGonderilmisKlasoruMu(klasorler[klasorIndex]))
+                    {
+                        var allSearchTag = "A" + klasorIndex;
+                        var allSearch = ImapKomut(reader, writer, allSearchTag, "UID SEARCH ALL");
+                        var sonUidler = ImapAramaUidleri(allSearch).TakeLast(12).ToList();
+                        sonGonderilenAdaySayisi += sonUidler.Count;
+                        foreach (var uid in sonUidler)
+                        {
+                            if (!uidKaynaklari.ContainsKey(uid))
+                            {
+                                uidKaynaklari.Add(uid, false);
+                            }
+                        }
+                    }
+
                     foreach (var uid in uidKaynaklari.Keys.TakeLast(10).ToList())
                     {
                         var anahtar = klasorler[klasorIndex] + ":" + uid;
@@ -1881,7 +1904,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                         var fetchTag = "B" + klasorIndex + "_" + uid;
                         var fetch = ImapKomut(reader, writer, fetchTag, "UID FETCH " + uid + " BODY.PEEK[]");
                         fetchSayisi++;
-                        var kodlaBulundu = uidKaynaklari.TryGetValue(uid, out var kodlu) && kodlu;
+                        var kodlaBulundu = (uidKaynaklari.TryGetValue(uid, out var kodlu) && kodlu)
+                            || fetch.IndexOf(arama, StringComparison.OrdinalIgnoreCase) >= 0;
                         if (!kodlaBulundu)
                         {
                             var mailTarihi = MailTarihiOku(fetch);
@@ -1917,8 +1941,10 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Cevap_CalismaAlaniId' 
                     "IMAP OK; seçilen klasör: " + secilenKlasorSayisi
                     + ", kodlu aday: " + kodluAdaySayisi
                     + ", alıcı adayı: " + aliciAdaySayisi
+                    + ", son gönderilen: " + sonGonderilenAdaySayisi
                     + ", okunan: " + fetchSayisi
-                    + ", yanıt: " + yanitlar.Count);
+                    + ", yanıt: " + yanitlar.Count
+                    + ", klasör: " + string.Join(", ", secilenKlasorAdlari.Take(4)));
             }
 
             return yanitlar;
