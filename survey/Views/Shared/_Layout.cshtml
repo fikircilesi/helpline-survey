@@ -1385,6 +1385,16 @@
                                         <span></span>
                                     </a>
                                 </li>
+                                @if (Convert.ToString(Session["id"]) == "1")
+                                {
+                                    <li>
+                                        <a class="studio-menu-link" title="Platform Raporu" href="@Url.Action("PlatformRaporu", "Odeme")">
+                                            <span class="studio-menu-icon green"><i class="feather icon-pie-chart"></i></span>
+                                            <span class="studio-menu-text">Platform Raporu</span>
+                                            <span></span>
+                                        </a>
+                                    </li>
+                                }
                             </ul>
                             <div class="sidebar-account">
                                 <div class="sidebar-user-card">

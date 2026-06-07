@@ -1,0 +1,714 @@
+@model PlatformOdemeRaporuModel
+@using System.Globalization
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Platform Raporu";
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+    var enYuksekPaketGeliri = Math.Max(1, Model.PaketDagilimi.Any() ? Model.PaketDagilimi.Max(x => x.Gelir) : 1);
+    var enYuksekAylikGelir = Math.Max(1, Model.AylikGelir.Any() ? Model.AylikGelir.Max(x => x.Gelir) : 1);
+    var firsatlar = Model.Musteriler
+        .Where(x => !string.Equals(x.FirsatNotu, "Normal", StringComparison.OrdinalIgnoreCase))
+        .Take(10)
+        .ToList();
+}
+
+@functions {
+    private static string Para(decimal tutar, string paraBirimi = "TRY")
+        => tutar.ToString("N2", CultureInfo.GetCultureInfo("tr-TR")) + " " + (string.IsNullOrWhiteSpace(paraBirimi) ? "TRY" : paraBirimi);
+
+    private static string Tarih(DateTime? tarih)
+        => tarih.HasValue ? tarih.Value.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("tr-TR")) : "-";
+
+    private static string MusteriAdi(PlatformMusteriRaporSatiriModel satir)
+        => !string.IsNullOrWhiteSpace(satir.FirmaAdi)
+            ? satir.FirmaAdi
+            : (!string.IsNullOrWhiteSpace(satir.CalismaAlaniAdi) ? satir.CalismaAlaniAdi : "Calisma alani #" + satir.CalismaAlaniId);
+
+    private static string OdemeMusteriAdi(PlatformOdemeRaporSatiriModel satir)
+        => !string.IsNullOrWhiteSpace(satir.FirmaAdi)
+            ? satir.FirmaAdi
+            : (!string.IsNullOrWhiteSpace(satir.CalismaAlaniAdi) ? satir.CalismaAlaniAdi : "Calisma alani #" + satir.CalismaAlaniId);
+
+    private static string DurumSinifi(string durum)
+    {
+        if (string.Equals(durum, "Odendi", StringComparison.OrdinalIgnoreCase)) return "good";
+        if (string.Equals(durum, "Aktif", StringComparison.OrdinalIgnoreCase)) return "good";
+        if (string.Equals(durum, "Yonlendirildi", StringComparison.OrdinalIgnoreCase) || string.Equals(durum, "Bekliyor", StringComparison.OrdinalIgnoreCase)) return "wait";
+        if (string.Equals(durum, "Sorgulandi", StringComparison.OrdinalIgnoreCase)) return "info";
+        if (string.Equals(durum, "Hata", StringComparison.OrdinalIgnoreCase) || string.Equals(durum, "Basarisiz", StringComparison.OrdinalIgnoreCase)) return "bad";
+        return "muted";
+    }
+}
+
+@section HeadExtra {
+    <style>
+        .platform-report {
+            color: #172033;
+        }
+
+        .platform-report a {
+            text-decoration: none;
+        }
+
+        .platform-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 18px;
+            align-items: center;
+            padding: 24px 26px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, #111827 0%, #19414a 100%);
+            box-shadow: 0 18px 46px rgba(15, 23, 42, .13);
+        }
+
+        .platform-head h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 29px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .platform-head p {
+            max-width: 760px;
+            margin: 8px 0 0;
+            color: rgba(255, 255, 255, .72);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .platform-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .platform-button {
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 13px;
+            border: 1px solid rgba(255, 255, 255, .2);
+            border-radius: 8px;
+            color: #fff;
+            background: rgba(255, 255, 255, .1);
+            font-size: 13px;
+            font-weight: 850;
+            white-space: nowrap;
+        }
+
+        .platform-button.primary {
+            border-color: #8df0c7;
+            color: #0b1220;
+            background: #8df0c7;
+        }
+
+        .periods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .periods a {
+            min-height: 34px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 12px;
+            border: 1px solid #d9e3ef;
+            border-radius: 8px;
+            color: #344054;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .periods a.active {
+            color: #0b1220;
+            border-color: #8df0c7;
+            background: #d9faeb;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .metric {
+            min-height: 112px;
+            padding: 15px;
+            border: 1px solid #e5edf5;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(20, 32, 51, .06);
+        }
+
+        .metric span {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: #667085;
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 10px;
+            color: #101827;
+            font-size: 25px;
+            font-weight: 950;
+            letter-spacing: 0;
+        }
+
+        .metric small {
+            display: block;
+            margin-top: 5px;
+            color: #7c8797;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .report-section {
+            margin-top: 18px;
+            padding: 18px;
+            border: 1px solid #e5edf5;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(20, 32, 51, .06);
+        }
+
+        .report-grid .report-section {
+            margin-top: 0;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 13px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            color: #101827;
+            font-size: 18px;
+            font-weight: 950;
+            letter-spacing: 0;
+        }
+
+        .section-head span {
+            color: #667085;
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .package-list,
+        .month-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .package-row,
+        .month-row {
+            display: grid;
+            gap: 7px;
+        }
+
+        .package-line,
+        .month-line {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        .package-line small,
+        .month-line small {
+            color: #7c8797;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .bar {
+            height: 9px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #edf2f7;
+        }
+
+        .bar span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #37b6ff, #8df0c7);
+        }
+
+        .table-tools {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-tools input {
+            width: 240px;
+            min-height: 36px;
+            border: 1px solid #d9e3ef;
+            border-radius: 8px;
+            padding: 0 11px;
+            color: #101827;
+            font-size: 13px;
+            font-weight: 750;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid #e8edf5;
+            border-radius: 8px;
+        }
+
+        .report-table {
+            width: 100%;
+            min-width: 1120px;
+            border-collapse: collapse;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid #eef2f6;
+            text-align: left;
+            vertical-align: middle;
+            color: #344054;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .report-table th {
+            color: #667085;
+            background: #f8fafc;
+            font-size: 11px;
+            font-weight: 950;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .report-table strong {
+            display: block;
+            color: #101827;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .report-table small {
+            display: block;
+            margin-top: 2px;
+            color: #7c8797;
+            font-size: 11px;
+            font-weight: 750;
+        }
+
+        .badge {
+            min-height: 24px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 950;
+            white-space: nowrap;
+        }
+
+        .badge.good {
+            color: #047857;
+            background: #dcfce7;
+        }
+
+        .badge.wait {
+            color: #9a5a00;
+            background: #fff1c2;
+        }
+
+        .badge.info {
+            color: #1d4ed8;
+            background: #dbeafe;
+        }
+
+        .badge.bad {
+            color: #b42318;
+            background: #fee4e2;
+        }
+
+        .badge.muted {
+            color: #475467;
+            background: #eef2f6;
+        }
+
+        .empty-report {
+            min-height: 84px;
+            display: flex;
+            align-items: center;
+            padding: 18px;
+            border: 1px dashed #cfd8e3;
+            border-radius: 8px;
+            color: #667085;
+            background: #fbfcfe;
+            font-weight: 850;
+        }
+
+        @@media (max-width: 1280px) {
+            .metric-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .report-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 760px) {
+            .platform-head,
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .platform-actions {
+                justify-content: flex-start;
+            }
+
+            .section-head {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .table-tools input {
+                width: 100%;
+            }
+        }
+    </style>
+}
+
+<div class="platform-report">
+    <section class="platform-head">
+        <div>
+            <h1>Platform Raporu</h1>
+            <p>Survey by Aslana Teknoloji hesaplarının paket, ödeme, kullanım ve büyüme durumunu tek ekrandan izleyin.</p>
+        </div>
+        <div class="platform-actions">
+            <a class="platform-button" href="@Url.Action("Index", "Odeme")"><i class="feather icon-dollar-sign"></i> Paketler</a>
+            <a class="platform-button primary" href="@Url.Action("PlatformRaporuCsv", "Odeme", new { gun = Model.Gun })"><i class="feather icon-download"></i> CSV indir</a>
+        </div>
+    </section>
+
+    <nav class="periods" aria-label="Rapor dönemi">
+        <a class="@(Model.Gun == 7 ? "active" : "")" href="@Url.Action("PlatformRaporu", "Odeme", new { gun = 7 })">7 gün</a>
+        <a class="@(Model.Gun == 30 ? "active" : "")" href="@Url.Action("PlatformRaporu", "Odeme", new { gun = 30 })">30 gün</a>
+        <a class="@(Model.Gun == 90 ? "active" : "")" href="@Url.Action("PlatformRaporu", "Odeme", new { gun = 90 })">90 gün</a>
+        <a class="@(Model.Gun == 365 ? "active" : "")" href="@Url.Action("PlatformRaporu", "Odeme", new { gun = 365 })">1 yıl</a>
+        <a class="@(Model.Gun == 0 ? "active" : "")" href="@Url.Action("PlatformRaporu", "Odeme", new { gun = 0 })">Tüm zamanlar</a>
+    </nav>
+
+    <section class="metric-grid">
+        <article class="metric">
+            <span><i class="feather icon-briefcase"></i> Aktif müşteri</span>
+            <strong>@Model.Ozet.AktifCalismaAlani</strong>
+            <small>@Model.Ozet.ToplamCalismaAlani çalışma alanı</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-unlock"></i> Ücretsiz</span>
+            <strong>@Model.Ozet.UcretsizMusteri</strong>
+            <small>@Model.Ozet.UcretsizDenemeKaydi ücretsiz deneme kaydı</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-credit-card"></i> Ücretli</span>
+            <strong>@Model.Ozet.UcretliMusteri</strong>
+            <small>%@Model.Ozet.DonusumOrani.ToString("N1", tr) dönüşüm</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-trending-up"></i> Dönem geliri</span>
+            <strong>@Para(Model.Ozet.DonemGelir)</strong>
+            <small>@Model.Ozet.DonemOdemeSayisi başarılı ödeme</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-pie-chart"></i> Toplam gelir</span>
+            <strong>@Para(Model.Ozet.ToplamGelir)</strong>
+            <small>@Model.Ozet.BasariliOdemeSayisi başarılı ödeme</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-users"></i> Panel kullanıcısı</span>
+            <strong>@Model.Ozet.ToplamPanelKullanicisi</strong>
+            <small>@Model.Ozet.ToplamKatilimci katılımcı kaydı</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-layers"></i> Anketler</span>
+            <strong>@Model.Ozet.ToplamAnket</strong>
+            <small>@Model.Ozet.YayindaAnket yayında</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-user-plus"></i> Yeni hesap</span>
+            <strong>@Model.Ozet.DonemYeniCalismaAlani</strong>
+            <small>@Model.Ozet.DonemUcretsizBaslangic ücretsiz başlangıç</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-clock"></i> Bekleyen ödeme</span>
+            <strong>@Model.Ozet.BekleyenOdemeSayisi</strong>
+            <small>@Model.Ozet.HataOdemeSayisi hata kaydı</small>
+        </article>
+        <article class="metric">
+            <span><i class="feather icon-alert-circle"></i> Paketsiz</span>
+            <strong>@Model.Ozet.PaketsizMusteri</strong>
+            <small>Paket başlatmamış hesap</small>
+        </article>
+    </section>
+
+    <div class="report-grid">
+        <section class="report-section">
+            <div class="section-head">
+                <h2>Paket Dağılımı</h2>
+                <span>Aktif müşteri ve gelir</span>
+            </div>
+            @if (!Model.PaketDagilimi.Any())
+            {
+                <div class="empty-report">Paket verisi bulunamadı.</div>
+            }
+            else
+            {
+                <div class="package-list">
+                    @foreach (var paket in Model.PaketDagilimi)
+                    {
+                        var yuzde = Math.Max(4, (int)Math.Round(paket.Gelir / enYuksekPaketGeliri * 100));
+                        <div class="package-row">
+                            <div class="package-line">
+                                <div>
+                                    @paket.PaketAdi
+                                    <small>@paket.AktifMusteriSayisi aktif müşteri, @paket.BasariliOdemeSayisi ödeme</small>
+                                </div>
+                                <strong>@Para(paket.Gelir)</strong>
+                            </div>
+                            <div class="bar"><span style="width:@yuzde%"></span></div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="report-section">
+            <div class="section-head">
+                <h2>Aylık Gelir Akışı</h2>
+                <span>Son 6 ay</span>
+            </div>
+            @if (!Model.AylikGelir.Any())
+            {
+                <div class="empty-report">Henüz başarılı ödeme yok.</div>
+            }
+            else
+            {
+                <div class="month-list">
+                    @foreach (var ay in Model.AylikGelir)
+                    {
+                        var yuzde = Math.Max(4, (int)Math.Round(ay.Gelir / enYuksekAylikGelir * 100));
+                        <div class="month-row">
+                            <div class="month-line">
+                                <div>
+                                    @ay.AyEtiketi
+                                    <small>@ay.OdemeSayisi ödeme</small>
+                                </div>
+                                <strong>@Para(ay.Gelir)</strong>
+                            </div>
+                            <div class="bar"><span style="width:@yuzde%"></span></div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+    </div>
+
+    <section class="report-section">
+        <div class="section-head">
+            <h2>Yakından İzlenecek Hesaplar</h2>
+            <span>@firsatlar.Count sinyal</span>
+        </div>
+        @if (!firsatlar.Any())
+        {
+            <div class="empty-report">Şimdilik özel takip sinyali yok.</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Müşteri</th>
+                            <th>Paket</th>
+                            <th>Kullanım</th>
+                            <th>Son ödeme</th>
+                            <th>Sinyal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var satir in firsatlar)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@MusteriAdi(satir)</strong>
+                                    <small>@satir.SahipAdi · @satir.SahipEposta</small>
+                                </td>
+                                <td>
+                                    <span class="badge @(satir.UcretliMi ? "good" : "muted")">@(satir.PaketAdi ?? "Paketsiz")</span>
+                                    <small>@Tarih(satir.BitisTarihi)</small>
+                                </td>
+                                <td>@satir.AnketSayisi anket · @satir.PanelKullanicisi panel · @satir.KatilimciSayisi katılımcı</td>
+                                <td>
+                                    @(satir.SonOdemeTutari.HasValue ? Para(satir.SonOdemeTutari.Value, satir.SonOdemeParaBirimi) : "-")
+                                    <small>@satir.SonOdemeDurumu</small>
+                                </td>
+                                <td><span class="badge wait">@satir.FirsatNotu</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <h2>Müşteri Detayı</h2>
+            <div class="table-tools">
+                <input id="musteriArama" type="search" placeholder="Müşteri, paket veya e-posta ara" />
+            </div>
+        </div>
+        @if (!Model.Musteriler.Any())
+        {
+            <div class="empty-report">Henüz müşteri kaydı yok.</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="report-table" id="musteriTablosu">
+                    <thead>
+                        <tr>
+                            <th>Müşteri</th>
+                            <th>Sahip</th>
+                            <th>Paket</th>
+                            <th>Süre</th>
+                            <th>Kullanım</th>
+                            <th>Limit</th>
+                            <th>Son ödeme</th>
+                            <th>Not</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var satir in Model.Musteriler)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@MusteriAdi(satir)</strong>
+                                    <small>#@satir.CalismaAlaniId · kayıt @Tarih(satir.KayitTarihi)</small>
+                                </td>
+                                <td>
+                                    @satir.SahipAdi
+                                    <small>@satir.SahipEposta · @satir.SahipTelefon</small>
+                                </td>
+                                <td>
+                                    <span class="badge @(satir.UcretliMi ? "good" : "muted")">@(satir.PaketAdi ?? "Paketsiz")</span>
+                                    <small>@(satir.AbonelikDurumu ?? "-")</small>
+                                </td>
+                                <td>
+                                    @Tarih(satir.BaslangicTarihi)
+                                    <small>@Tarih(satir.BitisTarihi) · @satir.KalanGun gün</small>
+                                </td>
+                                <td>@satir.AnketSayisi anket · @satir.YayindaAnketSayisi yayında <small>@satir.PanelKullanicisi panel kullanıcısı · @satir.KatilimciSayisi katılımcı</small></td>
+                                <td>@satir.AktifAnketLimiti anket <small>@satir.KullaniciLimiti kullanıcı · @satir.AylikYanitLimiti yanıt/ay</small></td>
+                                <td>
+                                    @(satir.SonOdemeTutari.HasValue ? Para(satir.SonOdemeTutari.Value, satir.SonOdemeParaBirimi) : "-")
+                                    <small>@satir.SonOdemeDurumu · @Tarih(satir.SonOdemeTarihi)</small>
+                                </td>
+                                <td><span class="badge @(satir.FirsatNotu == "Normal" ? "info" : "wait")">@satir.FirsatNotu</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="report-section">
+        <div class="section-head">
+            <h2>Son Ödeme Hareketleri</h2>
+            <span>@Model.SonOdemeler.Count kayıt</span>
+        </div>
+        @if (!Model.SonOdemeler.Any())
+        {
+            <div class="empty-report">Seçilen dönemde ödeme hareketi yok.</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Sipariş</th>
+                            <th>Müşteri</th>
+                            <th>Paket</th>
+                            <th>Tutar</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th>Hata</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var odeme in Model.SonOdemeler)
+                        {
+                            <tr>
+                                <td><strong>@odeme.SiparisNo</strong><small>#@odeme.OdemeIslemiId</small></td>
+                                <td>@OdemeMusteriAdi(odeme)<small>#@odeme.CalismaAlaniId</small></td>
+                                <td>@odeme.PaketAdi</td>
+                                <td>@Para(odeme.Tutar, odeme.ParaBirimi)</td>
+                                <td><span class="badge @DurumSinifi(odeme.OdemeDurumu)">@odeme.OdemeDurumu</span></td>
+                                <td>@odeme.KayitTarihi.ToString("dd.MM.yyyy HH:mm", tr)</td>
+                                <td>@(string.IsNullOrWhiteSpace(odeme.TamiHataMesaji) ? "-" : odeme.TamiHataMesaji)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var input = document.getElementById("musteriArama");
+            var table = document.getElementById("musteriTablosu");
+            if (!input || !table) {
+                return;
+            }
+
+            input.addEventListener("input", function () {
+                var query = input.value.toLocaleLowerCase("tr-TR");
+                table.querySelectorAll("tbody tr").forEach(function (row) {
+                    row.hidden = query && row.textContent.toLocaleLowerCase("tr-TR").indexOf(query) === -1;
+                });
+            });
+        })();
+    </script>
+}
