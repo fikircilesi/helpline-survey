@@ -35,10 +35,14 @@
             --line: #dce6f2;
             --panel: #ffffff;
             --teal: #15b8a6;
+            --cyan: #28c7d9;
             --indigo: #4257e8;
+            --violet: #7c3aed;
             --amber: #ffb84d;
             --coral: #ff6b5d;
+            --rose: #ff4f8b;
             --green: #22c55e;
+            --navy: #10192c;
         }
 
         * {
@@ -63,11 +67,12 @@
             min-height: 100vh;
             overflow: hidden;
             background:
-                linear-gradient(135deg, rgba(21, 184, 166, .11) 0 16%, transparent 16% 100%),
-                linear-gradient(155deg, transparent 0 54%, rgba(66, 87, 232, .10) 54% 100%),
-                repeating-linear-gradient(90deg, rgba(21, 32, 51, .035) 0 1px, transparent 1px 76px),
-                repeating-linear-gradient(0deg, rgba(21, 32, 51, .03) 0 1px, transparent 1px 76px),
-                linear-gradient(180deg, #ffffff 0%, #f7fbff 48%, #edf5ff 100%);
+                linear-gradient(132deg, rgba(21, 184, 166, .22) 0 17%, transparent 17% 100%),
+                linear-gradient(151deg, transparent 0 48%, rgba(66, 87, 232, .11) 48% 70%, rgba(255, 184, 77, .18) 70% 100%),
+                linear-gradient(22deg, transparent 0 62%, rgba(255, 79, 139, .12) 62% 100%),
+                repeating-linear-gradient(90deg, rgba(16, 25, 44, .04) 0 1px, transparent 1px 76px),
+                repeating-linear-gradient(0deg, rgba(16, 25, 44, .035) 0 1px, transparent 1px 76px),
+                linear-gradient(180deg, #ffffff 0%, #f7fbff 46%, #eef7ff 100%);
         }
 
         .studio-entry::before {
@@ -75,7 +80,21 @@
             position: absolute;
             inset: auto 0 0;
             height: 12px;
-            background: linear-gradient(90deg, var(--teal), var(--indigo), var(--amber), var(--coral));
+            background: linear-gradient(90deg, var(--teal), var(--cyan), var(--indigo), var(--violet), var(--rose), var(--amber));
+        }
+
+        .studio-entry::after {
+            content: "";
+            position: absolute;
+            top: 86px;
+            right: -16%;
+            width: 72%;
+            height: 78%;
+            clip-path: polygon(20% 0, 100% 13%, 84% 100%, 0 78%);
+            background:
+                linear-gradient(135deg, rgba(40, 199, 217, .16), rgba(124, 58, 237, .10) 42%, rgba(255, 184, 77, .16)),
+                repeating-linear-gradient(90deg, rgba(66, 87, 232, .06) 0 1px, transparent 1px 58px);
+            pointer-events: none;
         }
 
         .entry-shell {
@@ -88,6 +107,20 @@
             grid-template-rows: auto 1fr;
             gap: 28px;
             padding: 24px 0 42px;
+        }
+
+        .entry-shell::before {
+            content: "";
+            position: absolute;
+            top: 84px;
+            left: -96px;
+            width: 390px;
+            height: 300px;
+            clip-path: polygon(0 14%, 88% 0, 100% 64%, 23% 100%);
+            background: linear-gradient(135deg, rgba(125, 244, 199, .38), rgba(56, 189, 248, .18), rgba(255, 107, 93, .10));
+            filter: blur(1px);
+            pointer-events: none;
+            z-index: -1;
         }
 
         .entry-nav {
@@ -106,8 +139,10 @@
             color: #fff;
             border: 1px solid rgba(255, 255, 255, .16);
             border-radius: 18px;
-            background: linear-gradient(135deg, #142133 0%, #26384f 100%);
-            box-shadow: 0 18px 42px rgba(21, 32, 51, .18);
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .12), transparent 38%),
+                linear-gradient(135deg, #121a2b 0%, #26384f 54%, #24325f 100%);
+            box-shadow: 0 18px 42px rgba(21, 32, 51, .22), inset 0 0 0 1px rgba(125, 244, 199, .08);
             transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
         }
 
@@ -239,8 +274,9 @@
             min-height: 42px;
             padding: 0 15px;
             color: #1f2d44;
-            border: 1px solid var(--line);
-            background: rgba(255, 255, 255, .78);
+            border: 1px solid rgba(151, 167, 195, .42);
+            background: rgba(255, 255, 255, .82);
+            box-shadow: 0 12px 26px rgba(49, 73, 118, .08);
         }
 
         .nav-link-btn:hover {
@@ -255,8 +291,8 @@
             padding: 0 16px;
             border: 0;
             color: #fff;
-            background: #152033;
-            box-shadow: 0 12px 26px rgba(21, 32, 51, .18);
+            background: linear-gradient(135deg, var(--navy), #2d3be8 58%, #16b8a6);
+            box-shadow: 0 14px 30px rgba(66, 87, 232, .24);
             cursor: pointer;
         }
 
@@ -268,7 +304,7 @@
         .entry-main {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 430px;
-            align-items: center;
+            align-items: start;
             gap: 44px;
         }
 
@@ -282,12 +318,13 @@
             gap: 9px;
             margin-bottom: 18px;
             padding: 8px 12px;
-            color: #174a43;
-            border: 1px solid rgba(21, 184, 166, .28);
+            color: #0c4a45;
+            border: 1px solid rgba(21, 184, 166, .34);
             border-radius: 999px;
-            background: rgba(21, 184, 166, .10);
+            background: linear-gradient(90deg, rgba(21, 184, 166, .14), rgba(56, 189, 248, .12), rgba(255, 184, 77, .13));
             font-size: 13px;
             font-weight: 800;
+            box-shadow: 0 12px 28px rgba(21, 184, 166, .10);
         }
 
         .eyebrow i {
@@ -305,7 +342,10 @@
         }
 
         .hero-title span {
-            color: var(--indigo);
+            color: transparent;
+            background: linear-gradient(90deg, var(--indigo), var(--violet), var(--teal), var(--coral));
+            -webkit-background-clip: text;
+            background-clip: text;
         }
 
         .hero-text {
@@ -315,6 +355,260 @@
             font-size: 17px;
             line-height: 1.72;
             font-weight: 500;
+        }
+
+        .trust-ribbon {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            max-width: 760px;
+            margin-top: 22px;
+        }
+
+        .trust-item {
+            display: grid;
+            grid-template-columns: 38px 1fr;
+            gap: 10px;
+            min-height: 88px;
+            padding: 13px;
+            border: 1px solid rgba(132, 151, 176, .28);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(255, 255, 255, .68)),
+                linear-gradient(135deg, rgba(21, 184, 166, .12), rgba(66, 87, 232, .10));
+            box-shadow: 0 16px 36px rgba(49, 73, 118, .10);
+        }
+
+        .trust-item:nth-child(2) {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(255, 255, 255, .68)),
+                linear-gradient(135deg, rgba(124, 58, 237, .12), rgba(255, 184, 77, .13));
+        }
+
+        .trust-item:nth-child(3) {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(255, 255, 255, .68)),
+                linear-gradient(135deg, rgba(255, 107, 93, .12), rgba(21, 184, 166, .12));
+        }
+
+        .trust-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--teal), var(--cyan));
+            box-shadow: 0 12px 24px rgba(21, 184, 166, .22);
+        }
+
+        .trust-item:nth-child(2) .trust-mark {
+            background: linear-gradient(135deg, #4c2f91, var(--violet));
+            box-shadow: 0 12px 24px rgba(124, 58, 237, .22);
+        }
+
+        .trust-item:nth-child(3) .trust-mark {
+            background: linear-gradient(135deg, var(--coral), var(--amber));
+            box-shadow: 0 12px 24px rgba(255, 107, 93, .20);
+        }
+
+        .trust-copy strong {
+            display: block;
+            color: #142033;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .trust-copy span {
+            display: block;
+            margin-top: 4px;
+            color: #637288;
+            font-size: 12px;
+            line-height: 1.42;
+        }
+
+        .legal-dock {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-width: 760px;
+            margin-top: 14px;
+        }
+
+        .legal-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 30px;
+            padding: 0 10px;
+            border: 1px solid rgba(132, 151, 176, .28);
+            border-radius: 999px;
+            color: #314057;
+            background: rgba(255, 255, 255, .78);
+            box-shadow: 0 10px 24px rgba(49, 73, 118, .08);
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .legal-chip i {
+            color: var(--teal);
+        }
+
+        .app-showcase {
+            max-width: 760px;
+            margin-top: 18px;
+            padding: 12px;
+            border: 1px solid rgba(132, 151, 176, .26);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .84), rgba(255, 255, 255, .58)),
+                linear-gradient(90deg, rgba(21, 184, 166, .12), rgba(66, 87, 232, .10), rgba(255, 184, 77, .12));
+            box-shadow: 0 20px 54px rgba(49, 73, 118, .12);
+            overflow: hidden;
+        }
+
+        .showcase-track {
+            display: flex;
+            gap: 12px;
+            width: max-content;
+            animation: showcaseGlide 18s ease-in-out infinite;
+        }
+
+        .app-showcase:hover .showcase-track {
+            animation-play-state: paused;
+        }
+
+        .app-shot {
+            flex: 0 0 214px;
+            min-height: 124px;
+            padding: 10px;
+            border: 1px solid rgba(132, 151, 176, .30);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(49, 73, 118, .10);
+        }
+
+        .shot-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .shot-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            color: #172033;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .shot-title i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            flex: 0 0 26px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--teal), var(--cyan));
+        }
+
+        .app-shot:nth-child(2) .shot-title i,
+        .app-shot:nth-child(6) .shot-title i {
+            background: linear-gradient(135deg, var(--indigo), var(--violet));
+        }
+
+        .app-shot:nth-child(3) .shot-title i,
+        .app-shot:nth-child(7) .shot-title i {
+            background: linear-gradient(135deg, var(--coral), var(--amber));
+        }
+
+        .app-shot:nth-child(4) .shot-title i,
+        .app-shot:nth-child(8) .shot-title i {
+            background: linear-gradient(135deg, var(--rose), var(--violet));
+        }
+
+        .shot-pill {
+            flex: 0 0 auto;
+            min-height: 22px;
+            padding: 0 8px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: rgba(21, 184, 166, .11);
+            font-size: 10px;
+            font-weight: 900;
+            line-height: 22px;
+        }
+
+        .shot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .shot-cell {
+            min-height: 48px;
+            padding: 8px;
+            border: 1px solid #e2eaf5;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #fbfdff, #f5f8ff);
+        }
+
+        .shot-cell strong {
+            display: block;
+            color: #1d2a41;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .shot-bar {
+            display: block;
+            width: var(--shot-bar, 72%);
+            height: 6px;
+            margin-top: 9px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--teal), var(--amber));
+        }
+
+        .shot-list {
+            display: grid;
+            gap: 7px;
+        }
+
+        .shot-list span {
+            display: block;
+            height: 9px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(66, 87, 232, .20), rgba(21, 184, 166, .20));
+        }
+
+        .shot-list span:nth-child(2) {
+            width: 78%;
+        }
+
+        .shot-list span:nth-child(3) {
+            width: 62%;
+        }
+
+        @@keyframes showcaseGlide {
+            0%, 14% {
+                transform: translateX(0);
+            }
+
+            50% {
+                transform: translateX(-256px);
+            }
+
+            86%, 100% {
+                transform: translateX(0);
+            }
         }
 
         .hero-actions {
@@ -340,11 +634,30 @@
         }
 
         .confidence-item {
+            position: relative;
+            overflow: hidden;
             min-height: 78px;
             padding: 14px;
-            border: 1px solid var(--line);
+            border: 1px solid rgba(132, 151, 176, .26);
             border-radius: 8px;
-            background: rgba(255, 255, 255, .72);
+            background: rgba(255, 255, 255, .82);
+            box-shadow: 0 14px 34px rgba(49, 73, 118, .08);
+        }
+
+        .confidence-item::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 4px;
+            background: linear-gradient(90deg, var(--teal), var(--cyan));
+        }
+
+        .confidence-item:nth-child(2)::before {
+            background: linear-gradient(90deg, var(--indigo), var(--violet));
+        }
+
+        .confidence-item:nth-child(3)::before {
+            background: linear-gradient(90deg, var(--coral), var(--amber));
         }
 
         .confidence-item i {
@@ -370,10 +683,12 @@
         .studio-preview {
             max-width: 650px;
             margin-top: 30px;
-            border: 1px solid rgba(66, 87, 232, .18);
+            border: 1px solid transparent;
             border-radius: 8px;
-            background: rgba(255, 255, 255, .86);
-            box-shadow: 0 22px 60px rgba(49, 73, 118, .14);
+            background:
+                linear-gradient(#ffffff, #ffffff) padding-box,
+                linear-gradient(135deg, rgba(21, 184, 166, .58), rgba(66, 87, 232, .44), rgba(255, 184, 77, .52)) border-box;
+            box-shadow: 0 24px 70px rgba(49, 73, 118, .17);
             overflow: hidden;
         }
 
@@ -384,7 +699,9 @@
             gap: 12px;
             padding: 14px 16px;
             border-bottom: 1px solid #e5edf7;
-            background: #fff;
+            background:
+                linear-gradient(90deg, rgba(21, 184, 166, .10), rgba(66, 87, 232, .08), rgba(255, 184, 77, .10)),
+                #fff;
         }
 
         .preview-title {
@@ -405,7 +722,7 @@
             flex: 0 0 30px;
             border-radius: 8px;
             color: #fff;
-            background: var(--teal);
+            background: linear-gradient(135deg, var(--teal), var(--cyan));
         }
 
         .status-pill {
@@ -441,7 +758,8 @@
             padding: 12px;
             border: 1px solid #e3ebf6;
             border-radius: 8px;
-            background: #fbfdff;
+            background: linear-gradient(135deg, #ffffff, #f7fbff);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .52);
         }
 
         .workflow-step {
@@ -459,8 +777,16 @@
             height: 34px;
             border-radius: 8px;
             color: #fff;
-            background: var(--indigo);
+            background: linear-gradient(135deg, var(--indigo), var(--violet));
             font-weight: 900;
+        }
+
+        .workflow-step:nth-child(2) .step-no {
+            background: linear-gradient(135deg, var(--teal), var(--cyan));
+        }
+
+        .workflow-step:nth-child(3) .step-no {
+            background: linear-gradient(135deg, var(--coral), var(--amber));
         }
 
         .workflow-step strong,
@@ -493,17 +819,145 @@
             background: linear-gradient(90deg, var(--teal), var(--amber));
         }
 
-        .access-panel {
-            align-self: center;
-            border: 1px solid rgba(132, 151, 176, .30);
+        .trust-center {
+            max-width: 650px;
+            margin-top: 14px;
+            padding: 14px;
+            border: 1px solid rgba(132, 151, 176, .28);
             border-radius: 8px;
-            background: var(--panel);
-            box-shadow: 0 28px 80px rgba(49, 73, 118, .18);
+            background:
+                linear-gradient(135deg, rgba(16, 25, 44, .94), rgba(36, 50, 95, .94)),
+                linear-gradient(90deg, var(--teal), var(--indigo), var(--amber));
+            color: #fff;
+            box-shadow: 0 22px 60px rgba(16, 25, 44, .20);
+        }
+
+        .trust-center-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .trust-center-head strong {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .trust-center-head span {
+            display: inline-flex;
+            align-items: center;
+            min-height: 26px;
+            padding: 0 10px;
+            border: 1px solid rgba(125, 244, 199, .30);
+            border-radius: 999px;
+            color: #7df4c7;
+            background: rgba(125, 244, 199, .10);
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .trust-center-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .trust-center-item {
+            min-height: 74px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .08);
+        }
+
+        .trust-center-item i {
+            color: #7df4c7;
+        }
+
+        .trust-center-item strong {
+            display: block;
+            margin-top: 7px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .trust-center-item span {
+            display: block;
+            margin-top: 3px;
+            color: rgba(255, 255, 255, .72);
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        .access-panel {
+            position: relative;
+            align-self: start;
+            margin-top: 92px;
+            border: 1px solid rgba(132, 151, 176, .34);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .90)),
+                linear-gradient(145deg, rgba(21, 184, 166, .10), rgba(66, 87, 232, .10), rgba(255, 184, 77, .10));
+            box-shadow: 0 30px 90px rgba(49, 73, 118, .22);
             overflow: hidden;
+        }
+
+        .access-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 5px;
+            background: linear-gradient(90deg, var(--teal), var(--cyan), var(--indigo), var(--violet), var(--rose), var(--amber));
         }
 
         .panel-head {
             padding: 18px 18px 0;
+        }
+
+        .panel-trust-strip {
+            display: grid;
+            grid-template-columns: 38px 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid rgba(21, 184, 166, .22);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(21, 184, 166, .10), rgba(66, 87, 232, .08), rgba(255, 184, 77, .10)),
+                rgba(255, 255, 255, .88);
+        }
+
+        .panel-trust-strip i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--teal), var(--indigo));
+        }
+
+        .panel-trust-strip strong {
+            display: block;
+            color: #142033;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .panel-trust-strip span {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.35;
         }
 
         .mode-tabs {
@@ -542,8 +996,8 @@
 
         .mode-tabs button.is-active {
             color: #fff;
-            background: #152033;
-            box-shadow: 0 10px 22px rgba(21, 32, 51, .18);
+            background: linear-gradient(135deg, var(--navy), var(--indigo));
+            box-shadow: 0 10px 22px rgba(66, 87, 232, .22);
         }
 
         .auth-form {
@@ -590,12 +1044,12 @@
         .form-field input {
             width: 100%;
             min-height: 46px;
-            border: 1px solid #d9e3f0;
+            border: 1px solid #d8e4f2;
             border-radius: 8px;
             outline: none;
             padding: 0 13px;
             color: #172033;
-            background: #fbfdff;
+            background: rgba(255, 255, 255, .86);
             transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
         }
 
@@ -733,8 +1187,8 @@
             margin-top: 4px;
             border: 0;
             color: #fff;
-            background: linear-gradient(135deg, #152033, #4257e8);
-            box-shadow: 0 16px 34px rgba(66, 87, 232, .20);
+            background: linear-gradient(135deg, var(--navy), var(--indigo) 48%, var(--teal));
+            box-shadow: 0 18px 38px rgba(66, 87, 232, .24);
             cursor: pointer;
         }
 
@@ -764,6 +1218,17 @@
         .form-foot a {
             color: var(--indigo);
             font-weight: 900;
+        }
+
+        .legal-note {
+            margin: 12px 0 0;
+            color: #667085;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        .legal-note strong {
+            color: #26354d;
         }
 
         .text-btn {
@@ -808,12 +1273,20 @@
         .mini-proof {
             min-height: 76px;
             padding: 13px;
-            background: #fbfdff;
+            background: rgba(255, 255, 255, .88);
         }
 
         .mini-proof i {
             color: var(--teal);
             font-size: 18px;
+        }
+
+        .mini-proof:nth-child(2) i {
+            color: var(--violet);
+        }
+
+        .mini-proof:nth-child(3) i {
+            color: var(--coral);
         }
 
         .mini-proof span {
@@ -822,6 +1295,160 @@
             color: #617084;
             font-size: 12px;
             line-height: 1.35;
+        }
+
+        .assistant-widget {
+            position: fixed;
+            right: 22px;
+            bottom: 22px;
+            z-index: 30;
+            width: min(350px, calc(100vw - 28px));
+            filter: drop-shadow(0 24px 42px rgba(16, 25, 44, .24));
+        }
+
+        .assistant-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(132, 151, 176, .34);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .92)),
+                linear-gradient(135deg, rgba(21, 184, 166, .14), rgba(66, 87, 232, .10), rgba(255, 184, 77, .12));
+        }
+
+        .assistant-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 5px;
+            background: linear-gradient(90deg, var(--teal), var(--cyan), var(--indigo), var(--rose), var(--amber));
+        }
+
+        .assistant-head {
+            display: grid;
+            grid-template-columns: 44px 1fr 30px;
+            gap: 10px;
+            align-items: center;
+            padding: 16px 14px 10px;
+        }
+
+        .assistant-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
+            box-shadow: 0 12px 24px rgba(66, 87, 232, .20);
+        }
+
+        .assistant-title strong {
+            display: block;
+            color: #111827;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .assistant-title span {
+            display: block;
+            margin-top: 3px;
+            color: #667085;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .assistant-close,
+        .assistant-launcher {
+            border: 0;
+            cursor: pointer;
+        }
+
+        .assistant-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            color: #526070;
+            background: rgba(15, 23, 42, .06);
+        }
+
+        .assistant-close:hover {
+            color: #111827;
+            background: rgba(15, 23, 42, .10);
+        }
+
+        .assistant-body {
+            padding: 0 14px 14px;
+        }
+
+        .assistant-message {
+            margin: 0;
+            padding: 11px 12px;
+            border: 1px solid rgba(21, 184, 166, .22);
+            border-radius: 8px;
+            color: #334155;
+            background: rgba(255, 255, 255, .78);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .assistant-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .assistant-actions button {
+            min-height: 38px;
+            border: 1px solid #dbe6f4;
+            border-radius: 8px;
+            color: #142033;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .assistant-actions button:first-child {
+            grid-column: 1 / -1;
+            color: #fff;
+            border-color: transparent;
+            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
+        }
+
+        .assistant-launcher {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            margin-left: auto;
+            min-height: 50px;
+            padding: 0 15px;
+            border-radius: 999px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--navy), var(--indigo), var(--teal));
+            box-shadow: 0 18px 36px rgba(66, 87, 232, .24);
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .assistant-widget.is-collapsed .assistant-card {
+            display: none;
+        }
+
+        .assistant-widget.is-collapsed .assistant-launcher {
+            display: inline-flex;
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            .showcase-track {
+                animation: none;
+            }
         }
 
         @@media (max-width: 1080px) {
@@ -833,6 +1460,7 @@
             .access-panel {
                 order: -1;
                 width: min(560px, 100%);
+                margin-top: 0;
             }
         }
 
@@ -840,6 +1468,14 @@
             .entry-shell {
                 width: min(100% - 22px, 1180px);
                 padding-top: 16px;
+            }
+
+            .entry-main,
+            .story-panel,
+            .access-panel {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
             }
 
             .entry-nav {
@@ -888,6 +1524,8 @@
             }
 
             .confidence-row,
+            .trust-ribbon,
+            .trust-center-grid,
             .preview-body,
             .field-grid,
             .panel-footer,
@@ -895,22 +1533,47 @@
                 grid-template-columns: 1fr;
             }
 
+            .panel-trust-strip {
+                grid-template-columns: 34px minmax(0, 1fr);
+            }
+
+            .panel-trust-strip > span,
+            .panel-trust-strip span {
+                min-width: 0;
+            }
+
             .studio-preview {
                 margin-top: 22px;
             }
+
+            .app-showcase {
+                padding: 10px;
+            }
+
+            .app-shot {
+                flex-basis: 204px;
+            }
+
+            .assistant-widget {
+                right: 12px;
+                bottom: 12px;
+            }
         }
 
-        @@media (max-width: 430px) {
+        @@media (max-width: 560px) {
             .panel-head {
                 padding: 14px 14px 0;
             }
 
             .mode-tabs {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 4px;
                 padding: 4px;
             }
 
             .mode-tabs button {
+                width: 100%;
                 min-height: 38px;
                 gap: 5px;
                 font-size: 12px;
@@ -981,11 +1644,100 @@
                         Güvenli sınav, anket ve sertifika stüdyosu
                     </div>
                     <h1 class="hero-title">
-                        Değerlendirme süreçlerinizi <span>tek, sakin ve güvenli</span> bir ekrandan yönetin.
+                        Değerlendirme süreçlerinizi <span>güvenli, kurumsal ve tek</span> bir ekrandan yönetin.
                     </h1>
                     <p class="hero-text">
-                        Survey by Aslana Teknoloji; İK, eğitim, kalite ve işe alım ekipleri için sınav oluşturma, anket yayınlama, sonuç izleme ve sertifika süreçlerini sade bir çalışma alanında toplar.
+                        Survey by Aslana Teknoloji; İK, eğitim, kalite ve işe alım ekipleri için sınav oluşturma, anket yayınlama, sonuç izleme ve sertifika süreçlerini renkli ama kontrollü bir çalışma alanında toplar.
                     </p>
+
+                    <div class="trust-ribbon" aria-label="Kurumsal güven bilgileri">
+                        <div class="trust-item">
+                            <span class="trust-mark"><i class="ti-briefcase"></i></span>
+                            <span class="trust-copy">
+                                <strong>Aslana Teknoloji Ltd. Şti.</strong>
+                                <span>Kurumsal şirket yapısı, doğrulanmış yönetim paneli ve kayıtlı çalışma alanı.</span>
+                            </span>
+                        </div>
+                        <div class="trust-item">
+                            <span class="trust-mark"><i class="ti-credit-card"></i></span>
+                            <span class="trust-copy">
+                                <strong>Tami ile güvenli ödeme</strong>
+                                <span>Tami, Garanti BBVA kuruluşudur; kart bilgileri Survey panelinde tutulmaz.</span>
+                            </span>
+                        </div>
+                        <div class="trust-item">
+                            <span class="trust-mark"><i class="ti-shield"></i></span>
+                            <span class="trust-copy">
+                                <strong>KVKK ve gizlilik</strong>
+                                <span>KVKK, gizlilik, çerez ve kullanım koşulları başlıkları kayıt ve ödeme akışında görünür.</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="legal-dock" aria-label="Yasal ve güvenlik başlıkları">
+                        <span class="legal-chip"><i class="ti-check-box"></i> KVKK Aydınlatma</span>
+                        <span class="legal-chip"><i class="ti-lock"></i> Gizlilik Politikası</span>
+                        <span class="legal-chip"><i class="ti-files"></i> Kullanım Koşulları</span>
+                        <span class="legal-chip"><i class="ti-receipt"></i> Mesafeli Satış</span>
+                        <span class="legal-chip"><i class="ti-shield"></i> Güvenli Ödeme</span>
+                    </div>
+
+                    <div class="app-showcase" aria-label="Survey uygulama ekranları">
+                        <div class="showcase-track">
+                            <div class="app-shot">
+                                <div class="shot-head">
+                                    <span class="shot-title"><i class="ti-layout"></i> Çalışma Stüdyosu</span>
+                                    <span class="shot-pill">Yayında</span>
+                                </div>
+                                <div class="shot-grid">
+                                    <span class="shot-cell"><strong>12 çalışma</strong><span class="shot-bar" style="--shot-bar:82%"></span></span>
+                                    <span class="shot-cell"><strong>1.238 cevap</strong><span class="shot-bar" style="--shot-bar:68%"></span></span>
+                                </div>
+                            </div>
+                            <div class="app-shot">
+                                <div class="shot-head">
+                                    <span class="shot-title"><i class="ti-bar-chart"></i> Rapor Paneli</span>
+                                    <span class="shot-pill">Canlı</span>
+                                </div>
+                                <div class="shot-grid">
+                                    <span class="shot-cell"><strong>Katılım</strong><span class="shot-bar" style="--shot-bar:88%"></span></span>
+                                    <span class="shot-cell"><strong>Başarı</strong><span class="shot-bar" style="--shot-bar:74%"></span></span>
+                                </div>
+                            </div>
+                            <div class="app-shot">
+                                <div class="shot-head">
+                                    <span class="shot-title"><i class="ti-id-badge"></i> Sertifika</span>
+                                    <span class="shot-pill">Hazır</span>
+                                </div>
+                                <div class="shot-list">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                            <div class="app-shot">
+                                <div class="shot-head">
+                                    <span class="shot-title"><i class="ti-credit-card"></i> Paketler</span>
+                                    <span class="shot-pill">Tami</span>
+                                </div>
+                                <div class="shot-grid">
+                                    <span class="shot-cell"><strong>Ücretsiz</strong><span class="shot-bar" style="--shot-bar:52%"></span></span>
+                                    <span class="shot-cell"><strong>Profesyonel</strong><span class="shot-bar" style="--shot-bar:92%"></span></span>
+                                </div>
+                            </div>
+                            <div class="app-shot">
+                                <div class="shot-head">
+                                    <span class="shot-title"><i class="ti-wand"></i> AI Soru Üret</span>
+                                    <span class="shot-pill">Yeni</span>
+                                </div>
+                                <div class="shot-list">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="hero-actions">
                         <button type="button" class="primary-top" data-open-panel="register">
                             <i class="ti-rocket"></i>
@@ -1070,10 +1822,41 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="trust-center" id="trustCenter" aria-label="Güven merkezi">
+                        <div class="trust-center-head">
+                            <strong><i class="ti-medall"></i> Güven merkezi</strong>
+                            <span>Ödeme, veri ve şirket bilgisi görünür</span>
+                        </div>
+                        <div class="trust-center-grid">
+                            <div class="trust-center-item">
+                                <i class="ti-credit-card"></i>
+                                <strong>Tami altyapısı</strong>
+                                <span>Ödeme işlemi Tami ortak ödeme sayfasında tamamlanır.</span>
+                            </div>
+                            <div class="trust-center-item">
+                                <i class="ti-lock"></i>
+                                <strong>Veri mahremiyeti</strong>
+                                <span>Katılımcı ve sonuç verileri yetkili hesaplarla sınırlandırılır.</span>
+                            </div>
+                            <div class="trust-center-item">
+                                <i class="ti-clipboard"></i>
+                                <strong>Yasal başlıklar</strong>
+                                <span>KVKK, gizlilik, çerez ve kullanım koşulları net şekilde sunulur.</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <aside class="access-panel" id="accessPanel">
                     <div class="panel-head">
+                        <div class="panel-trust-strip">
+                            <i class="ti-shield"></i>
+                            <span>
+                                <strong>Kurumsal ve güvenli giriş</strong>
+                                <span>Aslana Teknoloji Ltd. Şti. paneli; ücretli paket ödemeleri Tami üzerinde ilerler.</span>
+                            </span>
+                        </div>
                         <div class="mode-tabs" role="tablist" aria-label="Giriş seçenekleri">
                             <button type="button" class="@(loginActive ? "is-active" : "")" data-panel-tab="login">
                                 <i class="ti-lock"></i><span>Panel</span>
@@ -1210,6 +1993,9 @@
                             <i class="ti-check"></i>
                             Hesabı Oluştur
                         </button>
+                        <p class="legal-note">
+                            Kayıtla birlikte <strong>KVKK Aydınlatma</strong>, <strong>Gizlilik Politikası</strong>, <strong>Kullanım Koşulları</strong> ve ödeme sırasında gösterilecek satış metinlerini okuduğunuzu kabul edersiniz.
+                        </p>
                         <div class="form-foot">
                             <span>Zaten hesabınız var mı?</span>
                             <button type="button" class="text-btn" data-open-panel="login">Girişe dön</button>
@@ -1282,21 +2068,50 @@
                     <div class="panel-footer">
                         <div class="mini-proof">
                             <i class="ti-shield"></i>
-                            <span>Güvenli oturum</span>
+                            <span>KVKK ve gizlilik</span>
                         </div>
                         <div class="mini-proof">
-                            <i class="ti-layout"></i>
-                            <span>Sade stüdyo akışı</span>
+                            <i class="ti-credit-card"></i>
+                            <span>Tami ödeme altyapısı</span>
                         </div>
                         <div class="mini-proof">
-                            <i class="ti-bar-chart"></i>
-                            <span>Anlık raporlar</span>
+                            <i class="ti-briefcase"></i>
+                            <span>Ltd. şirket güvencesi</span>
                         </div>
                     </div>
                 </aside>
             </section>
         </div>
     </main>
+
+    <div class="assistant-widget is-collapsed" id="surveyAssistant" aria-live="polite">
+        <div class="assistant-card">
+            <div class="assistant-head">
+                <span class="assistant-avatar"><i class="ti-headphone-alt"></i></span>
+                <span class="assistant-title">
+                    <strong>Merhaba, ben Survey Asistan</strong>
+                    <span>Sınav, anket, sertifika ve paket seçimi için hızlıca yönlendirebilirim.</span>
+                </span>
+                <button type="button" class="assistant-close" data-assistant-close aria-label="Asistanı küçült" title="Asistanı küçült">
+                    <i class="ti-close"></i>
+                </button>
+            </div>
+            <div class="assistant-body">
+                <p class="assistant-message">
+                    Çalışma alanı açabilir, katılım kodunuzu sorgulayabilir veya güvenli ödeme adımlarını inceleyebilirsiniz.
+                </p>
+                <div class="assistant-actions">
+                    <button type="button" data-assistant-panel="register">Ücretsiz çalışma alanı aç</button>
+                    <button type="button" data-assistant-panel="participant">Katılım kodum var</button>
+                    <button type="button" data-assistant-panel="login">Panele giriş</button>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="assistant-launcher" data-assistant-open aria-label="Survey Asistanı aç">
+            <i class="ti-headphone-alt"></i>
+            Merhaba, ben Survey Asistan
+        </button>
+    </div>
 
     <script type="text/javascript" src="~/files/bower_components/jquery/dist/jquery.min.js"></script>
     <script type="text/javascript" src="~/files/bower_components/popper.js/dist/umd/popper.min.js"></script>
@@ -1376,9 +2191,22 @@
                 button.addEventListener('click', () => setPanel(button.dataset.openPanel));
             });
 
+            document.querySelectorAll('[data-assistant-panel]').forEach(button => {
+                button.addEventListener('click', () => setPanel(button.dataset.assistantPanel));
+            });
+
             tabButtons.forEach(button => {
                 button.addEventListener('click', () => setPanel(button.dataset.panelTab));
             });
+
+            const assistant = document.getElementById('surveyAssistant');
+            const assistantClose = document.querySelector('[data-assistant-close]');
+            const assistantOpen = document.querySelector('[data-assistant-open]');
+
+            if (assistant && assistantClose && assistantOpen) {
+                assistantClose.addEventListener('click', () => assistant.classList.add('is-collapsed'));
+                assistantOpen.addEventListener('click', () => assistant.classList.remove('is-collapsed'));
+            }
 
             const loginForm = document.querySelector('[data-panel="login"]');
             if (loginForm) {
