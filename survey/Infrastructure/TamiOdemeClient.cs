@@ -168,7 +168,7 @@ public sealed class TamiOdemeClient
     }
 
     private string HostedOdemeSayfasi(string token)
-        => $"{_ayarlar.PortalUrlKoku}/hostedPaymentPage?token={Uri.EscapeDataString(token)}";
+        => $"{_ayarlar.PortalUrlKoku}/hostedPaymentPage?token={token}";
 
     private static StringContent JsonIcerik(object payload)
         => new(JsonSerializer.Serialize(payload, JsonAyar), Encoding.UTF8, "application/json");
